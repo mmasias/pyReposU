@@ -21,4 +21,4 @@ Feliciano sugiere una serie de recomendaciones para los docentes interesados en 
 ### Conclusión
 El trabajo de Feliciano (2015) concluye que GitHub tiene un alto potencial para transformar la enseñanza de la ingeniería de software y las ciencias de la computación, promoviendo prácticas de trabajo colaborativo que son estándar en la industria. A pesar de sus desafíos, GitHub representa una alternativa viable a los sistemas tradicionales de gestión de aprendizaje (LMS) al permitir una mayor interacción y participación de los estudiantes en su propio proceso de aprendizaje.
 
-> **Referencia**: Feliciano, J. (2015). *Towards a Collaborative Learning Platform: The Use of GitHub in Computer Science and Software Engineering Courses*. University of Victoria. Disponible en la Biblioteca de la Universidad de Victoria.
+> **Referencia**: Feliciano, J. (2015). *Towards a Collaborative Learning Platform: The Use of GitHub in Computer Science and Software Engineering Courses*. University of Victoria. [Disponible en la Biblioteca de la Universidad de Victoria](https://dspace.library.uvic.ca/server/api/core/bitstreams/b9e2d42d-d592-4d27-83fb-632aea4bcdd8/content).
