@@ -18,4 +18,4 @@ En los cursos de programación de la Universidad de St. Mary's, los autores impl
 ### Conclusión
 GitHub proporciona una plataforma versátil para apoyar la enseñanza de programación, promoviendo tanto la colaboración como el desarrollo de habilidades técnicas en los estudiantes. Aunque presenta algunos desafíos, su popularidad en la industria y su adaptabilidad en el aula lo convierten en una herramienta eficaz para cursos de programación en educación superior.
 
-> **Referencia**: Angulo, M. A., & Aktunc, O. (2018). *Using GitHub as a Teaching Tool for Programming Courses*. En *Proceedings of the ASEE Gulf-Southwest Section Annual Conference*, University of Texas at Austin. DOI: 10.18260/1-2-370.620-31594.
+> **Referencia**: [Angulo, M. A., & Aktunc, O. (2018). *Using GitHub as a Teaching Tool for Programming Courses*. En *Proceedings of the ASEE Gulf-Southwest Section Annual Conference*, University of Texas at Austin. DOI: 10.18260/1-2-370.620-31594.](https://repositories.lib.utexas.edu/server/api/core/bitstreams/6d77c3b5-3848-4805-81f2-56ef40fe2f87/content)
