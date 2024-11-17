@@ -32,52 +32,73 @@ Este documento describe los actores principales y los casos de uso para el siste
 ### Casos de Uso para el **Profesor**
 1. **Configurar un curso**
    - Configura el curso y los parámetros iniciales, como el calendario de clases, los criterios de evaluación y los repositorios para las entregas.
-   
+
 2. **Verificar y supervisar las entregas**
-   - Accede al sistema para ver el estado de las entregas de cada estudiante (si están a tiempo, fuera de tiempo, etc.) y las notas asignadas automáticamente.
+   - Accede al sistema para ver el estado de las entregas de cada estudiante (si están a tiempo, fuera de tiempo, o no entregadas) y las notas asignadas automáticamente.  
+   - Recibe notificaciones sobre el estado de los PRs enviados por los estudiantes.
 
 3. **Revisar y evaluar el código**
-   - Revisa el código de los estudiantes y asigna una calificación manual si es necesario.
-   
+   - Revisa el código de los estudiantes a través de los PRs y verifica los resultados de las pruebas automáticas.  
+   - Asigna calificaciones manuales si es necesario.
+
 4. **Gestionar asistencia**
-   - Accede a la información de asistencia de los estudiantes (basada en los commits realizados en días de clase) y verifica si han cumplido con los requisitos de asistencia.
+   - Revisa la asistencia de los estudiantes basada en sus commits en días de clase y valida automáticamente su participación.
 
 5. **Configurar pruebas automáticas y notas en base a resultados**
-   - Configura los tests automáticos que se ejecutarán en cada entrega y define cómo se calificarán los resultados.
+   - Configura los tests automáticos que se ejecutarán en cada entrega y define cómo se calificarán los resultados en Google Sheets.
 
 6. **Visualizar progreso y actividad**
-   - Revisa un resumen del progreso de cada estudiante, con métricas como el número de commits, líneas de código y logros desbloqueados.
-
+   - Revisa un resumen del progreso de cada estudiante, con métricas como número de commits, PRs creados, líneas de código y contribuciones.
 7. **Recibir informes automatizados**
    - Genera y descarga informes de desempeño y actividad para obtener un resumen completo del progreso del curso.
 
 8. **Configurar notificaciones y recordatorios**
-   - Configura recordatorios automáticos para fechas límite de entregas y recibe notificaciones sobre la actividad de los estudiantes.
+   - Configura recordatorios automáticos para fechas límite de entregas y recibe notificaciones sobre la actividad de los estudiantes
 
-9. **Integración con GitHub Classroom**
-   - Asigna repositorios privados a los estudiantes y accede a cada uno sin comprometer la privacidad de las entregas.
+9. **Acceder al panel interactivo**
+   - Consulta un panel centralizado que muestra el estado general de todos los estudiantes, con opciones para filtrar por desempeño, asistencia o actividad.
+
+10. **Integración con GitHub Classroom**
+   - Asigna repositorios privados a los estudiantes para mantener la privacidad de las entregas y accede directamente a cada uno sin comprometer esta privacidad.
+
+11. **Evaluar colaboración grupal**
+   - Supervisa y evalúa la colaboración en trabajos grupales mediante métricas como frecuencia de commits, tamaño de cambios y contribuciones individuales.
+
+---
 
 ### Casos de Uso para el **Estudiante**
 1. **Realizar entregas de tareas**
-   - Sube su trabajo al repositorio asignado mediante pull requests o commits en los días especificados.
-   
+   - Sube su trabajo al repositorio asignado mediante pull requests y verifica el estado de sus entregas (a tiempo, fuera de tiempo, o no entregadas).
+
 2. **Recibir y revisar feedback**
-   - Recibe notificaciones de feedback y resultados automáticos de sus pruebas.
+   - Recibe notificaciones automáticas sobre el estado de sus entregas, resultados de pruebas automáticas y cualquier feedback adicional proporcionado por el profesor.
 
 3. **Verificar su asistencia**
-   - Puede acceder al sistema para verificar si sus commits han sido registrados como asistencia en los días de clase.
+   - Puede acceder al sistema para verificar si sus commits han sido registrados como válidos en los días de clase asignados.
 
 4. **Consultar progreso y resultados**
-   - Revisa su progreso en el curso y su calificación acumulada en base a las entregas y asistencias.
+   - Revisa su progreso en el curso y las calificaciones obtenidas en base a sus entregas, asistencia y resultados de pruebas automáticas.
 
 5. **Recibir recordatorios de fechas límite**
-   - Recibe notificaciones o recordatorios automáticos de fechas importantes, como próximas entregas o retos semanales.
+   - Recibe notificaciones o recordatorios automáticos sobre fechas importantes, como próximas entregas o evaluaciones.
 
 6. **Participar en pruebas automáticas y recibir notas**
-   - Puede ver los resultados de las pruebas automáticas ejecutadas en su código y recibir una calificación automática en función de estos resultados.
+   - Visualiza los resultados de las pruebas automáticas ejecutadas en su código y revisa su calificación asignada en base a estos resultados.
 
 7. **Acceso privado mediante GitHub Classroom**
-   - Asegura que sus entregas sean privadas en un repositorio que solo el profesor puede ver.
+   - Realiza entregas en un repositorio privado al que solo el profesor tiene acceso, asegurando la privacidad de su trabajo.
 
-![casosDeUso](https://github.com/user-attachments/assets/c3885bd7-c8f7-4741-975a-7b93b0ccaaa9)
+8. **Consultar análisis de su actividad**
+   - Accede a un resumen detallado de su actividad, incluyendo el número de commits, PRs creados y líneas de código entregadas.
+
+9. **Colaborar en proyectos grupales**
+   - Participa en trabajos grupales asignados en repositorios compartidos y verifica su contribución individual a través del sistema.
+
+10. **Visualizar progreso en el panel interactivo**
+   - Revisa su desempeño a lo largo del curso mediante gráficos y tablas accesibles desde el sistema, comparando su progreso con el promedio del grupo.
+
+
+
+![ActoresYCDU](https://github.com/user-attachments/assets/5d4b5b61-9f5f-42c7-9f31-01dfd30bc7a0)
+
 
