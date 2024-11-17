@@ -22,8 +22,7 @@
   - Liderazgo en discussions técnicas avanzadas.
 
 - **Alumnos en Prácticas**:
-  - Tareas específicas asignadas en los issues??
-  - Actualización de la Wiki según avances y responsabilidades??
+  - Búsqueda de información o elaboración de ejemplos útiles para el desarrollo.
 
 - **Director del Proyecto**:
   - Revisión del progreso general.
@@ -34,3 +33,4 @@
 - **Discussions**: Espacio para debates técnicos abiertos.
 - **Projects**: Organización del trabajo en hitos y sprints.
 - **Wiki**: Documentación del proyecto, decisiones técnicas y flujo de trabajo.
+- **Milestones**: Para fijar plazos en tareas necesarias.
