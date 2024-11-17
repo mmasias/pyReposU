@@ -67,7 +67,6 @@ Este documento detalla las principales funcionalidades a desarrollar para el sis
      - Automatizar la corrección de tareas y proporcionar feedback en privado utilizando GitHub Actions.
     
 ## Posibles funcionalidades a añadir en el futuro:
----
 
 ## 1. **Gamificación y Logros**
    - **Descripción**: Introducir un sistema de logros que motive a los estudiantes a participar activamente y mejorar sus habilidades.
