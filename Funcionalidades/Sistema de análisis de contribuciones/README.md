@@ -1,127 +1,100 @@
+# Casos de uso a desarrollar en el proyecto.
 
-# Documentación de Funcionalidades para el TFG (Ampliada)
+## **1. Visualizador Evolutivo de Código por Carpeta y Archivos**
 
-## Funcionalidades Prioritarias
+### **Descripción**
+- Herramienta para analizar la evolución de las carpetas y los archivos de un repositorio. Permite observar cómo las carpetas y sus respectivos archivos han cambiado a lo largo del tiempo, tanto a nivel general como detallado.
+- Ofrece un modo de reproducción (playback) para visualizar los cambios gradualmente commit a commit.
 
-### **1. Visualizador Evolutivo de Código por Usuario (Vista General y Profunda)**
+### **Visualización**
+- **Vista General:**
+  - Representa las carpetas como bloques principales (tiles) dentro de un tablero (grid).
+  - Cada carpeta muestra indicadores de actividad (cambios totales) y subtiles para los archivos más relevantes dentro de esa carpeta.
+  - Los indicadores visuales incluyen:
+    - Barras de progreso para mostrar la cantidad de cambios.
+    - Porcentaje del total de cambios para cada archivo dentro de la carpeta.
+- **Vista Detallada:**
+  - Al seleccionar una carpeta, muestra una lista con los archivos que contiene, ordenados por actividad.
+  - Cada archivo incluye:
+    - Código coloreado para destacar líneas añadidas, eliminadas o modificadas.
+    - Comparación entre diferentes versiones del archivo.
+  - Playback para observar los cambios en el tiempo.
 
-- **Descripción**: Herramienta para analizar la evolución de los archivos de un repositorio. Ofrece una vista inicial en formato de tablero (grid) mostrando las primeras líneas de los archivos con más cambios, ordenados de mayor a menor actividad. Incluye un modo de reproducción (playback) para visualizar cómo crecen o cambian los archivos con el tiempo.
-- **Extras**: Filtrado por rama, fecha, o usuario; vista detallada con colores para destacar los cambios línea por línea.
-- **Visualización**:
-  - Pantalla principal muestra un tablero de miniaturas (grid 4x4 o configurable) con las primeras líneas de los archivos más modificados.
-  - Cada miniatura incluye un indicador visual (barra de progreso o porcentaje) mostrando cuántos cambios ha tenido el archivo.
-  - En modo playback, los cambios aparecen gradualmente como si se estuvieran "escribiendo en vivo".
-  - Al seleccionar un archivo, se abre una vista detallada con:
-    - Código coloreado para destacar líneas añadidas, modificadas o eliminadas.
-    - Opciones de navegación entre commits o visualización comparativa entre versiones.
-- **Casos de Uso**:
-  - Identificar las partes más dinámicas de un código.
-  - Facilitar la revisión histórica de múltiples archivos a la vez.
-- **Tecnologías Necesarias**: GitHub API, React o similar para la interfaz, herramientas de visualización como D3.js.
+### **Casos de Uso**
+- Evaluar cómo se distribuye el trabajo entre carpetas y archivos.
+- Identificar archivos críticos que recibieron muchos cambios.
 
----
-
-### **2. Análisis Multidimensional de Commits**
-
-- **Descripción**: Visualiza las métricas de commits de forma avanzada, incluyendo frecuencia diaria/semanal, número de líneas modificadas, y relación entre commits y archivos modificados. Podrá valorar un repo completo a la vez o ramas concretas.
-- **Visualización**:
-  - Gráfica interactiva estilo matriz o barra apilada para claridad:
-    - Los días o semanas se agrupan en el eje X, y las barras muestran contribuciones divididas por usuario o archivo.
-    - Colores representan ramas o tipos de cambios.
-  - Vista adicional de distribución:
-    - Un histograma que muestra la cantidad de cambios realizados por usuario en un rango temporal.
-  - Filtros: rama, usuario, fecha.
-- **Casos de Uso**:
-  - Evaluar patrones de trabajo de los estudiantes.
-  - Comparar esfuerzos entre participantes en proyectos grupales.
-- **Tecnologías Necesarias**: GitHub API para extraer datos, Python/NumPy para análisis, Matplotlib o gráficos interactivos con Plotly.
+### **Extras**
+- Filtros para rama, usuario, y rango temporal.
+- Exportar estadísticas por carpeta y archivo.
 
 ---
 
-### **3. Mapa de Contribuciones por Archivo**
+## **2. Mapa de Contribuciones por Carpeta y Archivos**
 
-- **Descripción**: Muestra cuánto ha contribuido cada usuario a cada archivo mediante un mapa visual, teniendo en cuenta merges y cambios realizados en ramas secundarias que llegan a la principal.
-- **Visualización**:
-  - Diagrama tipo heatmap donde:
-    - Los archivos se representan como bloques o nodos.
-    - El color indica el nivel de contribución (verde: muchas contribuciones; rojo: pocas contribuciones).
-  - Vista por contribuyente:
-    - En lugar de conectar ramas, se muestra un desglose por contribuyente al seleccionar un archivo: 
-      - Incluye un gráfico de barras con porcentajes de contribución.
-      - Opcional: estadísticas detalladas como líneas añadidas/eliminadas.
-- **Casos de Uso**:
-  - Evaluar equidad en la colaboración grupal.
-  - Analizar roles y responsabilidades dentro del equipo.
-- **Tecnologías Necesarias**: GitHub API, librerías de visualización como D3.js o Seaborn.
+### **Descripción**
+- Herramienta que representa visualmente cuánto ha contribuido cada usuario a cada carpeta y archivo del repositorio.
+- Incluye una jerarquía que parte de las carpetas principales y se desglosa en los archivos.
 
----
+### **Visualización**
+- **Mapa General:**
+  - Cada carpeta se muestra como un bloque en un heatmap.
+  - Los colores indican el nivel de contribución de los usuarios (verde: alta contribución, rojo: baja contribución).
+  - Los archivos dentro de cada carpeta también se destacan con un gradiente basado en la cantidad de contribuciones.
+- **Vista Comparativa:**
+  - Al seleccionar una carpeta o archivo, aparece un desglose que muestra:
+    - Porcentaje de contribuciones por usuario.
+    - Estadísticas detalladas como líneas añadidas, eliminadas, y modificadas por cada contribuyente.
 
-### **4. Evolución de Complejidad del Código**
+### **Casos de Uso**
+- Analizar qué usuarios trabajaron en qué partes del repositorio.
+- Identificar la equidad en el trabajo entre miembros de un equipo.
 
-- **Descripción**: Analiza la evolución de la complejidad del código en los archivos del repositorio. Mide métricas como número de funciones, profundidad de bucles, y tamaño promedio de las funciones.
-- **Visualización**:
-  - Línea de tiempo para cada archivo:
-    - Ejes muestran complejidad en función de líneas de código, número de funciones, y anidaciones.
-    - Picos de complejidad se destacan en rojo.
-  - Vista detallada:
-    - Desglose por función con métricas clave (profundidad, tamaño).
-    - Sugerencias automáticas para refactorización (ejemplo: reducir funciones largas).
-- **Casos de Uso**:
-  - Identificar secciones críticas del código que requieren refactorización.
-  - Enseñar cómo la complejidad crece con el tiempo y cómo gestionarla.
-- **Tecnologías Necesarias**: Análisis estático con herramientas como Radon, GitHub API para acceder al historial de commits.
+### **Extras**
+- Permite filtrar por rama, usuario, y rango temporal.
+- Comparaciones entre ramas para ver si los cambios en ramas secundarias impactaron correctamente en la principal.
 
 ---
 
-### **5. Historias Visuales de Proyecto**
+## **3. Análisis Multidimensional de Commits en Formato Tabla**
 
-- **Descripción**: Genera una historia visual animada del proyecto combinando líneas de tiempo de commits, merges, y actividad en ramas. Representa usuarios con avatares e incluye eventos clave.
-- **Visualización**:
-  - Animación interactiva que combina:
-    - Línea de tiempo principal para el proyecto, con eventos como commits, merges y releases marcados como hitos.
-    - Avatares que representan a los usuarios; se mueven entre ramas y archivos para mostrar actividad.
-    - Resúmenes en burbujas flotantes indicando líneas añadidas o eliminadas en un periodo.
-  - Opción de exportar la animación como video o presentación.
-- **Casos de Uso**:
-  - Documentar y presentar la evolución de un proyecto de forma atractiva.
-  - Identificar patrones de colaboración y cambios críticos.
-- **Tecnologías Necesarias**: Librerías de animación y gráficos como Chart.js o Three.js.
+### **Descripción**
+- Tabla dinámica que muestra métricas clave de contribución para usuarios del repositorio.
+- Incluye commits, líneas añadidas/eliminadas, PRs, issues, y comentarios, considerando tanto la rama principal como los orígenes de los cambios.
 
----
+### **Visualización**
+- **Estructura de la Tabla:**
+  - Columnas:
+    - Usuario.
+    - Total de contribuciones.
+    - Commits realizados.
+    - Líneas añadidas y eliminadas.
+    - Pull Requests (PRs).
+    - Issues creados.
+    - Comentarios en PRs, issues, y commits.
+  - Filas:
+    - Cada fila representa a un usuario y sus métricas específicas.
+- **Detalles Avanzados:**
+  - Al seleccionar una fila (usuario), se puede desplegar un subpanel con:
+    - Actividad por ramas específicas.
+    - Cambios realizados en ramas secundarias que impactaron en la principal.
+    - Distribución de los cambios por tipo (código, comentarios, issues).
 
-## Funcionalidades Secundarias
+### **Casos de Uso**
+- Evaluar el impacto y tipo de contribuciones realizadas por cada miembro del equipo.
+- Identificar usuarios clave en la gestión de issues o PRs.
 
-### **6. Simulador de Flujo de Trabajo**
-
-- **Descripción**: Simula cómo un equipo trabajó en un repositorio durante un periodo, mostrando visualmente quién hizo qué, cuándo, y cómo las ramas interactúan entre sí.
-- **Visualización**:
-  - Mapa de ramas y commits:
-    - Cada rama representada como una línea curva.
-    - Los commits se representan como puntos; se destacan los merges con nodos grandes.
-  - Animación:
-    - Avances de usuarios y ramas en tiempo real, resaltando conflictos o cuellos de botella.
-- **Casos de Uso**:
-  - Enseñar flujos de trabajo colaborativos.
-  - Diagnosticar problemas de integración o cuellos de botella.
-- **Tecnologías Necesarias**: GitHub GraphQL API, herramientas de simulación como Processing.js.
-
----
-
-### **7. Analizador de Esfuerzo por Línea de Código y Visualizador de Hotspots**
-
-- **Descripción**: Identifica las líneas de código más trabajadas en un proyecto y genera un mapa visual con colores indicando el esfuerzo invertido (líneas más oscuras indican más cambios).
-- **Visualización**:
-  - Diagrama de calor del archivo:
-    - Cada línea de código tiene un color basado en el número de cambios.
-    - Colores oscuros indican líneas modificadas frecuentemente.
-  - Resumen general del proyecto:
-    - Mapas de calor por archivo o directorio.
-    - Gráficos circulares mostrando el porcentaje de esfuerzo por usuario.
-- **Casos de Uso**:
-  - Identificar partes críticas del código.
-  - Incentivar buenas prácticas en el desarrollo.
-- **Tecnologías Necesarias**: GitHub API, herramientas de análisis de código y visualización como Matplotlib.
+### **Extras**
+- Posibilidad de filtrar por rama (principal, secundaria, o todas juntas).
+- Exportar datos en formato CSV o Excel para análisis externos.
 
 ---
 
+## **Siguientes Pasos**
+1. Definir los diseños detallados para cada herramienta:
+   - Wireframes o diagramas para las vistas generales y detalladas.
+2. Establecer el modelo de datos para extraer las métricas necesarias desde el repositorio.
+3. Implementar prototipos básicos para probar la extracción de datos desde la API de GitHub.
+4. Refinar los filtros y las opciones interactivas según las necesidades del usuario final.
 
+---
