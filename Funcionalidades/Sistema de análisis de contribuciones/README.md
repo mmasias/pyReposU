@@ -88,13 +88,3 @@
 - Posibilidad de filtrar por rama (principal, secundaria, o todas juntas).
 - Exportar datos en formato CSV o Excel para análisis externos.
 
----
-
-## **Siguientes Pasos**
-1. Definir los diseños detallados para cada herramienta:
-   - Wireframes o diagramas para las vistas generales y detalladas.
-2. Establecer el modelo de datos para extraer las métricas necesarias desde el repositorio.
-3. Implementar prototipos básicos para probar la extracción de datos desde la API de GitHub.
-4. Refinar los filtros y las opciones interactivas según las necesidades del usuario final.
-
----
