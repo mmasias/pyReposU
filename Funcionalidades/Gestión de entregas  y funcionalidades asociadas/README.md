@@ -1,0 +1,1 @@
+Por el momento esta rama de trabajo del proyecto queda en segundo plano pues se ha decidido priorizar el desarrollo del sistema de análisis de métricas de github
