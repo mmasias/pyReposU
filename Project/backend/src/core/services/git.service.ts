@@ -1,6 +1,9 @@
 import simpleGit, { SimpleGit } from 'simple-git';
 import { PATHS } from '../constants/paths.constants';
 import { isLocalRepoValid } from '../utils/repo.util';
+import iconv from 'iconv-lite';
+import { execSync } from 'child_process';
+
 
 export class GitService {
   private git: SimpleGit;
@@ -50,35 +53,39 @@ export class GitService {
 
   async getDetailedCommits(repoPath: string) {
     this.git = simpleGit(repoPath);
-  
     try {
       const log = await this.git.log();
   
-      // Procesar cada commit para obtener archivos modificados
       const detailedCommits = await Promise.all(
-        log.all.map(async (commit) => {
-          try {
-            const files = await this.git.show([commit.hash, '--name-only', '--pretty=format:']);
-            return {
-              hash: commit.hash,
-              message: commit.message,
-              date: commit.date,
-              author: commit.author_name,
-              files: files.split('\n').filter((file) => file.trim() !== ''),
-            };
-          } catch (error) {
-            console.error(`Error procesando commit ${commit.hash}:`, error);
-            return null; // Ignorar commits problemáticos
-          }
+        log.all.map(async (commit, index) => {
+          const isFirstCommit = index === log.all.length - 1; // El primer commit
+          const commitRange = isFirstCommit
+            ? `${commit.hash}` // Solo el hash del commit
+            : `${commit.hash}^..${commit.hash}`; // Rango normal para commits posteriores
+  
+          // Ejecutar el comando `git show` manualmente para capturar rutas sin codificar
+          const rawOutput = execSync(`git show ${commitRange} --name-only --pretty=format:`, { cwd: repoPath }).toString('utf-8');
+  
+          // Limpiar y procesar los nombres de archivo
+          const decodedFiles = rawOutput
+            .split('\n')
+            .filter((file) => file.trim() !== '') // Eliminar líneas vacías
+            .map((file) => decodeURIComponent(escape(file.trim()))); // Decodificar caracteres escapados
+  
+          return {
+            hash: commit.hash,
+            message: commit.message,
+            date: commit.date,
+            author: commit.author_name,
+            files: decodedFiles,
+          };
         })
       );
   
-      // Filtrar commits válidos
-      return detailedCommits.filter((commit) => commit !== null);
+      return detailedCommits;
     } catch (error) {
       console.error('Error obteniendo commits detallados:', error);
       throw error;
     }
   }
-  
 }
