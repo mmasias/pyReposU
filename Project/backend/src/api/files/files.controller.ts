@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import simpleGit from 'simple-git';
 import { normalizePath, removeDirectory } from '../utils/file.utils';
 import { PATHS } from '../constants/path.constants';
+import path from 'path';
 
 export const getFileContent = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
@@ -114,5 +115,53 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
     });
   } finally {
     await removeDirectory(tempRepoPath).catch(err => console.error('Error limpiando directorio:', err));
+  }
+};
+
+export const getFirstCommitForFile = async (req: Request, res: Response): Promise<void> => {
+  const { repoUrl, filePath } = req.query;
+
+  if (!repoUrl || !filePath) {
+    res.status(400).json({ message: 'Se requieren los parámetros repoUrl y filePath.' });
+    return;
+  }
+
+  const tempRepoPath = path.join(PATHS.TEMP_REPO, 'cloned-repo');
+
+  try {
+    const git = simpleGit();
+
+    // Clonar el repositorio
+    console.log('Clonando el repositorio...');
+    await git.clone(repoUrl as string, tempRepoPath);
+
+    const repoGit = simpleGit(tempRepoPath);
+
+    // Buscar el primer commit relacionado al archivo
+    console.log(`Buscando el primer commit para el archivo: ${filePath}`);
+    const firstCommit = await repoGit.raw([
+      'log',
+      '--diff-filter=A', // Filtrar solo commits donde el archivo fue añadido
+      '--format=%H', // Mostrar solo los hashes
+      filePath as string,
+    ]);
+
+    if (!firstCommit) {
+      res.status(404).json({ message: 'No se encontró el archivo en el historial del repositorio.' });
+      return;
+    }
+
+    const commitHash = firstCommit.trim().split('\n')[0]; // Obtener el primer hash
+    console.log(`Primer commit encontrado: ${commitHash}`);
+
+    res.status(200).json({ commitHash });
+  } catch (error) {
+    console.error('Error al obtener el primer commit:', error);
+    res.status(500).json({
+      message: 'Error al obtener el primer commit del archivo.',
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    });
+  } finally {
+    await removeDirectory(tempRepoPath);
   }
 };
