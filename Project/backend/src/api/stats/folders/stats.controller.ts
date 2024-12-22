@@ -105,7 +105,8 @@ export const getFolderStats = async (req: Request, res: Response): Promise<void>
         const files = diffTree.split('\n').filter(file => file);
   
         files.forEach(file => {
-          const folder = normalizePath(file.split('/')[0]);
+          // Normalizar el nombre de la carpeta
+          const folder = normalizePath(file.split('/')[0].replace(/^"|"$/g, '').trim());
           folderStats[folder] = (folderStats[folder] || 0) + 1;
         });
       }
