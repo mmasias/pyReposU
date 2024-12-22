@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import { setupRoutes } from './api/routes';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 const app: Application = express();
