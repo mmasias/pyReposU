@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { getFileContent } from './files.controller';
+import { getFileContent, getFileDiff } from './files.controller';
 
 const router = Router();
 
-/**
- * Rutas relacionadas con archivos.
- */
 router.get('/content', getFileContent);
+router.get('/diff', getFileDiff); 
 
 export default router;

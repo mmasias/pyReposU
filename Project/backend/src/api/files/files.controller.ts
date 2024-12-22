@@ -70,3 +70,49 @@ export const getFileContent = async (req: Request, res: Response): Promise<void>
     }
   }
 };
+export const getFileDiff = async (req: Request, res: Response): Promise<void> => {
+  const { repoUrl, commitHashOld, commitHashNew, filePath } = req.query;
+
+  if (!repoUrl || !commitHashOld || !commitHashNew || !filePath) {
+    res.status(400).json({ message: 'Se requieren los parámetros repoUrl, commitHashOld, commitHashNew y filePath.' });
+    return;
+  }
+
+  const tempRepoPath = `${PATHS.TEMP_REPO}/cloned-repo`;
+
+  try {
+    const git = simpleGit();
+    console.log('Clonando el repositorio...');
+    await git.clone(repoUrl as string, tempRepoPath);
+    git.cwd(tempRepoPath);
+
+    console.log(`Obteniendo el diff para ${filePath}`);
+    const diffOutput = await git.raw(['diff', `${commitHashOld}:${filePath}`, `${commitHashNew}:${filePath}`]);
+
+    const added: string[] = [];
+    const removed: string[] = [];
+    const unchanged: string[] = [];
+
+    // Procesar el diff línea por línea
+    const lines = diffOutput.split('\n');
+    lines.forEach(line => {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        added.push(line.slice(1));
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        removed.push(line.slice(1));
+      } else if (!line.startsWith('+') && !line.startsWith('-') && !line.startsWith('@@') && line.trim()) {
+        unchanged.push(line);
+      }
+    });
+
+    res.json({ added, removed, unchanged });
+  } catch (error) {
+    console.error('Error al obtener el diff:', error);
+    res.status(500).json({
+      message: 'Error al obtener el diff del archivo.',
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    });
+  } finally {
+    await removeDirectory(tempRepoPath).catch(err => console.error('Error limpiando directorio:', err));
+  }
+};
