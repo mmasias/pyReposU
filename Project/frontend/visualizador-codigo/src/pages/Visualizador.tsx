@@ -21,11 +21,14 @@ const Visualizador = () => {
     setSelectedFile(null);
 
     try {
+      console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repoUrl}`);
       const response = await axios.get(
         `http://localhost:3000/api/stats/tree?repoUrl=${encodeURIComponent(repoUrl)}`
       );
+      console.log(`[Visualizador] Árbol de datos recibido:`, response.data);
       setTreeData(response.data.subfolders || []);
     } catch (err) {
+      console.error(`[Visualizador] Error al cargar el árbol del repositorio:`, err);
       setError('Error al cargar el árbol del repositorio. Verifica la URL.');
     } finally {
       setLoading(false);
@@ -37,7 +40,7 @@ const Visualizador = () => {
       setError(null);
 
       const cleanFilePath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-      console.log(`FilePath limpio: ${cleanFilePath}`);
+      console.log(`[Visualizador] Cargando contenido de archivo: ${cleanFilePath} en commit: ${commitHash}`);
 
       const response = await axios.get(`http://localhost:3000/api/files/content`, {
         params: {
@@ -47,15 +50,16 @@ const Visualizador = () => {
         },
       });
 
+      console.log(`[Visualizador] Contenido del archivo cargado correctamente.`);
       setSelectedFile({ path: cleanFilePath, content: response.data });
-      console.log(`Contenido del archivo cargado correctamente: ${cleanFilePath}`);
     } catch (err) {
+      console.error(`[Visualizador] Error al cargar el contenido del archivo:`, err);
       setError('Error al cargar el contenido del archivo.');
-      console.error('Error al cargar el contenido:', err);
     }
   };
 
   const toggleFolder = (folderPath: string) => {
+    console.log(`[Visualizador] Toggle folder: ${folderPath}`);
     if (expandedFolders.includes(folderPath)) {
       setExpandedFolders(expandedFolders.filter((path) => path !== folderPath));
     } else {
@@ -96,9 +100,10 @@ const Visualizador = () => {
                   </span>
                   <span className="ml-auto text-gray-500">{file.changes || 0} cambios</span>
                   <button
-                    onClick={() =>
-                      navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(fullPath)}`)
-                    }
+                    onClick={() => {
+                      console.log(`[Visualizador] Navegando a Playback con ruta completa: ${fullPath}/${file.name}`);
+                      navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(`${fullPath}/${file.name}`)}`);
+                    }}
                     className="ml-2 bg-green-500 text-white px-4 py-2 rounded-md shadow hover:bg-green-600"
                   >
                     Playback

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useParams, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
 
 const Playback = () => {
   const { repoUrl = "", filePath = "" } = useParams<{ repoUrl: string; filePath: string }>();
@@ -15,38 +14,36 @@ const Playback = () => {
   const [currContent, setCurrContent] = useState("// Cargando...");
   const [error, setError] = useState<string | null>(null);
 
-
   const normalizedFilePath = useMemo(() => {
     let path = filePath.startsWith("/") ? filePath.slice(1) : filePath; // Remover barra inicial
     if (!path.includes(".")) {
       console.warn(`[Playback] El filePath "${path}" parece ser una carpeta. Cambiando a README.md por defecto.`);
       path = `${path}/README.md`;
     }
+    console.log(`[Playback] FilePath normalizado: ${path}`);
     return path;
   }, [filePath]);
 
-  // Función para cargar los commits relevantes al archivo
   const fetchCommits = async () => {
-    console.log("Iniciando fetchCommits...");
-    console.log(`repoUrl recibido: ${repoUrl}`);
-    console.log(`filePath recibido: ${filePath}`);
-    console.log(`filePath normalizado: ${normalizedFilePath}`);
+    console.log("[Playback] Iniciando fetchCommits...");
+    console.log(`[Playback] repoUrl recibido: ${repoUrl}`);
+    console.log(`[Playback] filePath recibido: ${filePath}`);
+    console.log(`[Playback] filePath normalizado: ${normalizedFilePath}`);
 
     try {
       const response = await axios.get(
         `http://localhost:3000/api/commits?repoUrl=${encodeURIComponent(repoUrl)}`
       );
       const allCommits = response.data;
-      console.log("Commits recibidos del backend:", allCommits);
+      console.log("[Playback] Commits recibidos del backend:", allCommits);
 
-      // Filtrar los commits que afectan al archivo actual
       const filteredCommits = allCommits.filter(
         (commit: any) =>
           Array.isArray(commit.files) &&
           commit.files.some((file: string) => file.startsWith(normalizedFilePath))
       );
 
-      console.log("Commits filtrados para este archivo:", filteredCommits);
+      console.log("[Playback] Commits filtrados para este archivo:", filteredCommits);
 
       if (filteredCommits.length === 0) {
         setError("No se encontraron commits para este archivo.");
@@ -57,47 +54,46 @@ const Playback = () => {
       setError(null);
     } catch (err) {
       setError("Error al cargar los commits.");
-      console.error("Error al cargar los commits:", err);
+      console.error("[Playback] Error al cargar los commits:", err);
     }
   };
 
-  // Función para cargar el contenido de un archivo en un commit específico
   const fetchFileContent = async (commitHash: string, setContent: (content: string) => void) => {
+    console.log(`[Playback] Solicitando contenido del archivo en el commit ${commitHash}`);
     try {
       const response = await axios.get(
         `http://localhost:3000/api/files/content?repoUrl=${encodeURIComponent(
           repoUrl
         )}&filePath=${encodeURIComponent(normalizedFilePath)}&commitHash=${commitHash}`
       );
-  
+      console.log(`[Playback] Contenido recibido para commit ${commitHash}:`, response.data);
       setContent(response.data);
     } catch (err: any) {
       if (err.response?.status === 404) {
+        console.warn(
+          `[Playback] Archivo no encontrado en commit ${commitHash}: ${normalizedFilePath}`
+        );
         setContent(`// El archivo ${normalizedFilePath} no se encuentra en el commit ${commitHash}.`);
       } else {
-        console.error(`[fetchFileContent] Error al cargar contenido del commit ${commitHash}:`, err);
+        console.error(`[Playback] Error al cargar contenido del commit ${commitHash}:`, err);
         setContent("// Error al cargar contenido");
       }
     }
   };
-  
-  
 
-  // Cargar los commits cuando el componente se monta
   useEffect(() => {
     fetchCommits();
   }, [repoUrl, filePath]);
 
-  // Cargar el contenido inicial (previo y actual)
   useEffect(() => {
     if (commits.length > 0) {
-      console.log("Commits disponibles para renderizado:", commits);
+      console.log("[Playback] Commits disponibles para renderizado:", commits);
 
       const currentCommit = commits[currentIndex];
-      const previousCommit = commits[currentIndex + 1]; // Commit anterior (si existe)
+      const previousCommit = commits[currentIndex + 1];
 
-      console.log("Commit actual:", currentCommit);
-      console.log("Commit previo:", previousCommit);
+      console.log("[Playback] Commit actual:", currentCommit);
+      console.log("[Playback] Commit previo:", previousCommit);
 
       if (currentCommit) {
         fetchFileContent(currentCommit.hash, setCurrContent);
@@ -112,12 +108,14 @@ const Playback = () => {
 
   const handlePrevious = () => {
     if (currentIndex + 1 < commits.length) {
+      console.log("[Playback] Navegando al commit anterior.");
       setCurrentIndex(currentIndex + 1);
     }
   };
 
   const handleNext = () => {
     if (currentIndex > 0) {
+      console.log("[Playback] Navegando al siguiente commit.");
       setCurrentIndex(currentIndex - 1);
     }
   };

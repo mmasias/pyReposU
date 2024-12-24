@@ -7,9 +7,12 @@ export const getFileContent = async (req: Request, res: Response): Promise<void>
   const { repoUrl, commitHash, filePath } = req.query;
 
   if (!repoUrl || !commitHash || !filePath) {
+    console.warn("[getFileContent] Parámetros faltantes en la solicitud:", { repoUrl, commitHash, filePath });
     res.status(400).json({ message: "Se requieren los parámetros repoUrl, commitHash y filePath." });
     return;
   }
+
+  console.log("[getFileContent] Parámetros recibidos:", { repoUrl, commitHash, filePath });
 
   let repoPath: string | null = null;
 
@@ -20,22 +23,28 @@ export const getFileContent = async (req: Request, res: Response): Promise<void>
     const git = simpleGit(repoPath);
 
     // Lista los archivos del commit
+    console.log(`[getFileContent] Obteniendo lista de archivos del commit: ${commitHash}`);
     const lsTree = await git.raw(["ls-tree", "-r", commitHash as string]);
     const files = lsTree
       .split("\n")
       .map((line) => line.split("\t")[1])
       .filter((line) => !!line);
 
+    console.log(`[getFileContent] Archivos encontrados en el commit:`, files);
+
     const normalizedFilePath = filePath as string;
 
     if (!files.includes(normalizedFilePath)) {
+      console.warn(`[getFileContent] El archivo no se encuentra en el commit: ${normalizedFilePath}`);
       res.status(404).json({
         message: `El archivo ${normalizedFilePath} no se encuentra en el commit ${commitHash}.`,
       });
       return;
     }
 
+    console.log(`[getFileContent] Cargando contenido del archivo: ${normalizedFilePath}`);
     const fileContent = await git.show([`${commitHash}:${normalizedFilePath}`]);
+
     res.status(200).send(fileContent || `Archivo vacío: ${normalizedFilePath}`);
   } catch (error) {
     console.error(`[getFileContent] Error al obtener contenido:`, error);
@@ -51,20 +60,29 @@ export const getFileContent = async (req: Request, res: Response): Promise<void>
   }
 };
 
-
 export const getFileDiff = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHashOld, commitHashNew, filePath } = req.query;
 
   if (!repoUrl || !commitHashOld || !commitHashNew || !filePath) {
+    console.warn("[getFileDiff] Parámetros faltantes en la solicitud:", {
+      repoUrl,
+      commitHashOld,
+      commitHashNew,
+      filePath,
+    });
     res.status(400).json({
       message: "Se requieren los parámetros repoUrl, commitHashOld, commitHashNew y filePath.",
     });
     return;
   }
 
-  // Normaliza y valida el filePath
+  console.log("[getFileDiff] Parámetros recibidos:", { repoUrl, commitHashOld, commitHashNew, filePath });
+
   const normalizedPath = path.posix.normalize(filePath as string);
+  console.log(`[getFileDiff] FilePath normalizado: ${normalizedPath}`);
+
   if (!normalizedPath.includes(".")) {
+    console.warn("[getFileDiff] El parámetro filePath no apunta a un archivo válido.");
     res.status(400).json({ message: "El parámetro filePath no apunta a un archivo válido." });
     return;
   }
@@ -76,6 +94,7 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
     repoPath = await prepareRepo(repoUrl as string);
 
     const git = simpleGit(repoPath);
+    console.log(`[getFileDiff] Obteniendo diff para el archivo: ${normalizedPath}`);
     const diff = await git.diff([`${commitHashOld}:${normalizedPath}`, `${commitHashNew}:${normalizedPath}`]);
 
     res.status(200).send(diff);
