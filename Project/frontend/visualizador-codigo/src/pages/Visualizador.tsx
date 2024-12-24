@@ -49,18 +49,17 @@ const Visualizador = () => {
   const fetchFileContent = async (filePath: string, commitHash: string) => {
     try {
       setError(null);
-
+  
       const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-      console.log(`[Visualizador] Cargando contenido de archivo: ${cleanFilePath} en commit: ${commitHash}`);
-
+      console.log(`[Visualizador] Cargando contenido de archivo: ${cleanFilePath}`);
+  
       const response = await axios.get(`http://localhost:3000/api/files/content`, {
         params: {
           repoUrl,
           filePath: cleanFilePath,
-          commitHash,
         },
       });
-
+  
       console.log(`[Visualizador] Contenido del archivo cargado correctamente.`);
       setSelectedFile({ path: cleanFilePath, content: response.data });
     } catch (err) {
@@ -185,11 +184,27 @@ const Visualizador = () => {
 
       {selectedFile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
+            style={{
+              backgroundColor: "#f5f5f5",
+              border: "1px solid #ddd",
+            }}
+          >
             <h2 className="text-xl font-bold text-gray-800 mb-4">{selectedFile.path}</h2>
-            <SyntaxHighlighter language="javascript" style={dracula}>
-              {selectedFile.content}
-            </SyntaxHighlighter>
+            <div
+              style={{
+                backgroundColor: "#f5f5f5",
+                border: "1px solid #ddd",
+                padding: "1rem",
+                borderRadius: "0.5rem",
+                overflowX: "auto",
+              }}
+            >
+              <SyntaxHighlighter language="javascript" style={dracula}>
+                {selectedFile.content}
+              </SyntaxHighlighter>
+            </div>
             <button
               className="mt-4 bg-red-500 text-white px-4 py-2 rounded-md shadow hover:bg-red-600"
               onClick={() => setSelectedFile(null)}

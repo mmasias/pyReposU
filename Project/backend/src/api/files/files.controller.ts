@@ -6,9 +6,9 @@ import { prepareRepo, cleanRepo } from "../services/repoService";
 export const getFileContent = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
 
-  if (!repoUrl || !commitHash || !filePath) {
-    console.warn("[getFileContent] Parámetros faltantes en la solicitud:", { repoUrl, commitHash, filePath });
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl, commitHash y filePath." });
+  if (!repoUrl || !filePath) {
+    console.warn("[getFileContent] Parámetros faltantes en la solicitud:", { repoUrl, filePath });
+    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
     return;
   }
 
@@ -19,37 +19,29 @@ export const getFileContent = async (req: Request, res: Response): Promise<void>
   try {
     console.log(`[getFileContent] Preparando repositorio para: ${repoUrl}`);
     repoPath = await prepareRepo(repoUrl as string);
-
     const git = simpleGit(repoPath);
 
-    // Lista los archivos del commit
-    console.log(`[getFileContent] Obteniendo lista de archivos del commit: ${commitHash}`);
-    const lsTree = await git.raw(["ls-tree", "-r", commitHash as string]);
-    const files = lsTree
-      .split("\n")
-      .map((line) => line.split("\t")[1])
-      .filter((line) => !!line);
-
-    console.log(`[getFileContent] Archivos encontrados en el commit:`, files);
-
-    const normalizedFilePath = filePath as string;
-
-    if (!files.includes(normalizedFilePath)) {
-      console.warn(`[getFileContent] El archivo no se encuentra en el commit: ${normalizedFilePath}`);
-      res.status(404).json({
-        message: `El archivo ${normalizedFilePath} no se encuentra en el commit ${commitHash}.`,
-      });
-      return;
+    // Si no se especifica commitHash, obtenemos el último commit del archivo
+    let commitHashToUse = commitHash as string;
+    if (!commitHashToUse) {
+      console.log("[getFileContent] No se especificó commitHash, obteniendo el último commit...");
+      const log = await git.log({ file: filePath as string });
+      commitHashToUse = log.latest?.hash || "";
+      if (!commitHashToUse) {
+        throw new Error("No se pudo determinar el último commit para el archivo.");
+      }
+      console.log(`[getFileContent] Último commit encontrado: ${commitHashToUse}`);
     }
 
-    console.log(`[getFileContent] Cargando contenido del archivo: ${normalizedFilePath}`);
-    const fileContent = await git.show([`${commitHash}:${normalizedFilePath}`]);
+    // Obtener contenido del archivo para el commit especificado o el más reciente
+    console.log(`[getFileContent] Cargando contenido del archivo: ${filePath} en commit: ${commitHashToUse}`);
+    const fileContent = await git.show([`${commitHashToUse}:${filePath}`]);
 
-    res.status(200).send(fileContent || `Archivo vacío: ${normalizedFilePath}`);
+    res.status(200).send(fileContent || `Archivo vacío: ${filePath}`);
   } catch (error) {
     console.error(`[getFileContent] Error al obtener contenido:`, error);
     res.status(500).json({
-      message: `No se pudo obtener el contenido del archivo ${filePath} en el commit ${commitHash}.`,
+      message: `No se pudo obtener el contenido del archivo ${filePath}.`,
       error: error instanceof Error ? error.message : "Error desconocido",
     });
   } finally {
