@@ -64,12 +64,6 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
   const { repoUrl, commitHashOld, commitHashNew, filePath } = req.query;
 
   if (!repoUrl || !commitHashOld || !commitHashNew || !filePath) {
-    console.warn("[getFileDiff] Parámetros faltantes en la solicitud:", {
-      repoUrl,
-      commitHashOld,
-      commitHashNew,
-      filePath,
-    });
     res.status(400).json({
       message: "Se requieren los parámetros repoUrl, commitHashOld, commitHashNew y filePath.",
     });
@@ -79,13 +73,6 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
   console.log("[getFileDiff] Parámetros recibidos:", { repoUrl, commitHashOld, commitHashNew, filePath });
 
   const normalizedPath = path.posix.normalize(filePath as string);
-  console.log(`[getFileDiff] FilePath normalizado: ${normalizedPath}`);
-
-  if (!normalizedPath.includes(".")) {
-    console.warn("[getFileDiff] El parámetro filePath no apunta a un archivo válido.");
-    res.status(400).json({ message: "El parámetro filePath no apunta a un archivo válido." });
-    return;
-  }
 
   let repoPath: string | null = null;
 
@@ -94,10 +81,34 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
     repoPath = await prepareRepo(repoUrl as string);
 
     const git = simpleGit(repoPath);
-    console.log(`[getFileDiff] Obteniendo diff para el archivo: ${normalizedPath}`);
-    const diff = await git.diff([`${commitHashOld}:${normalizedPath}`, `${commitHashNew}:${normalizedPath}`]);
 
-    res.status(200).send(diff);
+    // Obtener el diff completo, sin ignorar líneas vacías
+    const rawDiff = await git.diff([
+      `${commitHashOld}:${normalizedPath}`,
+      `${commitHashNew}:${normalizedPath}`,
+    ]);
+
+    console.log("[getFileDiff] Diff crudo obtenido:", rawDiff);
+
+    const addedLines: string[] = [];
+    const removedLines: string[] = [];
+
+    // Procesar el diff
+    const diffLines = rawDiff.split("\n");
+    diffLines.forEach((line) => {
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        const trimmedLine = line.slice(1).replace(/\s+$/, ""); // Elimina espacios innecesarios al final
+        addedLines.push(trimmedLine || "\n"); // Considera saltos de línea explícitos
+      } else if (line.startsWith("-") && !line.startsWith("---")) {
+        const trimmedLine = line.slice(1).replace(/\s+$/, ""); // Elimina espacios innecesarios al final
+        removedLines.push(trimmedLine || "\n"); // Considera saltos de línea explícitos
+      }
+    });
+
+    res.status(200).json({
+      addedLines,
+      removedLines,
+    });
   } catch (error) {
     console.error(`[getFileDiff] Error al obtener diff:`, error);
     res.status(500).json({
@@ -111,6 +122,7 @@ export const getFileDiff = async (req: Request, res: Response): Promise<void> =>
     }
   }
 };
+
 
 export const getFirstCommitForFile = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, filePath } = req.query;
