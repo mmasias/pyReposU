@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Visualizador = () => {
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState("");
   const [treeData, setTreeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,23 +13,34 @@ const Visualizador = () => {
   const [selectedFile, setSelectedFile] = useState<{ path: string; content: string } | null>(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const fetchTreeData = async () => {
+  // Recuperar el estado del repo de la navegación
+  useEffect(() => {
+    const savedRepoUrl = location.state?.repoUrl || "";
+    if (savedRepoUrl) {
+      setRepoUrl(savedRepoUrl);
+      fetchTreeData(savedRepoUrl);
+    }
+  }, [location.state]);
+
+  const fetchTreeData = async (url?: string) => {
     setLoading(true);
     setError(null);
     setTreeData([]);
     setSelectedFile(null);
 
     try {
-      console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repoUrl}`);
+      const repo = url || repoUrl;
+      console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repo}`);
       const response = await axios.get(
-        `http://localhost:3000/api/stats/tree?repoUrl=${encodeURIComponent(repoUrl)}`
+        `http://localhost:3000/api/stats/tree?repoUrl=${encodeURIComponent(repo)}`
       );
       console.log(`[Visualizador] Árbol de datos recibido:`, response.data);
       setTreeData(response.data.subfolders || []);
     } catch (err) {
       console.error(`[Visualizador] Error al cargar el árbol del repositorio:`, err);
-      setError('Error al cargar el árbol del repositorio. Verifica la URL.');
+      setError("Error al cargar el árbol del repositorio. Verifica la URL.");
     } finally {
       setLoading(false);
     }
@@ -39,7 +50,7 @@ const Visualizador = () => {
     try {
       setError(null);
 
-      const cleanFilePath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+      const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
       console.log(`[Visualizador] Cargando contenido de archivo: ${cleanFilePath} en commit: ${commitHash}`);
 
       const response = await axios.get(`http://localhost:3000/api/files/content`, {
@@ -54,7 +65,7 @@ const Visualizador = () => {
       setSelectedFile({ path: cleanFilePath, content: response.data });
     } catch (err) {
       console.error(`[Visualizador] Error al cargar el contenido del archivo:`, err);
-      setError('Error al cargar el contenido del archivo.');
+      setError("Error al cargar el contenido del archivo.");
     }
   };
 
@@ -67,7 +78,13 @@ const Visualizador = () => {
     }
   };
 
-  const renderTree = (nodes: any[], currentPath = '') => {
+  const clearRepository = () => {
+    setRepoUrl("");
+    setTreeData([]);
+    setSelectedFile(null);
+  };
+
+  const renderTree = (nodes: any[], currentPath = "") => {
     return nodes.map((node, index) => {
       const fullPath = `${currentPath}/${node.name}`;
 
@@ -78,7 +95,7 @@ const Visualizador = () => {
               className="cursor-pointer flex items-center bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md"
               onClick={() => toggleFolder(fullPath)}
             >
-              <span className="mr-2">{expandedFolders.includes(fullPath) ? '📂' : '📁'}</span>
+              <span className="mr-2">{expandedFolders.includes(fullPath) ? "📂" : "📁"}</span>
               <span className="font-semibold text-gray-800">{node.name}</span>
               <span className="ml-auto text-gray-500">{node.changes || 0} cambios</span>
             </div>
@@ -94,7 +111,7 @@ const Visualizador = () => {
                   <span className="mr-2">📄</span>
                   <span
                     className="text-gray-800 cursor-pointer"
-                    onClick={() => fetchFileContent(`${fullPath}/${file.name}`, 'COMMIT_HASH')}
+                    onClick={() => fetchFileContent(`${fullPath}/${file.name}`, "COMMIT_HASH")}
                   >
                     {file.name}
                   </span>
@@ -102,7 +119,9 @@ const Visualizador = () => {
                   <button
                     onClick={() => {
                       console.log(`[Visualizador] Navegando a Playback con ruta completa: ${fullPath}/${file.name}`);
-                      navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(`${fullPath}/${file.name}`)}`);
+                      navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(`${fullPath}/${file.name}`)}`, {
+                        state: { repoUrl },
+                      });
                     }}
                     className="ml-2 bg-green-500 text-white px-4 py-2 rounded-md shadow hover:bg-green-600"
                   >
@@ -127,19 +146,30 @@ const Visualizador = () => {
       </header>
 
       <div className="flex justify-center items-center gap-4 mb-10">
-        <input
-          type="text"
-          placeholder="https://github.com/usuario/repositorio.git"
-          value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
-          className="w-96 px-4 py-2 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <button
-          onClick={fetchTreeData}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600"
-        >
-          Cargar Repositorio
-        </button>
+        {treeData.length > 0 ? (
+          <button
+            onClick={clearRepository}
+            className="bg-red-500 text-white px-4 py-2 rounded-md shadow hover:bg-red-600"
+          >
+            Seleccionar otro repositorio
+          </button>
+        ) : (
+          <>
+            <input
+              type="text"
+              placeholder="https://github.com/usuario/repositorio.git"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              className="w-96 px-4 py-2 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <button
+              onClick={() => fetchTreeData()}
+              className="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600"
+            >
+              Cargar Repositorio
+            </button>
+          </>
+        )}
       </div>
 
       {loading && <p className="text-center text-blue-500">Cargando...</p>}
