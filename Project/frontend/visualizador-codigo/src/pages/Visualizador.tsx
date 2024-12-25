@@ -6,6 +6,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const Visualizador = () => {
   const [repoUrl, setRepoUrl] = useState("");
+  const [branch, setBranch] = useState(""); // Rama seleccionada
+  const [since, setSince] = useState(""); // Fecha inicial
+  const [until, setUntil] = useState(""); // Fecha final
+  const [author, setAuthor] = useState(""); // Usuario
+
   const [treeData, setTreeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,15 +37,37 @@ const Visualizador = () => {
 
     try {
       const repo = url || repoUrl;
+      if (!repo) {
+        setError("Por favor, ingresa una URL válida del repositorio.");
+        setLoading(false);
+        return;
+      }
       console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repo}`);
-      const response = await axios.get(
-        `http://localhost:3000/api/stats/tree?repoUrl=${encodeURIComponent(repo)}`
-      );
-      console.log(`[Visualizador] Árbol de datos recibido:`, response.data);
-      setTreeData(response.data.subfolders || []);
-    } catch (err) {
+
+      const params: Record<string, string> = { repoUrl: repo }; 
+      if (branch) params.branch = branch;
+      if (since) params.since = since;
+      if (until) params.until = until;
+      if (author) params.author = author;
+
+      const response = await axios.get(`http://localhost:3000/api/stats/tree`, { params });
+
+      if (response.data.warning) {
+        alert(response.data.warning); // Muestra el warning recibido desde el backend
+      }
+
+      console.log(`[Visualizador] Árbol de datos recibido:`, response.data.tree);
+      setTreeData(response.data.tree.subfolders || []);
+    } catch (err: any) {
       console.error(`[Visualizador] Error al cargar el árbol del repositorio:`, err);
-      setError("Error al cargar el árbol del repositorio. Verifica la URL.");
+
+      if (err.response && err.response.data.message) {
+        // Mensaje específico del backend
+        setError(err.response.data.message);
+      } else {
+        // Error genérico
+        setError("Error al cargar el árbol del repositorio. Verifica la URL.");
+      }
     } finally {
       setLoading(false);
     }
@@ -57,6 +84,7 @@ const Visualizador = () => {
         params: {
           repoUrl,
           filePath: cleanFilePath,
+          commitHash,
         },
       });
   
@@ -64,7 +92,7 @@ const Visualizador = () => {
       setSelectedFile({ path: cleanFilePath, content: response.data });
     } catch (err) {
       console.error(`[Visualizador] Error al cargar el contenido del archivo:`, err);
-      setError("Error al cargar el contenido del archivo.");
+      setError("Error al cargar el contenido del archivo. Verifica la URL o el commit.");
     }
   };
 
@@ -110,7 +138,7 @@ const Visualizador = () => {
                   <span className="mr-2">📄</span>
                   <span
                     className="text-gray-800 cursor-pointer"
-                    onClick={() => fetchFileContent(`${fullPath}/${file.name}`, "COMMIT_HASH")}
+                    onClick={() => fetchFileContent(`${fullPath}/${file.name}`, "HEAD")}
                   >
                     {file.name}
                   </span>
@@ -143,6 +171,38 @@ const Visualizador = () => {
         <h1 className="text-3xl font-bold text-gray-800">Visualizador Evolutivo de Código</h1>
         <p className="text-lg text-gray-600 mt-2">Ingresa la URL del repositorio para comenzar.</p>
       </header>
+
+      <div className="flex justify-center gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Rama (branch)"
+          value={branch}
+          onChange={(e) => setBranch(e.target.value)}
+          className="input"
+        />
+        <input
+          type="date"
+          value={since}
+          onChange={(e) => setSince(e.target.value)}
+          className="input"
+        />
+        <input
+          type="date"
+          value={until}
+          onChange={(e) => setUntil(e.target.value)}
+          className="input"
+        />
+        <input
+          type="text"
+          placeholder="Autor"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          className="input"
+        />
+        <button onClick={() => fetchTreeData()} className="btn-primary">
+          Aplicar Filtros
+        </button>
+      </div>
 
       <div className="flex justify-center items-center gap-4 mb-10">
         {treeData.length > 0 ? (
