@@ -1,168 +1,168 @@
-import path from "path";
-import { Request, Response } from "express";
-import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo } from "../services/repoService";
+
+import { Request, Response } from 'express';
+import simpleGit from 'simple-git';
+import { normalizePath, removeDirectory } from '../utils/file.utils';
+import { PATHS } from '../constants/path.constants';
+import path from 'path';
 
 export const getFileContent = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
-
-  if (!repoUrl || !filePath) {
-    console.warn("[getFileContent] Parámetros faltantes en la solicitud:", { repoUrl, filePath });
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
+  console.log(`Repo URL: ${repoUrl}, Commit: ${commitHash}, File Path: ${filePath}`);
+  
+  if (!repoUrl || !commitHash || !filePath) {
+    res.status(400).json({ message: 'Se requieren los parámetros repoUrl, commitHash y filePath.' });
     return;
   }
 
-  console.log("[getFileContent] Parámetros recibidos:", { repoUrl, commitHash, filePath });
-
-  let repoPath: string | null = null;
+  const tempRepoPath = `${PATHS.TEMP_REPO}/cloned-repo`;
 
   try {
-    console.log(`[getFileContent] Preparando repositorio para: ${repoUrl}`);
-    repoPath = await prepareRepo(repoUrl as string);
-    const git = simpleGit(repoPath);
+    const git = simpleGit();
 
-    // Si no se especifica commitHash, obtenemos el último commit del archivo
-    let commitHashToUse = commitHash as string;
-    if (!commitHashToUse) {
-      console.log("[getFileContent] No se especificó commitHash, obteniendo el último commit...");
-      const log = await git.log({ file: filePath as string });
-      commitHashToUse = log.latest?.hash || "";
-      if (!commitHashToUse) {
-        throw new Error("No se pudo determinar el último commit para el archivo.");
-      }
-      console.log(`[getFileContent] Último commit encontrado: ${commitHashToUse}`);
+    // Clonar el repositorio
+    console.log('Clonando el repositorio...');
+    await git.clone(repoUrl as string, tempRepoPath);
+    console.log(`Repositorio clonado temporalmente en: ${tempRepoPath}`);
+
+    // Cambiar al directorio clonado
+    git.cwd(tempRepoPath);
+
+    // Normalizar la ruta del archivo
+    const normalizedPath = normalizePath(filePath as string);
+    console.log(`Ruta del archivo normalizada: ${normalizedPath}`);
+
+    // Verificar si el archivo existe en el commit
+    console.log('Verificando si el archivo existe en el commit...');
+    const fileCheck = await git.raw(['ls-tree', '-r', '--name-only', commitHash as string]);
+    const filesInCommit = fileCheck.split('\n').map(normalizePath).filter(f => f);
+    
+    if (!filesInCommit.includes(normalizedPath)) {
+      console.error(`Archivo no encontrado: ${normalizedPath}`);
+      res.status(404).json({
+        message: `El archivo ${filePath} no se encontró en el commit ${commitHash}.`,
+      });
+      return;
     }
 
-    // Obtener contenido del archivo para el commit especificado o el más reciente
-    console.log(`[getFileContent] Cargando contenido del archivo: ${filePath} en commit: ${commitHashToUse}`);
-    const fileContent = await git.show([`${commitHashToUse}:${filePath}`]);
+    // Intentar obtener el contenido del archivo
+    console.log(`Obteniendo el contenido del archivo: ${normalizedPath}`);
+    let fileContent = await git.raw(['show', `${commitHash}:${normalizedPath}`]);
 
-    res.status(200).send(fileContent || `Archivo vacío: ${filePath}`);
+    // Verificar si el contenido es vacío
+    if (!fileContent) {
+      console.warn(`Contenido vacío para el archivo: ${normalizedPath}`);
+      fileContent = `Aviso: El archivo ${normalizedPath} está vacío en el commit ${commitHash}.`;
+    }
+
+    console.log(`Contenido del archivo:\n${fileContent}`);
+    res.status(200).send(fileContent);
   } catch (error) {
-    console.error(`[getFileContent] Error al obtener contenido:`, error);
+    console.error('Error al obtener el contenido del archivo:', error);
     res.status(500).json({
-      message: `No se pudo obtener el contenido del archivo ${filePath}.`,
-      error: error instanceof Error ? error.message : "Error desconocido",
+      message: `No se pudo obtener el contenido del archivo ${filePath} en el commit ${commitHash}.`,
+      error: error instanceof Error ? error.message : 'Error desconocido',
     });
   } finally {
-    if (repoPath) {
-      console.log(`[getFileContent] Limpiando repositorio temporal: ${repoPath}`);
-      await cleanRepo(repoPath);
+    try {
+      await removeDirectory(tempRepoPath);
+      console.log(`Directorio temporal eliminado: ${tempRepoPath}`);
+    } catch (cleanupError) {
+      console.error(`Error limpiando el repositorio clonado: ${cleanupError}`);
     }
   }
 };
-
 export const getFileDiff = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHashOld, commitHashNew, filePath } = req.query;
 
   if (!repoUrl || !commitHashOld || !commitHashNew || !filePath) {
-    res.status(400).json({
-      message: "Se requieren los parámetros repoUrl, commitHashOld, commitHashNew y filePath.",
-    });
+
+    res.status(400).json({ message: 'Se requieren los parámetros repoUrl, commitHashOld, commitHashNew y filePath.' });
     return;
   }
 
-  console.log("[getFileDiff] Parámetros recibidos:", { repoUrl, commitHashOld, commitHashNew, filePath });
-
-  const normalizedPath = path.posix.normalize(filePath as string);
-
-  let repoPath: string | null = null;
+  const tempRepoPath = `${PATHS.TEMP_REPO}/cloned-repo`;
 
   try {
-    console.log(`[getFileDiff] Preparando repositorio para: ${repoUrl}`);
-    repoPath = await prepareRepo(repoUrl as string);
+    const git = simpleGit();
+    console.log('Clonando el repositorio...');
+    await git.clone(repoUrl as string, tempRepoPath);
+    git.cwd(tempRepoPath);
 
-    const git = simpleGit(repoPath);
+    console.log(`Obteniendo el diff para ${filePath}`);
+    const diffOutput = await git.raw(['diff', `${commitHashOld}:${filePath}`, `${commitHashNew}:${filePath}`]);
 
-    // Obtener el diff completo, sin ignorar líneas vacías
-    const rawDiff = await git.diff([
-      `${commitHashOld}:${normalizedPath}`,
-      `${commitHashNew}:${normalizedPath}`,
-    ]);
+    const added: string[] = [];
+    const removed: string[] = [];
+    const unchanged: string[] = [];
 
-    console.log("[getFileDiff] Diff crudo obtenido:", rawDiff);
-
-    const addedLines: string[] = [];
-    const removedLines: string[] = [];
-
-    // Procesar el diff
-    const diffLines = rawDiff.split("\n");
-    diffLines.forEach((line) => {
-      if (line.startsWith("+") && !line.startsWith("+++")) {
-        const trimmedLine = line.slice(1).replace(/\s+$/, ""); // Elimina espacios innecesarios al final
-        addedLines.push(trimmedLine || "\n"); // Considera saltos de línea explícitos
-      } else if (line.startsWith("-") && !line.startsWith("---")) {
-        const trimmedLine = line.slice(1).replace(/\s+$/, ""); // Elimina espacios innecesarios al final
-        removedLines.push(trimmedLine || "\n"); // Considera saltos de línea explícitos
+    // Procesar el diff línea por línea
+    const lines = diffOutput.split('\n');
+    lines.forEach(line => {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        added.push(line.slice(1));
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        removed.push(line.slice(1));
+      } else if (!line.startsWith('+') && !line.startsWith('-') && !line.startsWith('@@') && line.trim()) {
+        unchanged.push(line);
       }
     });
 
-    res.status(200).json({
-      addedLines,
-      removedLines,
-    });
+    res.json({ added, removed, unchanged });
   } catch (error) {
-    console.error(`[getFileDiff] Error al obtener diff:`, error);
+    console.error('Error al obtener el diff:', error);
     res.status(500).json({
-      message: "Error al obtener el diff.",
-      error: error instanceof Error ? error.message : "Error desconocido",
+      message: 'Error al obtener el diff del archivo.',
+      error: error instanceof Error ? error.message : 'Error desconocido',
     });
   } finally {
-    if (repoPath) {
-      console.log(`[getFileDiff] Limpiando repositorio temporal: ${repoPath}`);
-      await cleanRepo(repoPath);
-    }
+    await removeDirectory(tempRepoPath).catch(err => console.error('Error limpiando directorio:', err));
   }
 };
-
 
 export const getFirstCommitForFile = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, filePath } = req.query;
 
   if (!repoUrl || !filePath) {
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
+    res.status(400).json({ message: 'Se requieren los parámetros repoUrl y filePath.' });
     return;
   }
 
-  // Normaliza y valida el filePath
-  const normalizedPath = path.posix.normalize(filePath as string);
-  if (!normalizedPath.includes(".")) {
-    res.status(400).json({ message: "El parámetro filePath no apunta a un archivo válido." });
-    return;
-  }
-
-  let repoPath: string | null = null;
+  const tempRepoPath = path.join(PATHS.TEMP_REPO, 'cloned-repo');
 
   try {
-    console.log(`[getFirstCommitForFile] Preparando repositorio para: ${repoUrl}`);
-    repoPath = await prepareRepo(repoUrl as string);
+    const git = simpleGit();
 
-    const git = simpleGit(repoPath);
+    // Clonar el repositorio
+    console.log('Clonando el repositorio...');
+    await git.clone(repoUrl as string, tempRepoPath);
 
-    console.log(`[getFirstCommitForFile] Buscando el primer commit para el archivo: ${normalizedPath}`);
-    const firstCommitHash = await git.raw([
-      "log",
-      "--diff-filter=A", // Filtra solo commits donde se añadió el archivo
-      "--format=%H",     // Devuelve solo el hash del commit
-      normalizedPath,
+    const repoGit = simpleGit(tempRepoPath);
+
+    // Buscar el primer commit relacionado al archivo
+    console.log(`Buscando el primer commit para el archivo: ${filePath}`);
+    const firstCommit = await repoGit.raw([
+      'log',
+      '--diff-filter=A', // Filtrar solo commits donde el archivo fue añadido
+      '--format=%H', // Mostrar solo los hashes
+      filePath as string,
     ]);
 
-    if (!firstCommitHash.trim()) {
-      res.status(404).json({ message: `El archivo ${normalizedPath} no se encontró en el historial.` });
+    if (!firstCommit) {
+      res.status(404).json({ message: 'No se encontró el archivo en el historial del repositorio.' });
       return;
     }
 
-    res.status(200).json({ commitHash: firstCommitHash.trim().split("\n")[0] });
+    const commitHash = firstCommit.trim().split('\n')[0]; // Obtener el primer hash
+    console.log(`Primer commit encontrado: ${commitHash}`);
+
+    res.status(200).json({ commitHash });
   } catch (error) {
-    console.error(`[getFirstCommitForFile] Error al obtener el primer commit:`, error);
+    console.error('Error al obtener el primer commit:', error);
     res.status(500).json({
-      message: "Error al obtener el primer commit del archivo.",
-      error: error instanceof Error ? error.message : "Error desconocido",
+      message: 'Error al obtener el primer commit del archivo.',
+      error: error instanceof Error ? error.message : 'Error desconocido',
     });
   } finally {
-    if (repoPath) {
-      console.log(`[getFirstCommitForFile] Limpiando repositorio temporal: ${repoPath}`);
-      await cleanRepo(repoPath);
-    }
+    await removeDirectory(tempRepoPath);
   }
 };
