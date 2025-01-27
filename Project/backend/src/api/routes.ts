@@ -1,6 +1,6 @@
 import { Application } from 'express';
 import commitsRoutes from './commits/commits.routes';
-import statsRoutes from './stats/folders/stats.routes';
+import statsRoutes from './stats/stats.routes'; // Nueva ruta principal para stats
 import filesRoutes from './files/files.routes'; // Ruta dedicada
 
 /**
