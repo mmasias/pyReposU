@@ -36,8 +36,9 @@ const getPullRequestsByUser = async (
       repo: repoName,
       state: "all",
     });
-    console.log("[DEBUG] PRs sin filtrar:", data);
-    return data.filter((pr: PullRequest) => pr.user?.login === user);
+    //console.log("[DEBUG] PRs sin filtrar:", data);
+    //return data.filter((pr: PullRequest) => pr.user?.login === user);
+    return data;
   } catch (error) {
     console.error("[ERROR] Al obtener PRs:", error);
     return [];
@@ -59,8 +60,9 @@ const getIssuesByUser = async (
       repo: repoName,
       state: "all",
     });
-    console.log("[DEBUG] Issues sin filtrar:", data);
-    return data.filter((issue: Issue) => issue.user?.login === user);
+    //console.log("[DEBUG] Issues sin filtrar:", data);
+    //return data.filter((issue: Issue) => issue.user?.login === user);
+    return data;
   } catch (error) {
     console.error("[ERROR] Al obtener issues:", error);
     return [];
@@ -82,8 +84,9 @@ const getCommentsByUser = async (
       owner: repoOwner,
       repo: repoName,
     });
-    console.log("[DEBUG] Comentarios sin filtrar:", comments.data);
-    return comments.data.filter((comment: Comment) => comment.user?.login === user);
+    //console.log("[DEBUG] Comentarios sin filtrar:", comments.data);
+    //return comments.data.filter((comment: Comment) => comment.user?.login === user);
+    return comments.data;
   } catch (error) {
     console.error("[ERROR] Al obtener comentarios:", error);
     return [];

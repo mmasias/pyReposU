@@ -49,7 +49,7 @@ export const exportStatsToCSV = async (req: Request, res: Response): Promise<voi
       endDate as string,
       userId as string
     );
-
+    console.log("[DEBUG] Datos para CSV:", stats);
     const fields = [
       "user",
       "totalContributions",

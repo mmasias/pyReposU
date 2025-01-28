@@ -94,43 +94,39 @@ export const getUserStats = async (
     // Pull Requests
     const pullRequests = await getPullRequestsByUser(repoOwner, repoName, userId || "");
     pullRequests.forEach((pr) => {
-      const login = pr.user?.login;
-      if (login && !statsMap[login]) {
+      const login = pr.user?.login || "unknown";
+      if (!statsMap[login]) {
         statsMap[login] = createEmptyStats(login);
       }
-      if (login) {
-        statsMap[login].pullRequests += 1;
-        statsMap[login].totalContributions += 1;
-      }
+      statsMap[login].pullRequests += 1;
+      statsMap[login].totalContributions += 1;
     });
+    
+    
 
     // Issues
     const issues = await getIssuesByUser(repoOwner, repoName, userId || "");
     issues.forEach((issue) => {
-      const issueUserLogin = issue.user?.login;
-      if (issueUserLogin && !statsMap[issueUserLogin]) {
-        statsMap[issueUserLogin] = createEmptyStats(issueUserLogin);
+      const login = issue.user?.login || "unknown";
+      if (!statsMap[login]) {
+        statsMap[login] = createEmptyStats(login);
       }
-      if (issueUserLogin) {
-        statsMap[issueUserLogin].issues += 1;
-        statsMap[issueUserLogin].totalContributions += 1;
-      }
+      statsMap[login].issues += 1;
+      statsMap[login].totalContributions += 1;
     });
-
     // Comentarios
     const comments = await getCommentsByUser(repoOwner, repoName, userId || "");
     comments.forEach((comment) => {
-      const login = comment.user?.login;
-      if (login && !statsMap[login]) {
+      const login = comment.user?.login || "unknown";
+      if (!statsMap[login]) {
         statsMap[login] = createEmptyStats(login);
       }
-      if (login) {
-        statsMap[login].comments += 1;
-        statsMap[login].totalContributions += 1;
-      }
+      statsMap[login].comments += 1;
+      statsMap[login].totalContributions += 1;
     });
 
     // Devolver las estadísticas como un array
+    console.log("[DEBUG] Stats Map Final:", statsMap);
     return Object.values(statsMap);
   } catch (error) {
     console.error("[getUserStats] Error al obtener estadísticas:", error);
@@ -140,6 +136,7 @@ export const getUserStats = async (
       await cleanRepo(repoPath);
     }
   }
+  
 };
 
 /**
