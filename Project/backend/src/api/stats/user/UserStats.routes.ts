@@ -1,10 +1,10 @@
-// src/api/stats/user/userStats.routes.ts
 import { Router } from "express";
-import { getUserStatsHandler, exportStatsToCSV } from "./userStats.controller";
+import { getUserStatsHandler, exportStatsToCSV, getBranchesHandler } from "./userStats.controller";
 
 const router = Router();
 
 router.get("/", getUserStatsHandler);
 router.get("/export/csv", exportStatsToCSV);
+router.get("/branches", getBranchesHandler);
 
 export default router;

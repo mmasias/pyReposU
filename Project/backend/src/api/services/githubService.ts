@@ -92,10 +92,30 @@ const getCommentsByUser = async (
     return [];
   }
 };
+/**
+ * Obtener todas las ramas del repositorio.
+ */
+const getRepoBranches = async (repoOwner: string, repoName: string): Promise<string[]> => {
+  try {
+    const cleanRepoName = repoName.replace(/\.git$/, ""); 
+
+    const { data } = await octokit.repos.listBranches({
+      owner: repoOwner,
+      repo: cleanRepoName, 
+    });
+
+    return data.map((branch: any) => branch.name);
+  } catch (error) {
+    console.error("[ERROR] Al obtener ramas:", error);
+    return [];
+  }
+};
+
 
 
 export {
   getPullRequestsByUser,
   getIssuesByUser,
   getCommentsByUser,
+  getRepoBranches
 };
