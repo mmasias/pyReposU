@@ -30,14 +30,20 @@ const getPullRequestsByUser = async (
   repoName: string,
   user: string
 ): Promise<PullRequest[]> => {
-  const { data } = await octokit.pulls.list({
-    owner: repoOwner,
-    repo: repoName,
-    state: "all",
-  });
-
-  return data.filter((pr: PullRequest) => pr.user?.login === user);
+  try {
+    const { data } = await octokit.pulls.list({
+      owner: repoOwner,
+      repo: repoName,
+      state: "all",
+    });
+    console.log("[DEBUG] PRs sin filtrar:", data);
+    return data.filter((pr: PullRequest) => pr.user?.login === user);
+  } catch (error) {
+    console.error("[ERROR] Al obtener PRs:", error);
+    return [];
+  }
 };
+
 
 /**
  * Obtener Issues creados por un usuario en un repositorio.
@@ -47,14 +53,21 @@ const getIssuesByUser = async (
   repoName: string,
   user: string
 ): Promise<Issue[]> => {
-  const { data } = await octokit.issues.listForRepo({
-    owner: repoOwner,
-    repo: repoName,
-    state: "all",
-  });
-
-  return data.filter((issue: Issue) => issue.user?.login === user);
+  try {
+    const { data } = await octokit.issues.listForRepo({
+      owner: repoOwner,
+      repo: repoName,
+      state: "all",
+    });
+    console.log("[DEBUG] Issues sin filtrar:", data);
+    return data.filter((issue: Issue) => issue.user?.login === user);
+  } catch (error) {
+    console.error("[ERROR] Al obtener issues:", error);
+    return [];
+  }
 };
+
+
 
 /**
  * Obtener comentarios realizados por un usuario en PRs o Issues.
@@ -64,15 +77,21 @@ const getCommentsByUser = async (
   repoName: string,
   user: string
 ): Promise<Comment[]> => {
-  const comments = await octokit.issues.listCommentsForRepo({
-    owner: repoOwner,
-    repo: repoName,
-  });
-
-  return comments.data.filter((comment: Comment) => comment.user?.login === user);
+  try {
+    const comments = await octokit.issues.listCommentsForRepo({
+      owner: repoOwner,
+      repo: repoName,
+    });
+    console.log("[DEBUG] Comentarios sin filtrar:", comments.data);
+    return comments.data.filter((comment: Comment) => comment.user?.login === user);
+  } catch (error) {
+    console.error("[ERROR] Al obtener comentarios:", error);
+    return [];
+  }
 };
 
-module.exports = {
+
+export {
   getPullRequestsByUser,
   getIssuesByUser,
   getCommentsByUser,
