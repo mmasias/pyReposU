@@ -1,4 +1,6 @@
 const { Octokit } = require("@octokit/rest");
+import simpleGit from "simple-git";  
+import { prepareRepo } from "./repoService";
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN, 
@@ -104,13 +106,29 @@ const getRepoBranches = async (repoOwner: string, repoName: string): Promise<str
       repo: cleanRepoName, 
     });
 
-    return data.map((branch: any) => branch.name);
+    const branches = data.map((branch: any) => branch.name);
+
+    console.log("[DEBUG] Ramas obtenidas:", branches);
+
+    return branches;
   } catch (error) {
-    console.error("[ERROR] Al obtener ramas:", error);
-    return [];
+    console.error("[ERROR] Al obtener ramas desde GitHub. Intentando localmente...");
+
+    try {
+      //   Obtener ramas localmente si GitHub falla
+      const repoPath = await prepareRepo(`https://github.com/${repoOwner}/${repoName}.git`);
+      const git = simpleGit(repoPath);
+      const localBranches = (await git.branch()).all.map(b => b.replace("remotes/origin/", ""));
+
+      console.log("[DEBUG] Ramas obtenidas localmente:", localBranches);
+
+      return localBranches;
+    } catch (localError) {
+      console.error("[ERROR] No se pudieron obtener ramas localmente:", localError);
+      return [];
+    }
   }
 };
-
 
 
 export {

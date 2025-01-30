@@ -2,31 +2,22 @@ import React from "react";
 
 interface FiltrosProps {
   repoUrl: string;
-  setRepoUrl: (value: string) => void;
-  branch: string;
-  setBranch: (value: string) => void;
+  setRepoUrl: (url: string) => void;
   since: string;
-  setSince: (value: string) => void;
+  setSince: (date: string) => void;
   until: string;
-  setUntil: (value: string) => void;
-  fetchData: () => void;
+  setUntil: (date: string) => void;
+  fetchData: () => Promise<void>;
 }
 
-const Filtros: React.FC<FiltrosProps> = ({ repoUrl, setRepoUrl, branch, setBranch, since, setSince, until, setUntil, fetchData }) => {
+const Filtros: React.FC<FiltrosProps> = ({ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData }) => {
   return (
-    <div className="flex flex-wrap gap-4 justify-center mb-6">
-      <input
-        type="text"
-        placeholder="URL del repositorio"
-        value={repoUrl}
-        onChange={(e) => setRepoUrl(e.target.value)}
-        className="border p-2 w-96"
-      />
-      <input type="text" placeholder="Rama" value={branch} onChange={(e) => setBranch(e.target.value)} className="border p-2 w-40" />
-      <input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="border p-2 w-40" />
-      <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="border p-2 w-40" />
-      <button onClick={fetchData} className="bg-blue-500 text-white p-2 rounded">Aplicar Filtros</button>
-    </div>
+    <div className="flex gap-4 mb-4">
+      <input type="text" placeholder="URL del repositorio" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} className="border p-2 rounded w-80" />
+      <input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="border p-2 rounded" />
+      <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="border p-2 rounded" />
+      <button
+      onClick={fetchData} className={`px-4 py-2 rounded ${repoUrl ? "bg-blue-500 text-white" : "bg-gray-400 text-gray-700 cursor-not-allowed"}`} disabled={!repoUrl} >Aplicar Filtros</button>    </div>
   );
 };
 

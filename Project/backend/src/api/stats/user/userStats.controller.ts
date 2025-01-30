@@ -3,9 +3,6 @@ import { Parser } from "json2csv";
 import { getUserStats } from "../../services/userStatsService";
 import { getRepoBranches } from "../../services/githubService";
 
-/**
- * Controlador para obtener estadísticas de usuario.
- */
 const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { repoUrl, branch = "all", startDate, endDate } = req.query;
@@ -14,24 +11,14 @@ const getUserStatsHandler = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const [repoOwner, repoName] = new URL(repoUrl as string).pathname.slice(1).split("/");
-    const branches = branch === "all" ? await getRepoBranches(repoOwner, repoName) : [branch];
-
-    let allStats: any[] = [];
-    for (const br of branches) {
-      const stats = await getUserStats(repoUrl as string, br as string, startDate as string, endDate as string);
-      allStats = allStats.concat(stats.map((s: any) => ({ ...s, branch: br })));
-    }
-
-    res.json(allStats);
+    const stats = await getUserStats(repoUrl as string, branch as string, startDate as string, endDate as string);
+    res.json(stats);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Controlador para exportar estadísticas a CSV.
- */
+
 const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { repoUrl, branch, startDate, endDate, userId } = req.query;
