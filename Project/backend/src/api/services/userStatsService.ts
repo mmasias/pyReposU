@@ -17,15 +17,11 @@ interface UserStats {
   comments: number;
 }
 
-/**
- * Obtiene estadísticas de los usuarios en el repositorio sumando el trabajo en todas las ramas.
- */
 const getUserStats = async (
   repoUrl: string,
   branch?: string,
   startDate?: string,
-  endDate?: string,
-  userId?: string
+  endDate?: string
 ): Promise<UserStats[]> => {
   let repoPath: string | null = null;
 
@@ -75,18 +71,28 @@ const getUserStats = async (
       }
     }
 
+    // 🔥 Obtener PRs, Issues y Comentarios desde GitHub
     const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
-    const repoName = repoNameRaw.replace(/\.git$/, ""); 
+    const repoName = repoNameRaw.replace(/\.git$/, "");
+
     console.log("[DEBUG] Cargando PRs, Issues y Comentarios...");
     const pullRequests = await getPullRequestsByUser(repoOwner, repoName, "");
     const issues = await getIssuesByUser(repoOwner, repoName, "");
     const comments = await getCommentsByUser(repoOwner, repoName, "");
 
-    for (const user of Object.keys(statsMap)) {
-      statsMap[user].pullRequests = pullRequests.filter(pr => pr.user?.login === user).length;
-      statsMap[user].issues = issues.filter(issue => issue.user?.login === user).length;
-      statsMap[user].comments = comments.filter(comment => comment.user?.login === user).length;
-    }
+    // 🔥 Agregamos PRs, Issues y Comentarios como una contribución más
+    [...pullRequests, ...issues, ...comments].forEach(event => {
+      const username = event.user?.login;
+      if (username) {
+        if (!statsMap[username]) {
+          statsMap[username] = createEmptyStats(username);
+        }
+
+        if (pullRequests.includes(event)) statsMap[username].pullRequests += 1;
+        if (issues.includes(event)) statsMap[username].issues += 1;
+        if (comments.includes(event)) statsMap[username].comments += 1;
+      }
+    });
 
     return Object.values(statsMap);
   } catch (error) {
@@ -101,9 +107,9 @@ const getUserStats = async (
 
 export { getUserStats };
 
-function createEmptyStats(author: string): UserStats {
+function createEmptyStats(user: string): UserStats {
   return {
-    user: author,
+    user,
     totalContributions: 0,
     commits: 0,
     linesAdded: 0,

@@ -21,7 +21,7 @@ const getUserStatsHandler = async (req: Request, res: Response, next: NextFuncti
 
 const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { repoUrl, branch, startDate, endDate, userId } = req.query;
+    const { repoUrl, branch, startDate, endDate } = req.query;
 
     if (!repoUrl) {
       res.status(400).json({ message: "El parámetro repoUrl es obligatorio." });
@@ -32,8 +32,7 @@ const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction)
       repoUrl as string,
       branch as string,
       startDate as string,
-      endDate as string,
-      userId as string
+      endDate as string
     );
 
     const fields = ["user", "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"];
@@ -47,6 +46,7 @@ const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 };
+
 
 const getBranchesHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
