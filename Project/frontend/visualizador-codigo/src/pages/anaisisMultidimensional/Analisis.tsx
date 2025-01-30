@@ -66,9 +66,35 @@ const Analisis: React.FC = () => {
     }
   };
 
+  // 🔥 **Cálculo del resumen general sin modificar el resto del código**
+  const resumen = data.reduce(
+    (acc, user) => {
+      acc.commits += user.commits;
+      acc.linesAdded += user.linesAdded;
+      acc.linesDeleted += user.linesDeleted;
+      acc.pullRequests += user.pullRequests;
+      acc.issues += user.issues;
+      acc.comments += user.comments;
+      return acc;
+    },
+    { commits: 0, linesAdded: 0, linesDeleted: 0, pullRequests: 0, issues: 0, comments: 0 }
+  );
+
   return (
     <div className="p-6">
       <Filtros {...{ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData }} />
+
+      {/*  MINI RESUMEN GENERAL */}
+      <div className="p-4 mb-4 bg-gray-100 border rounded">
+        <h3 className="text-lg font-semibold">📊 Resumen del Repositorio</h3>
+        <p>📝 <strong>Commits totales:</strong> {resumen.commits}</p>
+        <p>📥 <strong>Líneas añadidas:</strong> {resumen.linesAdded}</p>
+        <p>❌ <strong>Líneas eliminadas:</strong> {resumen.linesDeleted}</p>
+        <p>🔀 <strong>Pull Requests:</strong> {resumen.pullRequests}</p>
+        <p>📌 <strong>Issues:</strong> {resumen.issues}</p>
+        <p>💬 <strong>Comentarios:</strong> {resumen.comments}</p>
+      </div>
+
       <TablaAnalisis data={data} branches={branches} visibleColumns={visibleColumns} setData={setData} />
       <ExportarDatos />
     </div>
