@@ -27,7 +27,7 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleCo
       const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
         params: { 
           repoUrl: "https://github.com/mmasias/pyReposU.git", 
-          branch: branch === "Todas" ? undefined : branch,  //   Si es "Todas", no mandamos `branch`
+          branch: branch === "Todas" ? undefined : branch,  
           startDate: "2024-01-01", 
           endDate: "2025-01-29" 
         }
@@ -45,38 +45,40 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleCo
   };
 
   return (
-    <table className="w-full border-collapse border border-gray-300">
-      <thead>
-        <tr className="bg-gray-100">
-          <th className="border p-2">Usuario</th>
-          <th className="border p-2">Rama</th>
-          {visibleColumns.map(col => (
-            <th key={col} className="border p-2">{col}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((userData: UserData) => (
-          <tr key={userData.user}>
-            <td className="border p-2">{userData.user}</td>
-            <td className="border p-2">
-              <select
-                value={userData.selectedBranch}
-                onChange={(e) => updateBranchData(userData.user, e.target.value)}
-                className="border rounded p-1"
-              >
-                {branches.map(branch => (
-                  <option key={branch} value={branch}>{branch}</option>
-                ))}
-              </select>
-            </td>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
+        <thead>
+          <tr className="bg-gray-200 dark:bg-gray-700">
+            <th className="border p-2">Usuario</th>
+            <th className="border p-2">Rama</th>
             {visibleColumns.map(col => (
-              <td key={col} className="border p-2">{userData[col as keyof UserData]}</td>
+              <th key={col} className="border p-2">{col}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {data.map((userData: UserData) => (
+            <tr key={userData.user} className="hover:bg-gray-100 dark:hover:bg-gray-800">
+              <td className="border p-2">{userData.user}</td>
+              <td className="border p-2">
+                <select
+                  value={userData.selectedBranch}
+                  onChange={(e) => updateBranchData(userData.user, e.target.value)}
+                  className="border rounded p-1 bg-white dark:bg-gray-700"
+                >
+                  {branches.map(branch => (
+                    <option key={branch} value={branch}>{branch}</option>
+                  ))}
+                </select>
+              </td>
+              {visibleColumns.map(col => (
+                <td key={col} className="border p-2">{userData[col as keyof UserData]}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

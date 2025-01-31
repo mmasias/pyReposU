@@ -12,12 +12,35 @@ interface FiltrosProps {
 
 const Filtros: React.FC<FiltrosProps> = ({ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData }) => {
   return (
-    <div className="flex gap-4 mb-4">
-      <input type="text" placeholder="URL del repositorio" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} className="border p-2 rounded w-80" />
-      <input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="border p-2 rounded" />
-      <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="border p-2 rounded" />
-      <button
-      onClick={fetchData} className={`px-4 py-2 rounded ${repoUrl ? "bg-blue-500 text-white" : "bg-gray-400 text-gray-700 cursor-not-allowed"}`} disabled={!repoUrl} >Aplicar Filtros</button>    </div>
+    <div className="flex flex-wrap gap-4 items-center justify-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md">
+      <input 
+        type="text"
+        placeholder="Introduce la URL del repositorio"
+        value={repoUrl}
+        onChange={(e) => setRepoUrl(e.target.value)}
+        className="border p-2 rounded w-80 bg-white dark:bg-gray-700"
+      />
+      <input 
+        type="date"
+        value={since}
+        onChange={(e) => setSince(e.target.value)}
+        className="border p-2 rounded bg-white dark:bg-gray-700"
+      />
+      <input 
+        type="date"
+        value={until}
+        onChange={(e) => setUntil(e.target.value)}
+        className="border p-2 rounded bg-white dark:bg-gray-700"
+      />
+      <button 
+        onClick={fetchData}
+        className={`px-4 py-2 rounded transition duration-300 
+          ${repoUrl ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-400 text-gray-700 cursor-not-allowed"}`} 
+        disabled={!repoUrl}
+      >
+        Aplicar Filtros
+      </button>
+    </div>
   );
 };
 
