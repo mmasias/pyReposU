@@ -24,6 +24,7 @@
     "react-select": "^5.10.0",
     "react-syntax-highlighter": "^15.6.1",
     "react-tooltip": "^5.28.0",
+    "react-vertical-timeline-component": "^3.5.3",
     "recharts": "^2.15.1"
   },
   "devDependencies": {

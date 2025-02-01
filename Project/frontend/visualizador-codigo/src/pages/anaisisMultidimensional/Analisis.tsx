@@ -4,6 +4,7 @@ import TablaAnalisis from "./TablaAnalisis";
 import Filtros from "./Filtros";
 import ExportarDatos from "./ExportarDatos";
 import Layout from "../../components/Layout"; 
+import Graficos from "../../components/Graficos";
 
 interface UserData {
   user: string;
@@ -108,6 +109,9 @@ const Analisis: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* INTEGRAR GRÁFICOS AQUÍ */}
+        <Graficos userData={data} />
 
         <TablaAnalisis data={data} branches={branches} visibleColumns={visibleColumns} setData={setData} />
         <ExportarDatos />
