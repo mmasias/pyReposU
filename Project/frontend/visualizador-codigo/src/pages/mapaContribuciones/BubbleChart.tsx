@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
+  Chart as ChartInstance,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
 import "chartjs-adapter-date-fns";
@@ -31,7 +32,7 @@ interface BubbleChartProps {
   endDate: string;
 }
 
-// 🎨 Genera un color único basado en el nombre del usuario
+//     Genera un color único basado en el nombre del usuario
 const generateColor = (str: string): string => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -42,6 +43,8 @@ const generateColor = (str: string): string => {
 };
 
 const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) => {
+  const chartRef = useRef<ChartInstance<"bubble"> | null>(null);
+
   useEffect(() => {
     console.log("📊 Datos para burbujas:", data);
   }, [data]);
@@ -59,18 +62,51 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
     label: user,
     data: data[user].map(entry => ({
       x: new Date(entry.date).getTime(),
-      y: user,
+      y: user, //     Mantiene alineación con el autor
       r: Math.max(5, ((entry.linesAdded + entry.linesDeleted) / maxLinesModified) * 30),
-    })) as { x: number; y: string; r: number }[], //     FIX: Asegurar tipo correcto
+    })),
     backgroundColor: generateColor(user),
     extraData: data[user].map(entry => ({
       hash: entry.hash || "Desconocido",
       message: entry.message || "Sin mensaje",
       files: entry.files || ["No disponible"],
       linesAdded: entry.linesAdded,
-      linesDeleted: entry.linesDeleted
-    })), //     Guardamos datos adicionales en `extraData`
+      linesDeleted: entry.linesDeleted,
+    })),
   }));
+
+  const handleZoom = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+  
+    const xScale = chart.scales.x;
+  
+    if (!(xScale instanceof TimeScale)) {
+      console.error("❌ La escala X no es de tipo TimeScale.");
+      return;
+    }
+  
+    const visibleRange = xScale.max - xScale.min;
+    console.log("🔍 Visible Range (ms):", visibleRange);
+  
+    if (!chart.options.scales) return;
+  
+    const xScaleOptions = chart.options.scales.x as any; //     Evitamos error de TypeScript
+  
+    xScaleOptions.time = {
+      unit: visibleRange <= 7 * 24 * 60 * 60 * 1000 ? "hour" : "day",
+      displayFormats: {
+        day: "MMM d",   //     Siempre mostrar el día
+        hour: "MMM d HH:mm", //     Mostrar fecha y hora juntas
+      },
+      tooltipFormat: "MMM d, HH:mm", //     Asegurar que el tooltip también lo muestre bien
+    };
+  
+    chart.update();
+  };
+  
+  
+  
 
   const options: ChartOptions<"bubble"> = {
     responsive: true,
@@ -81,9 +117,10 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
         time: {
           unit: "day",
           tooltipFormat: "PPpp",
+          displayFormats: { day: "MMM d" },
         },
-        suggestedMin: new Date(startDate).getTime(),
-        suggestedMax: new Date(endDate).getTime(),
+        min: new Date(startDate).getTime(),
+        max: new Date(endDate).getTime(),
         title: { display: true, text: "Fecha" },
       },
       y: {
@@ -117,6 +154,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
           wheel: { enabled: true },
           pinch: { enabled: true },
           mode: "x",
+          onZoom: handleZoom, // 🔍 Llama a la función de zoom
         },
       },
     },
@@ -125,7 +163,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow" style={{ height: "450px" }}>
       <h3 className="text-xl font-semibold mb-4">📊 Diagrama de Burbujas</h3>
-      <Bubble data={{ datasets }} options={options} />
+      <Bubble ref={chartRef as any} data={{ datasets }} options={options} />
     </div>
   );
 };
