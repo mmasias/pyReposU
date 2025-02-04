@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Visualizador from './pages/visualizadorCodigo/Visualizador';
 import Playback from './pages/visualizadorCodigo/Playback';
 import Analisis from './pages/anaisisMultidimensional/Analisis';
+import MapaContribuciones from './pages/mapaContribuciones/MapaContribuciones';
 
 const App: React.FC = () => (
     <Router>
@@ -12,7 +13,7 @@ const App: React.FC = () => (
             <Route path="/visualizador" element={<Visualizador />} />
             <Route path="/playback/:repoUrl/:filePath" element={<Playback />} />
             <Route path="/analisis-multidimensional" element={<Analisis />} />
-
+            <Route path="/mapa-contribuciones" element={<MapaContribuciones />} />
         </Routes>
     </Router>
 );

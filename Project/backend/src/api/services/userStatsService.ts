@@ -71,7 +71,7 @@ const getUserStats = async (
       }
     }
 
-    // 🔥 Obtener PRs, Issues y Comentarios desde GitHub
+    //     Obtener PRs, Issues y Comentarios desde GitHub
     const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
     const repoName = repoNameRaw.replace(/\.git$/, "");
 
@@ -80,7 +80,7 @@ const getUserStats = async (
     const issues = await getIssuesByUser(repoOwner, repoName, "");
     const comments = await getCommentsByUser(repoOwner, repoName, "");
 
-    // 🔥 Agregamos PRs, Issues y Comentarios como una contribución más
+    //     Agregamos PRs, Issues y Comentarios como una contribución más
     [...pullRequests, ...issues, ...comments].forEach(event => {
       const username = event.user?.login;
       if (username) {

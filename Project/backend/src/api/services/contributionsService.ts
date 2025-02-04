@@ -119,7 +119,7 @@ export const getBubbleChartData = async (
     let currentMessage = "";
     let currentFiles: string[] = [];
     let linesAdded = 0;
-    let linesDeleted = 0; // 🔥 Añadir líneas borradas
+    let linesDeleted = 0; 
 
     for (const line of lines) {
       if (line.includes(";")) {
@@ -128,29 +128,30 @@ export const getBubbleChartData = async (
           bubbleData[currentUser].push({
             date: currentDate,
             linesAdded: linesAdded,
-            linesDeleted: linesDeleted, // 🔥 Guardar líneas borradas
+            linesDeleted: linesDeleted,
             branch,
             hash: currentHash,
             message: currentMessage || "Sin mensaje",
-            files: currentFiles.length > 0 ? currentFiles : ["No disponible"],
+            files: [...currentFiles], 
           });
-
-          currentFiles = [];
+    
+          currentFiles = []; 
           linesAdded = 0;
-          linesDeleted = 0; // 🔄 Resetear líneas borradas
+          linesDeleted = 0;
         }
-
+    
         const [hash, author, date, message] = line.split(";");
         currentUser = author.trim();
         currentDate = date.trim();
         currentHash = hash.trim();
         currentMessage = message?.trim() || "Sin mensaje";
       } else if (line.trim() !== "" && !line.includes("\t")) {
-        currentFiles.push(line.trim());
+        currentFiles.push(line.trim()); 
       } else if (line.includes("\t")) {
-        const [added, deleted] = line.split("\t");
+        const [added, deleted, filePath] = line.split("\t");
         linesAdded += parseInt(added) || 0;
-        linesDeleted += parseInt(deleted.trim()) || 0; 
+        linesDeleted += parseInt(deleted.trim()) || 0;
+        currentFiles.push(filePath.trim()); 
       }
     }
 
@@ -167,7 +168,7 @@ export const getBubbleChartData = async (
       });
     }
 
-    console.log("[✅ DEBUG] Datos de bubbleData:", JSON.stringify(bubbleData, null, 2));
+    console.log("[    DEBUG] Datos de bubbleData:", JSON.stringify(bubbleData, null, 2));
 
     return bubbleData;
   } catch (error) {
