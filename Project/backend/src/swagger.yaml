@@ -1,0 +1,277 @@
+openapi: 3.0.0
+info:
+  title: GitHub Repo Metrics API
+  description: API para analizar métricas de repositorios de GitHub.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor local
+
+tags:
+  - name: Commits
+    description: Endpoints relacionados con commits
+  - name: Archivos
+    description: Endpoints relacionados con archivos
+  - name: Estadísticas de Usuarios
+    description: Endpoints relacionados con métricas de contribuciones de usuarios
+  - name: Estadísticas de Contribuciones
+    description: Endpoints relacionados con contribuciones por carpeta
+  - name: Estadísticas de Carpetas
+    description: Endpoints relacionados con estadísticas generales de carpetas
+
+paths:
+  /commits:
+    get:
+      tags:
+        - Commits
+      summary: Obtener lista de commits
+      description: Devuelve una lista de commits de un repositorio con los archivos modificados.
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de commits obtenida.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    hash:
+                      type: string
+                    message:
+                      type: string
+                    date:
+                      type: string
+                    author:
+                      type: string
+                    files:
+                      type: array
+                      items:
+                        type: string
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /files/content:
+    get:
+      tags:
+        - Archivos
+      summary: Obtener contenido de un archivo
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: commitHash
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: filePath
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Contenido del archivo.
+        "400":
+          description: Falta repoUrl o filePath.
+        "500":
+          description: Error interno.
+
+  /files/diff:
+    get:
+      tags:
+        - Archivos
+      summary: Obtener diferencias entre dos versiones de un archivo
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: commitHashOld
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: commitHashNew
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: filePath
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Diff generado exitosamente.
+        "400":
+          description: Parámetros faltantes.
+        "500":
+          description: Error al calcular el diff.
+
+  /stats/user:
+    get:
+      tags:
+        - Estadísticas de Usuarios
+      summary: Obtener métricas de contribuciones por usuario
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Estadísticas obtenidas.
+        "400":
+          description: Parámetros faltantes.
+        "500":
+          description: Error interno.
+
+  /stats/user/export/csv:
+    get:
+      tags:
+        - Estadísticas de Usuarios
+      summary: Exportar métricas a CSV
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Devuelve un archivo CSV.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /stats/user/branches:
+    get:
+      tags:
+        - Estadísticas de Usuarios
+      summary: Obtener lista de ramas del repositorio
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de ramas obtenida.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /stats/contributions:
+    get:
+      tags:
+        - Estadísticas de Contribuciones
+      summary: Obtener contribuciones de usuarios por carpeta
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Datos de contribuciones por carpeta.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /stats/contributions/bubble-chart:
+    get:
+      tags:
+        - Estadísticas de Contribuciones
+      summary: Obtener datos del diagrama de burbujas
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Datos del diagrama de burbujas obtenidos.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /stats/folders:
+    get:
+      tags:
+        - Estadísticas de Carpetas
+      summary: Obtener estadísticas generales de carpetas
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Estadísticas de carpetas obtenidas.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.
+
+  /stats/folders/order:
+    get:
+      tags:
+        - Estadísticas de Carpetas
+      summary: Obtener carpetas ordenadas por cambios
+      responses:
+        "200":
+          description: Lista de carpetas ordenada.
+        "500":
+          description: Error interno.
+
+  /stats/folders/tree:
+    get:
+      tags:
+        - Estadísticas de Carpetas
+      summary: Obtener la estructura del repositorio como árbol
+      parameters:
+        - name: repoUrl
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Árbol del repositorio obtenido.
+        "400":
+          description: Falta repoUrl.
+        "500":
+          description: Error interno.

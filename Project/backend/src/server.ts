@@ -3,6 +3,8 @@ import bodyParser from 'body-parser';
 import { setupRoutes } from './api/routes';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { setupSwagger } from '../src/swagger';  
+
 dotenv.config();
 
 const app: Application = express();
@@ -22,6 +24,9 @@ app.use(bodyParser.json());
 
 // Configurar rutas
 setupRoutes(app);
+
+// Configurar Swagger
+setupSwagger(app); // Configura Swagger
 
 // Iniciar servidor
 app.listen(PORT, () => {
