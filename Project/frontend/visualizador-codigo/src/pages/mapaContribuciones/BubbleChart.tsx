@@ -82,7 +82,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
     const xScale = chart.scales.x;
   
     if (!(xScale instanceof TimeScale)) {
-      console.error("❌ La escala X no es de tipo TimeScale.");
+      console.error("    La escala X no es de tipo TimeScale.");
       return;
     }
   

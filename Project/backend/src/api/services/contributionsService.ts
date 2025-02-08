@@ -28,61 +28,80 @@ export const getContributionsByUser = async (
     repoPath = await prepareRepo(repoUrl);
     const git = simpleGit(repoPath);
 
-    await git.checkout(branch);
+    let branchesToProcess: string[];
 
-    const logArgs = ["log", "--numstat", "--pretty=format:%H;%an;%ad", "--date=iso"];
-    if (startDate) logArgs.push(`--since=${startDate}`);
-    if (endDate) logArgs.push(`--until=${endDate}`);
+    if (branch === "Todas") {
+      const rawBranches = await git.raw(["branch", "-r"]);
+      branchesToProcess = rawBranches
+        .split("\n")
+        .map((b) => b.trim().replace("origin/", ""))
+        .filter((b) => b !== "HEAD" && b !== "");
+    } else {
+      branchesToProcess = [branch];
+    }
 
-    const logOutput = await git.raw(logArgs);
-    const lines = logOutput.split("\n");
+    console.log(`🔄 Procesando ramas:`, branchesToProcess);
+
     const contributions: ContributionStats = {};
-    const totalLines: Record<string, number> = {}; // Total líneas en cada carpeta
+    const totalLines: Record<string, number> = {}; //     Almacena líneas totales por archivo
 
-    let currentUser = "";
-    let currentDate = "";
+    for (const branchName of branchesToProcess) {
+      await git.checkout(branchName);
 
-    for (const line of lines) {
-      if (line.includes(";")) {
-        const [, author, date] = line.split(";");
-        currentUser = author.trim();
-        currentDate = date.trim();
+      const logArgs = ["log", "--numstat", "--pretty=format:%H;%an;%ad", "--date=iso"];
+      if (startDate) logArgs.push(`--since=${startDate}`);
+      if (endDate) logArgs.push(`--until=${endDate}`);
 
-        if (!contributions[currentUser]) {
-          contributions[currentUser] = {};
-        }
-      } else {
-        const parts = line.split("\t");
-        if (parts.length === 3) {
-          const [added, deleted, filePath] = parts;
-          const folder = normalizePath(filePath).split("/")[0];
+      const logOutput = await git.raw(logArgs);
+      const lines = logOutput.split("\n");
 
-          if (!contributions[currentUser][folder]) {
-            contributions[currentUser][folder] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+      let currentUser = "";
+      let currentDate = "";
+
+      for (const line of lines) {
+        if (line.includes(";")) {
+          const [, author, date] = line.split(";");
+          currentUser = author.trim();
+          currentDate = date.trim();
+
+          if (!contributions[currentUser]) {
+            contributions[currentUser] = {};
           }
-          if (!totalLines[folder]) {
-            totalLines[folder] = 0;
-          }
+        } else {
+          const parts = line.split("\t");
+          if (parts.length === 3) {
+            const [added, deleted, filePath] = parts;
+            const normalizedPath = normalizePath(filePath);
 
-          contributions[currentUser][folder].linesAdded += parseInt(added) || 0;
-          contributions[currentUser][folder].linesDeleted += parseInt(deleted) || 0;
-          totalLines[folder] += parseInt(added) || 0;
+            if (!contributions[currentUser][normalizedPath]) {
+              contributions[currentUser][normalizedPath] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+            }
+            if (!totalLines[normalizedPath]) {
+              totalLines[normalizedPath] = 0;
+            }
+
+            contributions[currentUser][normalizedPath].linesAdded += parseInt(added) || 0;
+            contributions[currentUser][normalizedPath].linesDeleted += parseInt(deleted) || 0;
+            totalLines[normalizedPath] += parseInt(added) || 0;
+          }
         }
       }
     }
 
-    // Calcular % de contribución en cada carpeta
+    //     Calcular porcentaje final de cada archivo
     for (const user in contributions) {
-      for (const folder in contributions[user]) {
-        contributions[user][folder].percentage =
-          (contributions[user][folder].linesAdded / (totalLines[folder] || 1)) * 100;
+      for (const filePath in contributions[user]) {
+        contributions[user][filePath].percentage =
+          (contributions[user][filePath].linesAdded / (totalLines[filePath] || 1)) * 100;
       }
     }
+
+    console.log("[    DEBUG] Datos finales de contribuciones:", JSON.stringify(contributions, null, 2));
 
     return contributions;
   } catch (error) {
-    console.error("[getContributionsByUser] Error:", error);
-    throw new Error("Error al calcular contribuciones por usuario.");
+    console.error("[    ERROR] getContributionsByUser:", error);
+    throw new Error("Error al calcular contribuciones.");
   } finally {
     if (repoPath) await cleanRepo(repoPath);
   }
@@ -101,13 +120,13 @@ export const getBubbleChartData = async (
     repoPath = await prepareRepo(repoUrl);
     const git = simpleGit(repoPath);
 
-    // 📌 Primero, actualizar el repo para obtener todas las ramas
+    //     Primero, actualizar el repo para obtener todas las ramas
     await git.fetch(["--all"]);
 
     let branchesToProcess: string[];
 
     if (branch === "Todas") {
-      // 📌 Obtener todas las ramas locales y remotas
+      //     Obtener todas las ramas locales y remotas
       const rawBranches = await git.raw(["branch", "-a"]);
       branchesToProcess = rawBranches
         .split("\n")
@@ -147,7 +166,7 @@ export const getBubbleChartData = async (
         for (const line of lines) {
           if (line.includes(";")) {
             if (currentUser && currentHash && !processedCommits.has(currentHash)) {
-              // 📌 Solo agregar commits nuevos (sin duplicados)
+              //     Solo agregar commits nuevos (sin duplicados)
               if (!bubbleData[currentUser]) bubbleData[currentUser] = [];
               bubbleData[currentUser].push({
                 date: currentDate,
@@ -162,7 +181,7 @@ export const getBubbleChartData = async (
               processedCommits.add(currentHash);
             }
 
-            // 📌 Leer el nuevo commit
+            //     Leer el nuevo commit
             const [hash, author, date, message] = line.split(";");
             currentUser = author.trim();
             currentDate = date.trim();
@@ -197,18 +216,18 @@ export const getBubbleChartData = async (
         }
       } catch (error) {
         if (error instanceof Error) {
-          console.warn(`⚠️ Error procesando rama ${branchName}:`, error.message);
+          console.warn(`    Error procesando rama ${branchName}:`, error.message);
         } else {
-          console.warn(`⚠️ Error procesando rama ${branchName}:`, error);
+          console.warn(`    Error procesando rama ${branchName}:`, error);
         }
       }
     }
 
-    console.log("[✅ DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
+    console.log("[    DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
 
     return bubbleData;
   } catch (error) {
-    console.error("[❌ ERROR] getBubbleChartData:", error);
+    console.error("[    ERROR] getBubbleChartData:", error);
     throw new Error("Error al generar datos para el diagrama de burbujas.");
   } finally {
     if (repoPath) await cleanRepo(repoPath);

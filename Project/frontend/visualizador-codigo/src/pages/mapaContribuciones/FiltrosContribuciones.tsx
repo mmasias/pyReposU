@@ -26,7 +26,7 @@ const FiltrosContribuciones: React.FC<FiltrosContribucionesProps> = ({
 }) => {
   const [branches, setBranches] = useState<string[]>(["main"]);
   const [users, setUsers] = useState<string[]>([]);
-  const [repoCreatedAt, setRepoCreatedAt] = useState(""); // 📌 Guardamos la fecha de creación
+  const [repoCreatedAt, setRepoCreatedAt] = useState(""); //     Guardamos la fecha de creación
 
   useEffect(() => {
     if (!repoUrl) return;
@@ -53,7 +53,7 @@ const FiltrosContribuciones: React.FC<FiltrosContribucionesProps> = ({
       }
     };
 
-    // 📌 Obtener la fecha de creación del repositorio
+    //     Obtener la fecha de creación del repositorio
     const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
     const repoName = repoNameRaw.replace(/\.git$/, "");
 
@@ -62,7 +62,7 @@ const FiltrosContribuciones: React.FC<FiltrosContribucionesProps> = ({
       .then((response) => {
         const createdAt = response.data.created_at.split("T")[0];
         setRepoCreatedAt(createdAt);
-        setStartDate(createdAt); // 📌 Asignamos la fecha desde
+        setStartDate(createdAt); //     Asignamos la fecha desde
       })
       .catch((error) => console.error("Error al obtener la fecha de creación:", error));
 
@@ -70,10 +70,10 @@ const FiltrosContribuciones: React.FC<FiltrosContribucionesProps> = ({
     fetchUsers();
   }, [repoUrl, setStartDate]); //     Dependencias corregidas
 
-  // 📌 Validar fechas antes de ejecutar la consulta
+  //     Validar fechas antes de ejecutar la consulta
   const handleFetchData = () => {
     if (new Date(startDate) < new Date(repoCreatedAt)) {
-      alert("❌ No puedes seleccionar una fecha anterior a la creación del repositorio.");
+      alert("    No puedes seleccionar una fecha anterior a la creación del repositorio.");
       return;
     }
     fetchData();
