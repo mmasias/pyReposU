@@ -46,17 +46,17 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
   const chartRef = useRef<ChartInstance<"bubble"> | null>(null);
 
   useEffect(() => {
-    console.log("📊 Datos para burbujas:", data);
+    console.log("    Datos para burbujas:", data);
   }, [data]);
 
   const users = Object.keys(data);
 
-  // 🔍 Encontrar el máximo de líneas modificadas (añadidas + borradas)
+  //     Encontrar el máximo de líneas modificadas (añadidas + borradas)
   const allLinesModified = users.flatMap(user =>
     data[user].map(commit => commit.linesAdded + commit.linesDeleted)
   );
   const maxLinesModified = Math.max(...allLinesModified, 1);
-  console.log("🔍 Máximo de líneas modificadas:", maxLinesModified);
+  console.log("    Máximo de líneas modificadas:", maxLinesModified);
 
   const datasets = users.map(user => ({
     label: user,
@@ -87,7 +87,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
     }
   
     const visibleRange = xScale.max - xScale.min;
-    console.log("🔍 Visible Range (ms):", visibleRange);
+    console.log("    Visible Range (ms):", visibleRange);
   
     if (!chart.options.scales) return;
   
@@ -141,7 +141,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
               `👤 Usuario: ${tooltipItem.dataset.label}`,
               `🆔 Commit: ${extraData.hash}`,
               `📝 ${extraData.message || "Sin mensaje"}`,
-              `📂 Archivos: ${(extraData.files && extraData.files.length > 0) ? extraData.files.join(", ") : "No disponible"}`,
+              `    Archivos: ${(extraData.files && extraData.files.length > 0) ? extraData.files.join(", ") : "No disponible"}`,
               `➕ Líneas añadidas: ${extraData.linesAdded ?? 0}`,
               `➖ Líneas borradas: ${extraData.linesDeleted ?? 0}`,
             ];
@@ -154,7 +154,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
           wheel: { enabled: true },
           pinch: { enabled: true },
           mode: "x",
-          onZoom: handleZoom, // 🔍 Llama a la función de zoom
+          onZoom: handleZoom, //     Llama a la función de zoom
         },
       },
     },
@@ -162,7 +162,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
 
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow" style={{ height: "450px" }}>
-      <h3 className="text-xl font-semibold mb-4">📊 Diagrama de Burbujas</h3>
+      <h3 className="text-xl font-semibold mb-4">    Diagrama de Burbujas</h3>
       <Bubble ref={chartRef as any} data={{ datasets }} options={options} />
     </div>
   );

@@ -22,7 +22,7 @@ const Folder: React.FC<FolderProps> = ({ folderData, level }) => {
         } p-4 rounded-md shadow-md`}
       >
         <h3 className="text-lg font-semibold text-gray-800">
-          {folderData.subfolders ? '📁' : '📄'} {folderData.name}
+          {folderData.subfolders ? '   ' : '📄'} {folderData.name}
         </h3>
         <span className="text-gray-600">{folderData.changes || 0} cambios</span>
       </div>

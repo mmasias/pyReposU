@@ -122,7 +122,7 @@ const Visualizador = () => {
               className="cursor-pointer flex items-center bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md"
               onClick={() => toggleFolder(fullPath)}
             >
-              <span className="mr-2">{expandedFolders.includes(fullPath) ? "📂" : "📁"}</span>
+              <span className="mr-2">{expandedFolders.includes(fullPath) ? "   " : "   "}</span>
               <span className="font-semibold text-gray-800">{node.name}</span>
               <span className="ml-auto text-gray-500">{node.changes || 0} cambios</span>
             </div>

@@ -81,7 +81,7 @@ const FiltrosContribuciones: React.FC<FiltrosContribucionesProps> = ({
 
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md space-y-4">
-      <h3 className="text-xl font-semibold text-gray-800 dark:text-white">🔍 Filtros</h3>
+      <h3 className="text-xl font-semibold text-gray-800 dark:text-white">    Filtros</h3>
 
       {/* Input de Repositorio */}
       <div>

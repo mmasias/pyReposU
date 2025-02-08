@@ -1,6 +1,6 @@
 import simpleGit from "simple-git";
 import { prepareRepo, cleanRepo } from "./repoService";
-import { normalizePath } from "../utils/file.utils";
+import path from "path";
 
 interface ContributionStats {
   [user: string]: {
@@ -13,14 +13,20 @@ interface BubbleChartData {
 }
 
 /**
- * Obtiene las contribuciones de los usuarios en cada carpeta.
- * Calcula el % de código escrito por cada usuario.
+ *     Normaliza las rutas de archivos para evitar caracteres raros
+ */
+const normalizePath = (filePath: string): string => {
+  return path.normalize(filePath).replace(/\\/g, "/").trim(); //     Normaliza bien las rutas
+};
+
+
+
+/**
+ *     Obtiene contribuciones de usuarios en cada archivo/carpeta.
  */
 export const getContributionsByUser = async (
   repoUrl: string,
-  branch: string = "main",
-  startDate?: string,
-  endDate?: string
+  branch: string = "main"
 ): Promise<ContributionStats> => {
   let repoPath: string | null = null;
 
@@ -28,79 +34,64 @@ export const getContributionsByUser = async (
     repoPath = await prepareRepo(repoUrl);
     const git = simpleGit(repoPath);
 
-    let branchesToProcess: string[];
+    await git.fetch(["--prune", "origin"]);
+    await git.checkout(branch);
+    await git.pull("origin", branch, ["--force"]);
 
-    if (branch === "Todas") {
-      const rawBranches = await git.raw(["branch", "-r"]);
-      branchesToProcess = rawBranches
-        .split("\n")
-        .map((b) => b.trim().replace("origin/", ""))
-        .filter((b) => b !== "HEAD" && b !== "");
-    } else {
-      branchesToProcess = [branch];
-    }
+    const rawFiles = await git.raw(["ls-tree", "-r", "HEAD", "--name-only"]);
+    const allFiles = rawFiles.split("\n").map((file) => normalizePath(file)).filter((f) => f !== "");
 
-    console.log(`🔄 Procesando ramas:`, branchesToProcess);
+    console.log("    Archivos en el repo ahora:", allFiles);
 
     const contributions: ContributionStats = {};
-    const totalLines: Record<string, number> = {}; //     Almacena líneas totales por archivo
 
-    for (const branchName of branchesToProcess) {
-      await git.checkout(branchName);
+    for (const filePath of allFiles) {
+      const logOutput = await git.raw([
+        "log",
+        "--pretty=format:%an",
+        "--numstat",
+        "--follow",
+        "--",
+        filePath
+      ]);
 
-      const logArgs = ["log", "--numstat", "--pretty=format:%H;%an;%ad", "--date=iso"];
-      if (startDate) logArgs.push(`--since=${startDate}`);
-      if (endDate) logArgs.push(`--until=${endDate}`);
-
-      const logOutput = await git.raw(logArgs);
       const lines = logOutput.split("\n");
+      let totalLinesModified = 0;
+      const userEdits: Record<string, { linesAdded: number; linesDeleted: number }> = {};
 
-      let currentUser = "";
-      let currentDate = "";
+      let lastUser = "";
 
       for (const line of lines) {
-        if (line.includes(";")) {
-          const [, author, date] = line.split(";");
-          currentUser = author.trim();
-          currentDate = date.trim();
-
-          if (!contributions[currentUser]) {
-            contributions[currentUser] = {};
-          }
+        if (!line.includes("\t")) {
+          lastUser = line.trim();
         } else {
-          const parts = line.split("\t");
-          if (parts.length === 3) {
-            const [added, deleted, filePath] = parts;
-            const normalizedPath = normalizePath(filePath);
-
-            if (!contributions[currentUser][normalizedPath]) {
-              contributions[currentUser][normalizedPath] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
-            }
-            if (!totalLines[normalizedPath]) {
-              totalLines[normalizedPath] = 0;
+          const [added, deleted, _file] = line.split("\t").map(x => x.trim());
+          if (lastUser) {
+            if (!userEdits[lastUser]) {
+              userEdits[lastUser] = { linesAdded: 0, linesDeleted: 0 };
             }
 
-            contributions[currentUser][normalizedPath].linesAdded += parseInt(added) || 0;
-            contributions[currentUser][normalizedPath].linesDeleted += parseInt(deleted) || 0;
-            totalLines[normalizedPath] += parseInt(added) || 0;
+            userEdits[lastUser].linesAdded += parseInt(added) || 0;
+            userEdits[lastUser].linesDeleted += parseInt(deleted) || 0;
+            totalLinesModified += (parseInt(added) || 0) + (parseInt(deleted) || 0);
           }
         }
       }
-    }
 
-    //     Calcular porcentaje final de cada archivo
-    for (const user in contributions) {
-      for (const filePath in contributions[user]) {
-        contributions[user][filePath].percentage =
-          (contributions[user][filePath].linesAdded / (totalLines[filePath] || 1)) * 100;
+      for (const [user, { linesAdded, linesDeleted }] of Object.entries(userEdits)) {
+        if (!contributions[user]) contributions[user] = {};
+        contributions[user][filePath] = {
+          linesAdded,
+          linesDeleted,
+          percentage: totalLinesModified > 0 ? ((linesAdded + linesDeleted) / totalLinesModified) * 100 : 0
+        };
       }
     }
 
-    console.log("[    DEBUG] Datos finales de contribuciones:", JSON.stringify(contributions, null, 2));
-
+    console.log("[DEBUG] Contribuciones calculadas correctamente:", JSON.stringify(contributions, null, 2));
     return contributions;
   } catch (error) {
-    console.error("[    ERROR] getContributionsByUser:", error);
+    console.error("[ERROR] getContributionsByUser:", error);
     throw new Error("Error al calcular contribuciones.");
   } finally {
     if (repoPath) await cleanRepo(repoPath);
@@ -136,14 +127,14 @@ export const getBubbleChartData = async (
       branchesToProcess = [branch]; // Solo la seleccionada
     }
 
-    console.log(`🔄 Ramas a procesar:`, branchesToProcess);
+    console.log(`    Ramas a procesar:`, branchesToProcess);
 
     const bubbleData: BubbleChartData = {};
     const processedCommits = new Set<string>(); // Evita duplicados
 
     for (const branchName of branchesToProcess) {
       try {
-        console.log(`🔄 Procesando rama: ${branchName}`);
+        console.log(`    Procesando rama: ${branchName}`);
         await git.checkout(branchName);
 
         const logOutput = await git.raw([

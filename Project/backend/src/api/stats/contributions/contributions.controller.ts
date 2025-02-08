@@ -13,8 +13,8 @@ export const getUserContributionsHandler = async (req: Request, res: Response): 
     const contributions = await getContributionsByUser(
       repoUrl as string,
       branch as string,
-      startDate as string,
-      endDate as string
+      //startDate as string,
+      //endDate as string
     );
     res.json(contributions);
   } catch (error) {
