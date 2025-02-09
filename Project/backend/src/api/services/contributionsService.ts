@@ -13,16 +13,22 @@ interface BubbleChartData {
 }
 
 /**
- *     Normaliza las rutas de archivos para evitar caracteres raros
+ * Normaliza las rutas de archivos para evitar caracteres raros
  */
 const normalizePath = (filePath: string): string => {
-  return path.normalize(filePath).replace(/\\/g, "/").trim(); //     Normaliza bien las rutas
+  return path.normalize(filePath).replace(/\\/g, "/").trim();
 };
 
 
+/**
+ * Verifica si un archivo es binario (imágenes, PDFs, etc.).
+ */
+const isBinaryFile = (filePath: string): boolean => {
+  return /\.(png|jpg|jpeg|gif|pdf|zip|mp3|mp4|mov|avi)$/i.test(filePath);
+};
 
 /**
- *     Obtiene contribuciones de usuarios en cada archivo/carpeta.
+ * Obtiene contribuciones de usuarios en cada archivo/carpeta.
  */
 export const getContributionsByUser = async (
   repoUrl: string,
@@ -38,12 +44,18 @@ export const getContributionsByUser = async (
     await git.checkout(branch);
     await git.pull("origin", branch, ["--force"]);
 
-    const rawFiles = await git.raw(["ls-tree", "-r", "HEAD", "--name-only"]);
-    const allFiles = rawFiles.split("\n").map((file) => normalizePath(file)).filter((f) => f !== "");
+    const rawFiles = await git.raw(["ls-files"]);
+    console.log(" Archivos detectados con ls-files:", rawFiles);    
+    const allFiles = rawFiles.split("\n").map(normalizePath).filter((f) => f !== "");
 
-    console.log("    Archivos en el repo ahora:", allFiles);
-
+    console.log(`[DEBUG] Total archivos en el repo: ${allFiles.length}`);
+    console.log(" Lista de archivos en el repo:", allFiles.slice(0, 50)); 
+    console.log(" ¿docs/recursos/imagenes está en allFiles?", allFiles.includes("docs/recursos/imagenes"));
+    
     const contributions: ContributionStats = {};
+    const binaryFileOwners: Record<string, string> = {}; // Último usuario que modificó archivos binarios.
+
+    const detectedFolders = new Set<string>(); // Para verificar carpetas únicas detectadas.
 
     for (const filePath of allFiles) {
       const logOutput = await git.raw([
@@ -58,38 +70,139 @@ export const getContributionsByUser = async (
       const lines = logOutput.split("\n");
       let totalLinesModified = 0;
       const userEdits: Record<string, { linesAdded: number; linesDeleted: number }> = {};
-
       let lastUser = "";
 
       for (const line of lines) {
         if (!line.includes("\t")) {
           lastUser = line.trim();
         } else {
-          const [added, deleted, _file] = line.split("\t").map(x => x.trim());
+          const [added, deleted] = line.split("\t").map(x => parseInt(x.trim()) || 0);
           if (lastUser) {
             if (!userEdits[lastUser]) {
               userEdits[lastUser] = { linesAdded: 0, linesDeleted: 0 };
             }
 
-            userEdits[lastUser].linesAdded += parseInt(added) || 0;
-            userEdits[lastUser].linesDeleted += parseInt(deleted) || 0;
-            totalLinesModified += (parseInt(added) || 0) + (parseInt(deleted) || 0);
+            userEdits[lastUser].linesAdded += added;
+            userEdits[lastUser].linesDeleted += deleted;
+            totalLinesModified += added + deleted;
           }
         }
       }
 
-      for (const [user, { linesAdded, linesDeleted }] of Object.entries(userEdits)) {
-        if (!contributions[user]) contributions[user] = {};
-        contributions[user][filePath] = {
-          linesAdded,
-          linesDeleted,
-          percentage: totalLinesModified > 0 ? ((linesAdded + linesDeleted) / totalLinesModified) * 100 : 0
-        };
+      const parts = filePath.split("/");
+      parts.pop();
+      const folderPath = parts.join("/");
+
+      detectedFolders.add(folderPath);
+
+      if (isBinaryFile(filePath)) {
+        let binaryOwner = lastUser;
+        
+        // Si no hay dueño detectado, buscamos el commit más antiguo para obtenerlo
+        if (!binaryOwner) {
+          const firstCommitLog = await git.raw([
+            "log",
+            "--format=%an",
+            "--follow",
+            "--reverse",
+            "--",
+            filePath
+          ]);
+          binaryOwner = firstCommitLog.split("\n")[0]?.trim() || "Desconocido";
+        }
+      
+        contributions[binaryOwner] = contributions[binaryOwner] || {};
+        contributions[binaryOwner][filePath] = { linesAdded: 0, linesDeleted: 0, percentage: 100 };
+        binaryFileOwners[filePath] = binaryOwner;
+        console.log(`[DEBUG] Archivo binario detectado y asignado a ${binaryOwner}: ${filePath}`);
+      }else {
+        //  Para archivos de texto, calculamos el porcentaje normal
+        for (const [user, { linesAdded, linesDeleted }] of Object.entries(userEdits)) {
+          if (!contributions[user]) contributions[user] = {};
+          contributions[user][filePath] = {
+            linesAdded,
+            linesDeleted,
+            percentage: totalLinesModified > 0 ? ((linesAdded + linesDeleted) / totalLinesModified) * 100 : 0
+          };
+        }
       }
     }
 
-    console.log("[DEBUG] Contribuciones calculadas correctamente:", JSON.stringify(contributions, null, 2));
-    return contributions;
+    console.log(`[DEBUG] Carpetas detectadas en el repo (${detectedFolders.size}):`, [...detectedFolders]);
+    console.log(" ¿docs/recursos/imagenes está en detectedFolders?", detectedFolders.has("docs/recursos/imagenes"));
+
+
+    //  Cálculo de porcentajes para carpetas
+    const folderContributions: ContributionStats = JSON.parse(JSON.stringify(contributions));
+    const folderFiles: Record<string, number> = {}; // Cuenta los archivos en cada carpeta
+
+    for (const user of Object.keys(contributions)) {
+      for (const filePath of Object.keys(contributions[user])) {
+        const parts = filePath.split("/");
+        while (parts.length > 1) {
+          parts.pop();
+          const folderPath = parts.join("/");
+
+          if (!folderContributions[user][folderPath]) {
+            folderContributions[user][folderPath] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+          }
+
+          folderContributions[user][folderPath].percentage += contributions[user][filePath].percentage;
+
+          //  Asegurar que la carpeta se cuenta aunque solo tenga imágenes/PDFs
+          if (!folderFiles[folderPath]) folderFiles[folderPath] = 0;
+          folderFiles[folderPath]++;
+        }
+      }
+    }
+
+    console.log(" Carpetas detectadas antes de procesar contribuciones:", Object.keys(folderFiles));
+    console.log(" ¿docs/recursos/imagenes está en folderFiles?", folderFiles.hasOwnProperty("docs/recursos/imagenes"));
+
+
+    //  Verificar si alguna carpeta solo tiene binarios y asignar el último usuario
+    Object.keys(folderFiles).forEach((folderPath) => {
+      Object.keys(contributions).forEach((user) => {
+        if (!folderContributions[user][folderPath]) {
+          folderContributions[user][folderPath] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+        }
+      });
+    
+      //  Si la carpeta contiene archivos binarios, asignamos el último usuario que los modificó
+      const binaryOwner = Object.entries(binaryFileOwners).find(([file]) => file.startsWith(folderPath))?.[1];
+      if (binaryOwner) {
+        if (!folderContributions[binaryOwner][folderPath]) {
+          folderContributions[binaryOwner][folderPath] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+        }
+        folderContributions[binaryOwner][folderPath].percentage = 100;
+        console.log(` [FIX] Agregando carpeta con binarios: ${folderPath} -> Dueño: ${binaryOwner}`);
+      }
+    });
+
+    //  Normalizar para que los porcentajes no superen 100%
+    for (const user of Object.keys(folderContributions)) {
+      for (const folder of Object.keys(folderContributions[user])) {
+        const totalPercentage = Object.values(folderContributions).reduce(
+          (sum, userFolders) => sum + (userFolders[folder]?.percentage || 0),
+          0
+        );
+
+        if (totalPercentage > 100) {
+          for (const user of Object.keys(folderContributions)) {
+            if (folderContributions[user][folder]) {
+              folderContributions[user][folder].percentage =
+                (folderContributions[user][folder].percentage / totalPercentage) * 100;
+            }
+          }
+        }
+      }
+    }
+
+    console.log(" Datos completos enviados al frontend:", Object.keys(folderContributions));
+    console.log(" ¿docs/recursos/imagenes está en folderContributions?", folderContributions.hasOwnProperty("docs/recursos/imagenes"));
+    console.log("[DEBUG] Datos enviados al frontend (primeras 10 claves):", Object.keys(folderContributions).slice(0, 10));
+
+    return folderContributions;
   } catch (error) {
     console.error("[ERROR] getContributionsByUser:", error);
     throw new Error("Error al calcular contribuciones.");
@@ -127,14 +240,14 @@ export const getBubbleChartData = async (
       branchesToProcess = [branch]; // Solo la seleccionada
     }
 
-    console.log(`    Ramas a procesar:`, branchesToProcess);
+    //console.log(`    Ramas a procesar:`, branchesToProcess);
 
     const bubbleData: BubbleChartData = {};
     const processedCommits = new Set<string>(); // Evita duplicados
 
     for (const branchName of branchesToProcess) {
       try {
-        console.log(`    Procesando rama: ${branchName}`);
+        //console.log(`    Procesando rama: ${branchName}`);
         await git.checkout(branchName);
 
         const logOutput = await git.raw([
@@ -214,7 +327,7 @@ export const getBubbleChartData = async (
       }
     }
 
-    console.log("[    DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
+    //console.log("[    DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
 
     return bubbleData;
   } catch (error) {

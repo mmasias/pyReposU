@@ -13,29 +13,33 @@ interface HeatmapProps {
 
 const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [visibleFiles, setVisibleFiles] = useState<string[]>([]);
 
+  //  Log de los datos que recibe el frontend
+  console.log(" Datos recibidos en Heatmap:", data);
+  console.log(" ¿docs/recursos/imagenes está en data?", data.hasOwnProperty("docs/recursos/imagenes"));
+
+
   if (!data || Object.keys(data).length === 0) {
-    return <div className="text-center text-gray-500">    No hay datos disponibles para el heatmap.</div>;
+    return <div className="text-center text-gray-500">📉 No hay datos disponibles para el heatmap.</div>;
   }
 
-  //     Lista de usuarios únicos (EJE X)
+  //  Lista de usuarios únicos (Eje X)
   const users: string[] = Array.from(new Set(Object.values(data).flatMap((fileData) => Object.keys(fileData))));
 
-  //     Construcción del árbol de archivos
+  //  Construcción del árbol de archivos (Incluyendo carpetas sin archivos de texto)
   const fileTree: Record<string, string[]> = { ROOT: [] };
   const folders: Set<string> = new Set();
 
   Object.keys(data).forEach((filePath) => {
-    if (filePath === ".") return;
     const parts = filePath.split("/");
     if (parts.length === 1) {
       fileTree["ROOT"].push(filePath);
     } else {
       const folder = parts.slice(0, -1).join("/");
       folders.add(folder);
+
       if (!fileTree[folder]) fileTree[folder] = [];
       fileTree[folder].push(filePath);
 
@@ -45,12 +49,19 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
     }
   });
 
-  if (Object.keys(fileTree).some(folder => folder.startsWith("docs/"))) {
-    folders.add("docs");
-  }
+  //  Log de la estructura del árbol de archivos
+  console.log(" Árbol de archivos construido:", fileTree);
+  console.log(" Contenido de fileTree[docs/recursos]:", fileTree["docs/recursos"]);
+  console.log(" Contenido de fileTree[docs/recursos/imagenes]:", fileTree["docs/recursos/imagenes"]);
 
-  console.log("    Estructura de carpetas:", fileTree);
-  console.log("    Carpetas detectadas:", folders);
+  //  Asegurar que TODAS las carpetas aparecen en `fileTree`, aunque solo tengan imágenes
+  folders.forEach((folder) => {
+    const parent = folder.split("/").slice(0, -1).join("/");
+    if (!fileTree[parent]) fileTree[parent] = [];
+    if (!fileTree[parent].includes(folder)) {
+      fileTree[parent].push(folder);
+    }
+  });
 
   useEffect(() => {
     const initialExpanded: Record<string, boolean> = {};
@@ -60,28 +71,48 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
     setExpandedFolders(initialExpanded);
   }, []);
 
-  //     Obtener archivos visibles con indentación
+  //  Obtener archivos en el orden correcto
   const getVisibleFiles = (): string[] => {
     let files: string[] = [...fileTree["ROOT"]].filter(file => file !== ".");
-    Object.keys(expandedFolders).forEach((folder) => {
-      if (expandedFolders[folder]) {
-        files = [
-          ...files,
-          ...Object.keys(fileTree).filter(subFolder => subFolder.startsWith(folder + "/")),
-          ...(fileTree[folder] || [])
-        ];
+
+    const addChildrenRecursively = (parent: string) => {
+      if (expandedFolders[parent]) {
+        const children = fileTree[parent] || [];
+        children.forEach(child => {
+          if (!files.includes(child)) {
+            files.push(child);
+            if (folders.has(child)) {
+              addChildrenRecursively(child);
+            }
+          }
+        });
+      }
+    };
+
+    [...fileTree["ROOT"]].forEach(rootFolder => {
+      if (folders.has(rootFolder)) {
+        addChildrenRecursively(rootFolder);
       }
     });
 
-    return Array.from(new Set(files));
+    return files;
   };
 
   useEffect(() => {
     setVisibleFiles(getVisibleFiles());
   }, [expandedFolders]);
 
-  console.log("👀 Archivos visibles ahora:", visibleFiles);
-  console.log("👤 Usuarios detectados:", users);
+  //  Log antes de renderizar el heatmap para ver qué archivos/carpeta están en la lista final
+  console.log(" Archivos y carpetas visibles antes del render:", visibleFiles);
+  console.log(" ¿docs/recursos/imagenes está en visibleFiles?", visibleFiles.includes("docs/recursos/imagenes"));
+
+
+  //  Función para mostrar solo el padre inmediato en la izquierda
+  const formatFileName = (filePath: string): string => {
+    const parts = filePath.split("/");
+    if (parts.length <= 1) return filePath;
+    return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+  };
 
   const colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([0, 100]);
 
@@ -101,6 +132,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
 
     svg.attr("width", width).attr("height", height);
 
+    //  Eje X (Usuarios)
     const xAxis = svg.append("g")
       .attr("transform", `translate(0,${margin.top})`)
       .call(d3.axisTop(xScale).tickSize(0));
@@ -112,6 +144,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
       .attr("dy", "-5px")
       .attr("transform", "rotate(-30)");
 
+    //  Eje Y (Archivos/Carpetas)
     const yAxis = svg.append("g")
       .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(yScale).tickSize(0));
@@ -120,18 +153,11 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
       .style("cursor", (filePath) => (folders.has(filePath as string) ? "pointer" : "default"))
       .style("fill", (filePath) => (expandedFolders[filePath as string] ? "blue" : "black"))
       .style("font-weight", (filePath) => (folders.has(filePath as string) ? "bold" : "normal"))
-      .style("opacity", (filePath) => {
-        const path = filePath as string;
-        return 1 - (path.split("/").length * 0.1);
-      })
-      .style("margin-left", (filePath) => {
-        const path = filePath as string;
-        return `${path.split("/").length * 10}px`;
-      })
+      .style("text-indent", (filePath) => `${((filePath as string).split("/").length - 1) * 15}px`)
       .text((filePath) => {
         const path = filePath as string;
         const isFolder = folders.has(path);
-        return isFolder ? (expandedFolders[path] ? `🔽 ${path}` : `▶️ ${path}`) : path;
+        return isFolder ? (expandedFolders[path] ? `🔽 ${formatFileName(path)}` : `▶️ ${formatFileName(path)}`) : `📄 ${formatFileName(path)}`;
       })
       .on("click", function (_, filePath) {
         const folderName = filePath as string;
@@ -140,21 +166,28 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
             ...prev,
             [folderName]: !prev[folderName]
           }));
-          console.log(`    Expandiendo/cerrando carpeta: ${folderName}`);
+          console.log(` Expandiendo/cerrando carpeta: ${folderName}`);
+          console.log(" Estado de expandedFolders después del cambio:", expandedFolders);
+
         }
       });
 
+    //  Log de los archivos que se están pintando en el heatmap
+    console.log(" Renderizando heatmap con archivos:", visibleFiles);
+
+    //  Renderizar las celdas del heatmap
     visibleFiles.forEach((file) => {
       users.forEach((user) => {
+        const percentage = data[file]?.[user]?.percentage || 0;
+
         svg.append("rect")
           .attr("x", xScale(user as string) ?? 0)
           .attr("y", yScale(file as string) ?? 0)
           .attr("width", xScale.bandwidth() || 10)
           .attr("height", yScale.bandwidth() || 10)
-          .attr("fill", colorScale(data[file]?.[user]?.percentage || 0))
+          .attr("fill", colorScale(percentage))
           .attr("stroke", "white")
           .on("mouseover", function (event) {
-            const percentage = data[file]?.[user]?.percentage || 0;
             d3.select("body")
               .append("div")
               .attr("id", "d3-tooltip")
@@ -168,13 +201,8 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
               .style("z-index", "1000")
               .style("box-shadow", "0px 0px 5px rgba(0,0,0,0.3)")
               .html(
-                `<strong>    ${file}</strong><br>👤 ${user}<br>    ${percentage.toFixed(2)}%`
+                `<strong>${file}</strong><br>👤 ${user}<br> ${percentage.toFixed(2)}%`
               )
-              .style("left", `${event.pageX}px`)  
-              .style("top", `${event.pageY}px`); 
-          })
-          .on("mousemove", function (event) {
-            d3.select("#d3-tooltip")
               .style("left", `${event.pageX}px`)
               .style("top", `${event.pageY}px`);
           })
@@ -186,25 +214,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
 
   }, [data, visibleFiles]);
 
-  return (
-    <div className="p-6 bg-white rounded-lg shadow relative overflow-auto">
-      <h3 className="text-xl font-semibold mb-4">📊 Mapa de Contribuciones</h3>
-      <div className="w-full overflow-auto">
-        <svg ref={svgRef}></svg>
-      </div>
-      <div ref={tooltipRef} className="tooltip" style={{
-        position: "absolute",
-        display: "none",
-        backgroundColor: "#333",
-        color: "#fff",
-        padding: "6px 10px",
-        borderRadius: "5px",
-        fontSize: "14px",
-        pointerEvents: "none",
-        zIndex: 1000,
-      }}></div>
-    </div>
-  );
+  return <svg ref={svgRef} className="heatmap-container"></svg>;
 };
 
 export default Heatmap;
