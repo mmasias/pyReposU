@@ -19,7 +19,6 @@ const normalizePath = (filePath: string): string => {
   return path.normalize(filePath).replace(/\\/g, "/").trim();
 };
 
-
 /**
  * Verifica si un archivo es binario (imágenes, PDFs, etc.).
  */
@@ -115,7 +114,7 @@ export const getContributionsByUser = async (
         contributions[binaryOwner][filePath] = { linesAdded: 0, linesDeleted: 0, percentage: 100 };
         binaryFileOwners[filePath] = binaryOwner;
         console.log(`[DEBUG] Archivo binario detectado y asignado a ${binaryOwner}: ${filePath}`);
-      }else {
+      } else {
         //  Para archivos de texto, calculamos el porcentaje normal
         for (const [user, { linesAdded, linesDeleted }] of Object.entries(userEdits)) {
           if (!contributions[user]) contributions[user] = {};
@@ -130,7 +129,6 @@ export const getContributionsByUser = async (
 
     console.log(`[DEBUG] Carpetas detectadas en el repo (${detectedFolders.size}):`, [...detectedFolders]);
     console.log(" ¿docs/recursos/imagenes está en detectedFolders?", detectedFolders.has("docs/recursos/imagenes"));
-
 
     //  Cálculo de porcentajes para carpetas
     const folderContributions: ContributionStats = JSON.parse(JSON.stringify(contributions));
@@ -158,7 +156,6 @@ export const getContributionsByUser = async (
 
     console.log(" Carpetas detectadas antes de procesar contribuciones:", Object.keys(folderFiles));
     console.log(" ¿docs/recursos/imagenes está en folderFiles?", folderFiles.hasOwnProperty("docs/recursos/imagenes"));
-
 
     //  Verificar si alguna carpeta solo tiene binarios y asignar el último usuario
     Object.keys(folderFiles).forEach((folderPath) => {
@@ -198,6 +195,35 @@ export const getContributionsByUser = async (
       }
     }
 
+    //  Calcular contribución total de cada usuario
+    const userTotals: Record<string, number> = {};
+
+    for (const user of Object.keys(folderContributions)) {
+      userTotals[user] = Object.values(folderContributions[user]).reduce(
+        (sum, { percentage }) => sum + percentage,
+        0
+      );
+    }
+
+    //  Normalizar sobre 100
+    const totalContributions = Object.values(userTotals).reduce((sum, value) => sum + value, 0);
+    if (totalContributions > 0) {
+      for (const user of Object.keys(userTotals)) {
+        userTotals[user] = (userTotals[user] / totalContributions) * 100;
+      }
+    }
+
+    //  Agregar datos al objeto `folderContributions` con clave especial "TOTAL"
+    for (const user of Object.keys(userTotals)) {
+      if (!folderContributions[user]) folderContributions[user] = {};
+      folderContributions[user]["TOTAL"] = {
+        linesAdded: 0,  // No aplicable
+        linesDeleted: 0, // No aplicable
+        percentage: userTotals[user],
+      };
+    }
+
+    console.log("  Datos de TOTAL agregados:", folderContributions);
     console.log(" Datos completos enviados al frontend:", Object.keys(folderContributions));
     console.log(" ¿docs/recursos/imagenes está en folderContributions?", folderContributions.hasOwnProperty("docs/recursos/imagenes"));
     console.log("[DEBUG] Datos enviados al frontend (primeras 10 claves):", Object.keys(folderContributions).slice(0, 10));
@@ -327,7 +353,7 @@ export const getBubbleChartData = async (
       }
     }
 
-    //console.log("[    DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
+    //console.log("[DEBUG] Datos finales de bubbleData:", JSON.stringify(bubbleData, null, 2));
 
     return bubbleData;
   } catch (error) {
