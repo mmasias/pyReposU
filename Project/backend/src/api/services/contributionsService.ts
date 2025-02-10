@@ -1,6 +1,6 @@
 import simpleGit from "simple-git";
 import { prepareRepo, cleanRepo } from "./repoService";
-import path from "path";
+import  { normalizePath, isBinaryFile } from "../utils/contributions.utils";  
 
 interface ContributionStats {
   [user: string]: {
@@ -8,21 +8,6 @@ interface ContributionStats {
   };
 }
 
-
-
-/**
- * Normaliza las rutas de archivos para evitar caracteres raros
- */
-const normalizePath = (filePath: string): string => {
-  return path.normalize(filePath).replace(/\\/g, "/").trim();
-};
-
-/**
- * Verifica si un archivo es binario (imágenes, PDFs, etc.).
- */
-const isBinaryFile = (filePath: string): boolean => {
-  return /\.(png|jpg|jpeg|gif|pdf|zip|mp3|mp4|mov|avi)$/i.test(filePath);
-};
 
 /**
  * Obtiene contribuciones de usuarios en cada archivo/carpeta.
