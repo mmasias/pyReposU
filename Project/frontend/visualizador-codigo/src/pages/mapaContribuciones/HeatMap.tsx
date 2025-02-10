@@ -232,7 +232,7 @@ const colorScale = d3.scaleThreshold<number, string>()
     //  Agregar la leyenda de colores
     const legendWidth = 20;
     const legendHeight = 200;
-    const legendMargin = { top: 50, right: 50 };
+    //const legendMargin = { top: 50, right: 50 };
 
     // Escala de colores para la leyenda
     const legendScale = d3.scaleLinear()
