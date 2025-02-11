@@ -23,8 +23,8 @@ const Dashboard = () => {
     },
     {
       title: "Mapa de Contribuciones",
-      description: "Analiza quiénes contribuyeron y cómo a tu proyecto.",
-      link: "/mapa-contribuciones",
+      description: "Analiza quiénes contribuyeron y cuánto a tu proyecto.",
+      link: "/mapa-heatmap", 
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -35,6 +35,23 @@ const Dashboard = () => {
           className="w-12 h-12 text-green-500"
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+      ),
+    },
+    {
+      title: "Evolución del Código",
+      description: "Observa quiénes y cuánto han colaborado a lo largo del tiempo.",
+      link: "/mapa-bubblechart", 
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          className="w-12 h-12 text-orange-500"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
         </svg>
       ),
     },
@@ -61,10 +78,10 @@ const Dashboard = () => {
     <div className="bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen py-10">
       {/* Header con ThemeSwitcher */}
       <header className="relative flex flex-col items-center text-center mb-10">
-      <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Framework de Análisis</h1>
-      <div className="absolute top-4 right-4">
-        <ThemeSwitcher />
-      </div>    
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Framework de Análisis</h1>
+        <div className="absolute top-4 right-4">
+          <ThemeSwitcher />
+        </div>    
       </header>
 
       <p className="text-lg text-gray-600 dark:text-gray-300 text-center">
@@ -72,7 +89,7 @@ const Dashboard = () => {
       </p>
 
       {/* Features */}
-      <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
+      <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
         {features.map((feature, index) => (
           <div
             key={index}

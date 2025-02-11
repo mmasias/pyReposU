@@ -4,7 +4,8 @@ import Dashboard from './pages/Dashboard';
 import Visualizador from './pages/visualizadorCodigo/Visualizador';
 import Playback from './pages/visualizadorCodigo/Playback';
 import Analisis from './pages/anaisisMultidimensional/Analisis';
-import MapaContribuciones from './pages/mapaContribuciones/MapaContribuciones';
+import MapaHeatmap from './pages/mapaContribuciones/MapaHeatmap';
+import MapaBubbleChart from './pages/mapaEvolucionRepo/MapaBubbleChart';
 
 const App: React.FC = () => (
     <Router>
@@ -13,7 +14,8 @@ const App: React.FC = () => (
             <Route path="/visualizador" element={<Visualizador />} />
             <Route path="/playback/:repoUrl/:filePath" element={<Playback />} />
             <Route path="/analisis-multidimensional" element={<Analisis />} />
-            <Route path="/mapa-contribuciones" element={<MapaContribuciones />} />
+            <Route path="/mapa-heatmap" element={<MapaHeatmap />} />
+            <Route path="/mapa-bubblechart" element={<MapaBubbleChart />} />
         </Routes>
     </Router>
 );
