@@ -1,0 +1,28 @@
+@startuml
+title Caso de Uso: Ver Mapa de Calor de Contribuciones
+
+' Flujo principal
+[*] --> IngresoDatos : Usuario ingresa URL del repositorio
+IngresoDatos --> SeleccionRamaFechas : Sistema permite seleccionar\nrama y fechas
+SeleccionRamaFechas --> SolicitarMapa : Usuario solicita ver\nel mapa de calor
+SolicitarMapa --> ObtenerDatos : Sistema obtiene datos\nde contribuciones desde la API
+ObtenerDatos --> MostrarHeatmap : Sistema muestra el heatmap\ncon contribuciones
+MostrarHeatmap --> [*]
+
+' Manejo de Errores
+IngresoDatos --> MostrarError : URL inválida
+MostrarError --> IngresoDatos : Se solicita corregir URL
+
+ObtenerDatos --> MostrarAviso : No hay datos en el rango seleccionado
+MostrarAviso --> [*]
+
+' Notas explicativas
+note right of IngresoDatos
+  * El usuario debe tener acceso al repositorio.
+end note
+
+note right of MostrarHeatmap
+  * Se visualiza el mapa de calor con contribuciones.
+end note
+
+@enduml

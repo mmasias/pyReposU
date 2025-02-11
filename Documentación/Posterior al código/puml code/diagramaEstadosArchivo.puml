@@ -1,0 +1,8 @@
+@startuml
+[*] --> Creado
+Creado --> Modificado : commit realizado
+Modificado --> Eliminado : eliminado en commit
+Modificado --> SinCambios : no hay cambios recientes
+SinCambios --> Modificado : nueva modificación
+Eliminado --> [*]
+@enduml

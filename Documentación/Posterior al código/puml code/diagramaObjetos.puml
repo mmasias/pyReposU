@@ -1,0 +1,47 @@
+@startuml
+object repo1 {
+  url = "https://github.com/example/repo"
+  branches = ["main", "develop"]
+}
+
+object commit1 {
+  hash = "a1b2c3d"
+  message = "Fix bug in API"
+  date = "2024-02-11"
+}
+
+object file1 {
+  path = "src/index.ts"
+  content = "// Código fuente"
+}
+
+object user1 {
+  name = "Juan Pérez"
+  email = "juan@example.com"
+}
+
+object contribution1 {
+  user = user1
+  file = file1
+  linesAdded = 10
+  linesDeleted = 2
+  percentage = 80.0
+}
+
+object stats1 {
+  user = user1
+  commits = 5
+  linesAdded = 150
+  linesDeleted = 30
+  pullRequests = 2
+  issues = 1
+  comments = 5
+}
+
+repo1 -- commit1
+commit1 -- file1
+commit1 -- user1
+user1 -- contribution1
+file1 -- contribution1
+user1 -- stats1
+@enduml

@@ -1,0 +1,13 @@
+@startuml
+actor Usuario
+participant "Frontend" as FE
+participant "Backend" as BE
+participant "GitHub API" as GH
+
+Usuario -> FE : Solicita commits de un repositorio
+FE -> BE : GET /api/commits?repoUrl=...
+BE -> GH : Obtener commits desde GitHub
+GH --> BE : Devuelve lista de commits
+BE --> FE : Devuelve commits en JSON
+FE --> Usuario : Muestra commits en pantalla
+@enduml
