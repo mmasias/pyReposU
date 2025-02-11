@@ -64,17 +64,18 @@ const Playback = () => {
   const fetchDiff = async (commitHashOld: string, commitHashNew: string) => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/api/files/diff?repoUrl=${encodeURIComponent(
-          repo
-        )}&filePath=${encodeURIComponent(normalizedFilePath)}&commitHashOld=${commitHashOld}&commitHashNew=${commitHashNew}`
+        `http://localhost:3000/api/files/diff?repoUrl=${encodeURIComponent(repo)}&filePath=${encodeURIComponent(normalizedFilePath)}&commitHashOld=${commitHashOld}&commitHashNew=${commitHashNew}`
       );
-      setAddedLines(response.data.addedLines);
-      setRemovedLines(response.data.removedLines);
+  
+      setAddedLines(response.data.addedLines || []);  
+      setRemovedLines(response.data.removedLines || []);
     } catch (err) {
       console.error("[Playback] Error al cargar el diff:", err);
+      setAddedLines([]);  
+      setRemovedLines([]);
     }
   };
-
+  
   useEffect(() => {
     fetchCommits();
   }, [repo, filePath]);

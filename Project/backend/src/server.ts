@@ -4,6 +4,7 @@ import { setupRoutes } from './api/routes';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { setupSwagger } from '../src/swagger';  
+import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(
 
 // Middleware
 app.use(bodyParser.json());
+app.use(errorHandler);
 
 // Configurar rutas
 setupRoutes(app);
