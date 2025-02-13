@@ -22,10 +22,16 @@ const Visualizador = () => {
 
   // Recuperar el estado del repo de la navegación
   useEffect(() => {
-    const savedRepoUrl = location.state?.repoUrl || "";
+    const savedRepoUrl = location.state?.repoUrl || sessionStorage.getItem("repoUrl") || "";
+    
     if (savedRepoUrl) {
       setRepoUrl(savedRepoUrl);
-      fetchTreeData(savedRepoUrl);
+  
+      if (savedRepoUrl !== sessionStorage.getItem("repoUrl") || !sessionStorage.getItem("treeData")) {
+        fetchTreeData(savedRepoUrl);
+      } else {
+        setTreeData(JSON.parse(sessionStorage.getItem("treeData") || "[]"));
+      }
     }
   }, [location.state]);
 
@@ -34,7 +40,7 @@ const Visualizador = () => {
     setError(null);
     setTreeData([]);
     setSelectedFile(null);
-
+  
     try {
       const repo = url || repoUrl;
       if (!repo) {
@@ -42,32 +48,31 @@ const Visualizador = () => {
         setLoading(false);
         return;
       }
+  
       console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repo}`);
-
+  
       const params: Record<string, string> = { repoUrl: repo }; 
       if (branch) params.branch = branch;
       if (since) params.since = since;
       if (until) params.until = until;
       if (author) params.author = author;
-
+  
       const response = await axios.get(`http://localhost:3000/api/stats/tree`, { params });
-
+  
       if (response.data.warning) {
-        alert(response.data.warning); // Muestra el warning recibido desde el backend
+        alert(response.data.warning);
       }
-
+  
       console.log(`[Visualizador] Árbol de datos recibido:`, response.data.tree);
       setTreeData(response.data.tree.subfolders || []);
+  
+      // Guardar en sessionStorage
+      sessionStorage.setItem("repoUrl", repo);
+      sessionStorage.setItem("treeData", JSON.stringify(response.data.tree.subfolders || []));
+  
     } catch (err: any) {
       console.error(`[Visualizador] Error al cargar el árbol del repositorio:`, err);
-
-      if (err.response && err.response.data.message) {
-        // Mensaje específico del backend
-        setError(err.response.data.message);
-      } else {
-        // Error genérico
-        setError("Error al cargar el árbol del repositorio. Verifica la URL.");
-      }
+      setError("Error al cargar el árbol del repositorio. Verifica la URL.");
     } finally {
       setLoading(false);
     }
@@ -109,7 +114,12 @@ const Visualizador = () => {
     setRepoUrl("");
     setTreeData([]);
     setSelectedFile(null);
+  
+    // borrar  sessionStorage para que se vuelva a cargar
+    sessionStorage.removeItem("repoUrl");
+    sessionStorage.removeItem("treeData");
   };
+  
 
   const renderTree = (nodes: any[], currentPath = "") => {
     return nodes.map((node, index) => {
