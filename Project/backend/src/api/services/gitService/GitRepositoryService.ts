@@ -1,6 +1,5 @@
 import simpleGit, { SimpleGit } from "simple-git";
-import { prepareRepo, cleanRepo } from "./repoService";
-import { existsSync } from "fs";
+import { prepareRepo, cleanRepo } from "../repoService";
 
 /**
  * Servicio para manejar repositorios Git.
@@ -13,11 +12,6 @@ export class GitRepositoryService {
 
   async init() {
     this.repoPath = await prepareRepo(this.repoUrl);
-    
-    if (!existsSync(this.repoPath)) {
-      throw new Error(`El directorio del repo no existe después de clonarlo: ${this.repoPath}`);
-    }
-  
     this.git = simpleGit(this.repoPath);
   }
 
@@ -44,17 +38,11 @@ export class GitRepositoryService {
       })
     );
   }
-  async checkoutCommit(commitHash: string) {
-    if (!this.git) throw new Error("Repositorio no inicializado");
-    await this.git.checkout(commitHash);
-  }
-  
 
   async getFileContent(commitHash: string, filePath: string): Promise<string> {
     if (!this.git) throw new Error("Repositorio no inicializado");
     return await this.git.show([`${commitHash}:${filePath}`]);
   }
-  
 
   async getFileDiff(commitHashOld: string, commitHashNew: string, filePath: string) {
     if (!this.git) throw new Error("Repositorio no inicializado");

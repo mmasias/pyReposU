@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { GitRepositoryService } from "../services/GitRepositoryService";
+import { GitRepositoryService } from "../services/gitService/GitRepositoryService";
 
 export const getFileContent = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
