@@ -1,5 +1,5 @@
 import { getUserStats } from "./userStatsService";
-import { getRepoBranches } from "./githubService";
+import { getRepoBranches } from "../githubService";
 import { Parser } from "json2csv";
 
 /**

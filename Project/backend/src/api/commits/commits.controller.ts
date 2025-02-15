@@ -1,18 +1,19 @@
 import { Request, Response } from "express";
-import { getCommitsService } from "../services/commitsService";
+import { getCommits } from "../utils/gitUtils";
 
-export const getCommits = async (req: Request, res: Response): Promise<void> => {
+//TODO REVISAR HANDLER?
+export const getCommitsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const repoUrl = req.query.repoUrl as string | undefined;
+    const repoUrl = req.query.repoUrl as string;
     if (!repoUrl) {
       res.status(400).json({ message: "Se requiere el parámetro repoUrl." });
       return;
     }
 
-    const commits = await getCommitsService(repoUrl);
+    const commits = await getCommits(repoUrl);
     res.status(200).json(commits);
   } catch (error) {
-    console.error("[getCommits] Error:", error);
+    console.error("[getCommitsHandler] Error:", error);
     res.status(500).json({ message: "Error al obtener commits." });
   }
 };

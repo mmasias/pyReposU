@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { fetchUserStats, fetchRepoBranches, generateUserStatsCSV } from "../../services/userStatsServiceHandler";
+import { fetchUserStats, fetchRepoBranches, generateUserStatsCSV } from "../../services/users/userStatsServiceHandler";
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

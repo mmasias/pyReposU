@@ -1,5 +1,5 @@
 import { getContributionsByUser } from "./contributionsService";
-import { getBubbleChartData } from "./bubbleChartService";
+import { getBubbleChartData } from "../bubbleChartService";
 
 /**
  * Obtiene contribuciones de usuarios en un repositorio.

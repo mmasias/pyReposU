@@ -25,10 +25,13 @@ const Playback = () => {
 
   const fetchCommits = async () => {
     try {
+      console.log(`[Playback] Solicitando commits para: ${repo}`);
+
       const response = await axios.get(
         `http://localhost:3000/api/commits?repoUrl=${encodeURIComponent(repo)}`
       );
       const allCommits = response.data;
+      console.log("[Playback] Commits recibidos:", allCommits);
 
       const filteredCommits = allCommits.filter(
         (commit: any) =>
@@ -37,6 +40,7 @@ const Playback = () => {
       );
 
       if (filteredCommits.length === 0) {
+        console.warn("[Playback] No se encontraron commits filtrados.");
         setError("No se encontraron commits para este archivo.");
         return;
       }

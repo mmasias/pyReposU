@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { getCommits } from './commits.controller';
+import { getCommitsHandler } from './commits.controller';
 
 const router = Router();
 
-router.get('/', getCommits);
+router.get('/', getCommitsHandler);
 
 export default router;

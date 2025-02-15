@@ -1,10 +1,10 @@
 import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo } from "../utils/gitUtils"; 
+import { prepareRepo, cleanRepo } from "../../utils/gitUtils"; 
 import {
   getPullRequestsByUser,
   getIssuesByUser,
   getCommentsByUser,
-} from "./githubService";
+} from "../githubService";
 
 interface UserStats {
   user: string;

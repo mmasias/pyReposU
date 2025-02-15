@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { getFileContent, getFileDiff, getFirstCommitForFile } from './files.controller';
+import { getFileContentHandler, getFileDiffHandler, getFirstCommitForFileHandler } from './files.controller';
 
 const router = Router();
 
-router.get('/content', getFileContent);
-router.get('/diff', getFileDiff); 
-router.get('/first-commit', getFirstCommitForFile);
+router.get('/content', getFileContentHandler);
+router.get('/diff', getFileDiffHandler); 
+router.get('/first-commit', getFirstCommitForFileHandler);
 
 export default router;
