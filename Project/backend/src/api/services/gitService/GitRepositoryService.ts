@@ -1,6 +1,5 @@
 import simpleGit, { SimpleGit } from "simple-git";
-import { prepareRepo, cleanRepo } from "../repoService";
-
+import { prepareRepo, cleanRepo } from "../../utils/gitUtils";
 /**
  * Servicio para manejar repositorios Git.
  */

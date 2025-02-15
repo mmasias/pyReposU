@@ -1,5 +1,5 @@
 import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo } from "./repoService";
+import { prepareRepo, cleanRepo } from "../utils/gitUtils"; 
 import { normalizePath, isBinaryFile } from "../utils/contributions.utils";
 
 interface ContributionStats {

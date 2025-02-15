@@ -1,6 +1,6 @@
 const { Octokit } = require("@octokit/rest");
 import simpleGit from "simple-git";  
-import { prepareRepo } from "./repoService";
+import { prepareRepo } from "../utils/gitUtils";  
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN, 
