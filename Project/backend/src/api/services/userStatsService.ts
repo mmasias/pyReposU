@@ -88,9 +88,9 @@ const getUserStats = async (
           statsMap[username] = createEmptyStats(username);
         }
 
-        if (pullRequests.includes(event)) statsMap[username].pullRequests += 1;
-        if (issues.includes(event)) statsMap[username].issues += 1;
-        if (comments.includes(event)) statsMap[username].comments += 1;
+        if (pullRequests.some(pr => pr.id === event.id)) statsMap[username].pullRequests += 1;
+        if (issues.some(issue => issue.id === event.id)) statsMap[username].issues += 1;
+        if (comments.some(comment => comment.id === event.id)) statsMap[username].comments += 1;
       }
     });
 

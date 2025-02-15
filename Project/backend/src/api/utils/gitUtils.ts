@@ -2,6 +2,7 @@ import simpleGit, { SimpleGit } from "simple-git";
 import { existsSync, mkdirSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
+import { config } from "../../config/config"; 
 
 const REPO_CACHE: Record<string, SimpleGit | null> = {}; // Cache de repositorios en memoria
 
@@ -13,7 +14,7 @@ const REPO_CACHE: Record<string, SimpleGit | null> = {}; // Cache de repositorio
  */
 export const prepareRepo = async (repoUrl: string): Promise<string> => {
   const repoName = new URL(repoUrl).pathname.split("/").pop()?.replace(".git", "") || "cloned-repo";
-  const repoPath = path.join(__dirname, "../../../temp-repo", repoName);
+  const repoPath = path.join(__dirname, config.paths.tempRepo, repoName);
 
   // Si ya tenemos el repo en memoria, lo reutilizamos
   if (REPO_CACHE[repoPath]) {

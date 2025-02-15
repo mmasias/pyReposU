@@ -1,15 +1,16 @@
 import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import { setupRoutes } from './api/routes';
-import dotenv from 'dotenv';
+//import dotenv from 'dotenv';
 import cors from 'cors';
 import { setupSwagger } from '../src/swagger';  
 import { errorHandler } from "./middleware/errorHandler";
+import { config } from "./config/config";
 
-dotenv.config();
+//dotenv.config();TODO REVISAR
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.server.port;
 
 // Configurar CORS antes de cualquier middleware o ruta
 app.use(
