@@ -4,7 +4,7 @@ import {
   getPullRequestsByUser,
   getIssuesByUser,
   getCommentsByUser,
-} from "../githubService";
+} from "../gitub/githubService";
 
 interface UserStats {
   user: string;

@@ -1,5 +1,5 @@
 import simpleGit from "simple-git";
-import { prepareRepo } from "../utils/gitUtils";  
+import { prepareRepo } from "../../utils/gitUtils";  
 import { 
   fetchPullRequestsByUser, 
   fetchIssuesByUser, 
