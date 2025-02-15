@@ -1,10 +1,7 @@
 import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo } from "../../utils/gitUtils"; 
-import {
-  getPullRequestsByUser,
-  getIssuesByUser,
-  getCommentsByUser,
-} from "../gitub/githubService";
+import { prepareRepo, cleanRepo } from "../../utils/gitRepoUtils"; 
+import { getPullRequestsByUser, getIssuesByUser, getCommentsByUser } from "../gitub/githubService";
+import { Parser } from "json2csv";
 
 interface UserStats {
   user: string;
@@ -17,7 +14,7 @@ interface UserStats {
   comments: number;
 }
 
-const getUserStats = async (
+export const getUserStats = async (
   repoUrl: string,
   branch?: string,
   startDate?: string,
@@ -28,7 +25,6 @@ const getUserStats = async (
   try {
     repoPath = await prepareRepo(repoUrl);
     const git = simpleGit(repoPath);
-
     const branchesToAnalyze = branch && branch !== "all"
       ? [branch]
       : (await git.branch(["-r"])).all.map(b => b.trim().replace("origin/", ""));
@@ -36,7 +32,6 @@ const getUserStats = async (
     console.log(`[DEBUG] Analizando ramas:`, branchesToAnalyze);
 
     const statsMap: Record<string, UserStats> = {};
-
     for (const branchName of branchesToAnalyze) {
       console.log(`[DEBUG] Checkout de la rama: ${branchName}`);
       await git.checkout(branchName);
@@ -46,13 +41,9 @@ const getUserStats = async (
       if (endDate) logOptions["--until"] = endDate;
 
       const log = await git.log(logOptions);
-
       for (const commit of log.all) {
         const author = commit.author_name;
-
-        if (!statsMap[author]) {
-          statsMap[author] = createEmptyStats(author);
-        }
+        if (!statsMap[author]) statsMap[author] = createEmptyStats(author);
 
         const diffOutput = await git.raw(["show", "--stat", "--oneline", commit.hash]);
 
@@ -71,7 +62,6 @@ const getUserStats = async (
       }
     }
 
-    //     Obtener PRs, Issues y Comentarios desde GitHub
     const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
     const repoName = repoNameRaw.replace(/\.git$/, "");
 
@@ -80,13 +70,10 @@ const getUserStats = async (
     const issues = await getIssuesByUser(repoOwner, repoName, "");
     const comments = await getCommentsByUser(repoOwner, repoName, "");
 
-    //     Agregamos PRs, Issues y Comentarios como una contribución más
     [...pullRequests, ...issues, ...comments].forEach(event => {
       const username = event.user?.login;
       if (username) {
-        if (!statsMap[username]) {
-          statsMap[username] = createEmptyStats(username);
-        }
+        if (!statsMap[username]) statsMap[username] = createEmptyStats(username);
 
         if (pullRequests.some(pr => pr.id === event.id)) statsMap[username].pullRequests += 1;
         if (issues.some(issue => issue.id === event.id)) statsMap[username].issues += 1;
@@ -99,13 +86,23 @@ const getUserStats = async (
     console.error("[getUserStats] Error:", error);
     throw new Error("Error al calcular estadísticas de usuario.");
   } finally {
-    if (repoPath) {
-      await cleanRepo(repoPath);
-    }
+    if (repoPath) await cleanRepo(repoPath);
   }
 };
 
-export { getUserStats };
+
+
+/**
+ * Convierte estadísticas de usuario en formato CSV.
+ */
+export const generateUserStatsCSV = async (repoUrl: string, branch?: string, startDate?: string, endDate?: string): Promise<string> => {
+  const stats = await getUserStats(repoUrl, branch || "all", startDate || "", endDate || "");
+
+  const fields = ["user", "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"];
+  const json2csv = new Parser({ fields });
+
+  return json2csv.parse(stats);
+};
 
 function createEmptyStats(user: string): UserStats {
   return {

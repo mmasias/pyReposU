@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getCommits } from "../utils/gitUtils";
+import { getCommits } from "../utils/gitRepoUtils";
 
 //TODO REVISAR HANDLER?
 export const getCommitsHandler = async (req: Request, res: Response): Promise<void> => {

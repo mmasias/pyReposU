@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { getUserContributions, getBubbleChart } from "../../services/contributions/contributionsServiceHandler";
+import { getContributionsByUser } from "../../services/analytics/contributionsService";
+import { getBubbleChartData } from "../../services/analytics/bubbleChartService";
 
 export const getUserContributionsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -11,7 +12,7 @@ export const getUserContributionsHandler = async (req: Request, res: Response): 
       return;
     }
 
-    const contributions = await getUserContributions(repoUrl, branch);
+    const contributions = await getContributionsByUser(repoUrl, branch);
     res.json(contributions);
   } catch (error) {
     console.error("[getUserContributionsHandler] Error:", error);
@@ -29,7 +30,7 @@ export const getBubbleChartHandler = async (req: Request, res: Response): Promis
       return;
     }
 
-    const bubbleData = await getBubbleChart(repoUrl, branch);
+    const bubbleData = await getBubbleChartData(repoUrl, branch);
     res.json(bubbleData);
   } catch (error) {
     console.error("[getBubbleChartHandler] Error:", error);

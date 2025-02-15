@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { fetchUserStats, fetchRepoBranches, generateUserStatsCSV } from "../../services/users/userStatsServiceHandler";
+import { getUserStats, generateUserStatsCSV } from "../../services/users/userStatsService";
+import {getRepoBranches} from "../../utils/gitRepoUtils";
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -13,7 +14,7 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
       return;
     }
 
-    const stats = await fetchUserStats(repoUrl, branch, startDate, endDate);
+    const stats = await getUserStats(repoUrl, branch, startDate, endDate);
     res.json(stats);
   } catch (error) {
     next(error);
@@ -50,7 +51,7 @@ export const getBranchesHandler = async (req: Request, res: Response, next: Next
       return;
     }
 
-    const branches = await fetchRepoBranches(repoUrl);
+    const branches = await getRepoBranches(repoUrl);
     res.json(branches);
   } catch (error) {
     next(error);

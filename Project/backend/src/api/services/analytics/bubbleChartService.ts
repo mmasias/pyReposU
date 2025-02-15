@@ -1,5 +1,5 @@
 import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo, getRepoBranches } from "../../utils/gitUtils";
+import { prepareRepo, cleanRepo, getRepoBranches } from "../../utils/gitRepoUtils";
 
 interface BubbleChartData {
   [user: string]: {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getCommits, getFileContent, getFileDiff, getFirstCommitForFile } from "../utils/gitUtils";
+import { getCommits, getFileContent, getFileDiff, getFirstCommitForFile } from "../utils/gitRepoUtils";
 
 export const getFileContentHandler = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
