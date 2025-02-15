@@ -1,43 +1,38 @@
 import { Request, Response, NextFunction } from "express";
-import { Parser } from "json2csv";
-import { getUserStats } from "../../services/userStatsService";
-import { getRepoBranches } from "../../services/githubService";
+import { fetchUserStats, fetchRepoBranches, generateUserStatsCSV } from "../../services/userStatsServiceHandler";
 
-const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { repoUrl, branch = "all", startDate, endDate } = req.query;
+    const repoUrl = req.query.repoUrl as string;
+    const branch = (req.query.branch as string) || "all";
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
     if (!repoUrl || !startDate || !endDate) {
       res.status(400).json({ error: "Parámetros faltantes" });
       return;
     }
 
-    const stats = await getUserStats(repoUrl as string, branch as string, startDate as string, endDate as string);
+    const stats = await fetchUserStats(repoUrl, branch, startDate, endDate);
     res.json(stats);
   } catch (error) {
     next(error);
   }
 };
 
-
-const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { repoUrl, branch, startDate, endDate } = req.query;
+    const repoUrl = req.query.repoUrl as string;
+    const branch = req.query.branch as string;
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
 
     if (!repoUrl) {
       res.status(400).json({ message: "El parámetro repoUrl es obligatorio." });
       return;
     }
 
-    const stats = await getUserStats(
-      repoUrl as string,
-      branch as string,
-      startDate as string,
-      endDate as string
-    );
-
-    const fields = ["user", "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"];
-    const json2csv = new Parser({ fields });
-    const csv = json2csv.parse(stats);
+    const csv = await generateUserStatsCSV(repoUrl, branch, startDate, endDate);
 
     res.header("Content-Type", "text/csv");
     res.attachment("user-stats.csv");
@@ -47,26 +42,17 @@ const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
-
-const getBranchesHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getBranchesHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { repoUrl } = req.query;
+    const repoUrl = req.query.repoUrl as string;
     if (!repoUrl) {
       res.status(400).json({ error: "Se requiere repoUrl" });
       return;
     }
 
-    const [repoOwner, repoName] = new URL(repoUrl as string).pathname.slice(1).split("/");
-    if (!repoOwner || !repoName) {
-      res.status(400).json({ error: "URL del repo inválida" });
-      return;
-    }
-
-    const branches = await getRepoBranches(repoOwner, repoName);
+    const branches = await fetchRepoBranches(repoUrl);
     res.json(branches);
   } catch (error) {
     next(error);
   }
 };
-
-export { getUserStatsHandler, exportStatsToCSV, getBranchesHandler };
