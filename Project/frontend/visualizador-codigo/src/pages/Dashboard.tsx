@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import ThemeSwitcher from "../components/ThemeSwitcher";
+import ThemeSwitcher from "../components/common/ThemeSwitcher";
 
 const Dashboard = () => {
   const features = [
@@ -80,7 +80,6 @@ const Dashboard = () => {
       <header className="relative flex flex-col items-center text-center mb-10">
         <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Framework de Análisis</h1>
         <div className="absolute top-4 right-4">
-          <ThemeSwitcher />
         </div>    
       </header>
 

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import FiltrosContribuciones from "../../components/FiltrosContribucionesYHeatMap";
 import BubbleChart from "./BubbleChart";
-import Layout from "../../components/Layout";
 import { useContributions } from "../../hooks/useContributions";
 
 const MapaBubbleChart: React.FC = () => {
@@ -13,7 +12,7 @@ const MapaBubbleChart: React.FC = () => {
   const { bubbleData, loading, fetchData } = useContributions(repoUrl, branch, startDate, endDate);
 
   return (
-    <Layout>
+    <>
       <FiltrosContribuciones {...{ repoUrl, setRepoUrl, branch, setBranch, startDate, setStartDate, endDate, setEndDate, fetchData }} />
 
       {loading ? (
@@ -21,7 +20,7 @@ const MapaBubbleChart: React.FC = () => {
       ) : (
         bubbleData && <BubbleChart data={bubbleData} startDate={startDate} endDate={endDate} /> 
       )}
-    </Layout>
+    </>
   );
 };
 

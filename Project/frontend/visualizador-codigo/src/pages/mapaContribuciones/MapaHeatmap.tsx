@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import FiltrosContribuciones from "../../components/FiltrosContribucionesYHeatMap";
 import Heatmap from "./HeatMap";
-import Layout from "../../components/Layout";
 import { useContributions } from "../../hooks/useContributions";
 
 const MapaHeatmap: React.FC = () => {
@@ -13,7 +12,7 @@ const MapaHeatmap: React.FC = () => {
   const { contributions, loading, fetchData } = useContributions(repoUrl, branch, startDate, endDate);
 
   return (
-    <Layout>
+    <>
       <FiltrosContribuciones {...{ repoUrl, setRepoUrl, branch, setBranch, startDate, setStartDate, endDate, setEndDate, fetchData }} />
 
       {loading ? (
@@ -21,7 +20,7 @@ const MapaHeatmap: React.FC = () => {
       ) : (
         contributions && <Heatmap data={contributions} /> 
       )}
-    </Layout>
+    </>
   );
 };
 

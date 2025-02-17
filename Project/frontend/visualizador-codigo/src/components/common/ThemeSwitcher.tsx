@@ -5,7 +5,7 @@ const ThemeSwitcher = () => {
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
 
   useEffect(() => {
-    document.body.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("dark", theme === "dark"); // Afecta a toda la página
     localStorage.setItem("theme", theme);
   }, [theme]);
 

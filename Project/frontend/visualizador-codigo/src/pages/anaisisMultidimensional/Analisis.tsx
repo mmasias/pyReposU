@@ -3,7 +3,6 @@ import axios from "axios";
 import TablaAnalisis from "./TablaAnalisis";
 import Filtros from "./Filtros";
 import ExportarDatos from "./ExportarDatos";
-import Layout from "../../components/Layout"; 
 import Graficos from "../../components/Graficos";
 
 interface UserData {
@@ -75,7 +74,7 @@ const Analisis: React.FC = () => {
   );
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <Filtros {...{ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData }} />
 
@@ -116,7 +115,7 @@ const Analisis: React.FC = () => {
         <TablaAnalisis data={data} branches={branches} visibleColumns={visibleColumns} setData={setData} />
         <ExportarDatos />
       </div>
-    </Layout>
+    </>
   );
 };
 

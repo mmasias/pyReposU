@@ -44,3 +44,7 @@ body.dark {
 .button-primary:hover {
   background-color: #4338ca;
 }
+html.dark, body.dark {
+  background-color: #1a1a1a !important; /* Fondo oscuro global */
+  color: white !important;
+}
