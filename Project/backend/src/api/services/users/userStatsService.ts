@@ -1,6 +1,6 @@
 import simpleGit from "simple-git";
 import { prepareRepo, cleanRepo } from "../../utils/gitRepoUtils"; 
-import { getPullRequestsByUser, getIssuesByUser, getCommentsByUser } from "../gitub/githubService";
+import { getPullRequestsByUser, getIssuesByUser, getCommentsByUser } from "../github/githubService";
 import { Parser } from "json2csv";
 
 interface UserStats {

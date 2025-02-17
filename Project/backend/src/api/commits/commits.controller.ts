@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCommits } from "../utils/gitRepoUtils";
 
-//TODO REVISAR HANDLER?
+//TODO REVISAR HANDLER?, se podría eliminar este archivo y el routes y dejar directamente getcommits de utils enla ruta del router
 export const getCommitsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const repoUrl = req.query.repoUrl as string;

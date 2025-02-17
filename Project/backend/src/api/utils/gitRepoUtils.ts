@@ -31,6 +31,10 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
       REPO_CACHE[repoPath] = git;
     } else {
       mkdirSync(repoPath, { recursive: true });
+      /*TODO VALIDACION URL
+      if (!isValidRepoUrl(repoUrl)) {
+        throw new Error("URL de repositorio no válida");
+      }**/
       await simpleGit().clone(repoUrl, repoPath);
       REPO_CACHE[repoPath] = simpleGit(repoPath);
     }
