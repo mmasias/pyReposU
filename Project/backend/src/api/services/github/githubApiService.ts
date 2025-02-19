@@ -8,7 +8,7 @@ const octokit = new Octokit({
 /**
  * Obtiene los Pull Requests de un usuario en un repositorio.
  */
-export const fetchPullRequestsByUser = async (repoOwner: string, repoName: string, user: string) => {
+export const fetchPullRequestsByUser = async (repoOwner: string, repoName: string) => {
   try {
     const { data } = await octokit.pulls.list({
       owner: repoOwner,
@@ -16,7 +16,7 @@ export const fetchPullRequestsByUser = async (repoOwner: string, repoName: strin
       state: "all",
     });
 
-    return data.filter((pr) => pr.user?.login === user);
+    return data;  //  Quitamos el filtro, devolvemos todos los PRs
   } catch (error) {
     console.error("[GitHub API] Error al obtener PRs:", error);
     return [];
@@ -26,7 +26,7 @@ export const fetchPullRequestsByUser = async (repoOwner: string, repoName: strin
 /**
  * Obtiene los Issues de un usuario en un repositorio.
  */
-export const fetchIssuesByUser = async (repoOwner: string, repoName: string, user: string) => {
+export const fetchIssuesByUser = async (repoOwner: string, repoName: string) => {
   try {
     const { data } = await octokit.issues.listForRepo({
       owner: repoOwner,
@@ -34,7 +34,7 @@ export const fetchIssuesByUser = async (repoOwner: string, repoName: string, use
       state: "all",
     });
 
-    return data.filter((issue) => issue.user?.login === user);
+    return data;  //  Quitamos el filtro, devolvemos todos los Issues
   } catch (error) {
     console.error("[GitHub API] Error al obtener Issues:", error);
     return [];
@@ -44,14 +44,14 @@ export const fetchIssuesByUser = async (repoOwner: string, repoName: string, use
 /**
  * Obtiene los comentarios en PRs e Issues de un usuario en un repositorio.
  */
-export const fetchCommentsByUser = async (repoOwner: string, repoName: string, user: string) => {
+export const fetchCommentsByUser = async (repoOwner: string, repoName: string) => {
   try {
     const { data } = await octokit.issues.listCommentsForRepo({
       owner: repoOwner,
       repo: repoName,
     });
 
-    return data.filter((comment) => comment.user?.login === user);
+    return data;  //  Quitamos el filtro, devolvemos todos los Comments
   } catch (error) {
     console.error("[GitHub API] Error al obtener comentarios:", error);
     return [];

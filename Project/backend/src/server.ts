@@ -1,13 +1,13 @@
 import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import { setupRoutes } from './api/routes';
-//import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import { setupSwagger } from '../src/swagger';  
 import { errorHandler } from "./middleware/errorHandler";
 import { config } from "./config/config";
 
-//dotenv.config();TODO REVISAR
+dotenv.config(); //TODO REVISAR
 
 const app: Application = express();
 const PORT = config.server.port;

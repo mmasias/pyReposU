@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { getUserStats, generateUserStatsCSV } from "../../services/users/userStatsService";
+import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../../services/users/userStatsService";
 import {getRepoBranches} from "../../utils/gitRepoUtils";
+
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -14,12 +15,26 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
       return;
     }
 
-    const stats = await getUserStats(repoUrl, branch, startDate, endDate);
-    res.json(stats);
+    //  Obtener datos de PRs, Issues y Comments solo una vez
+    const repoStats = await getRepoGeneralStats(repoUrl);
+
+    //  Obtener stats de commits, líneas añadidas y eliminadas por usuario
+    const userStats = await getUserStats(repoUrl, branch, startDate, endDate);
+
+    //  Combinar los datos antes de enviarlos
+    const finalStats = userStats.map(user => ({
+      ...user,
+      pullRequests: repoStats[user.user]?.pullRequests || 0,
+      issues: repoStats[user.user]?.issues || 0,
+      comments: repoStats[user.user]?.comments || 0,
+    }));
+
+    res.json(finalStats);
   } catch (error) {
     next(error);
   }
 };
+
 
 export const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

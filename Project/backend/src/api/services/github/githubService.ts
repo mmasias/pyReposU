@@ -4,24 +4,23 @@ import {
   fetchCommentsByUser,  
 } from "./githubApiService";
 
-
 /**
- * Obtiene los Pull Requests de un usuario en un repositorio.
+ * Obtiene los Pull Requests en un repositorio.
  */
-export const getPullRequestsByUser = async (repoOwner: string, repoName: string, user: string) => {
-  return await fetchPullRequestsByUser(repoOwner, repoName, user);
+export const getPullRequestsByUser = async (repoOwner: string, repoName: string) => {
+  return await fetchPullRequestsByUser(repoOwner, repoName); //  Quitamos el parámetro `user`
 };
 
 /**
- * Obtiene los Issues de un usuario en un repositorio.
+ * Obtiene los Issues en un repositorio.
  */
-export const getIssuesByUser = async (repoOwner: string, repoName: string, user: string) => {
-  return await fetchIssuesByUser(repoOwner, repoName, user);
+export const getIssuesByUser = async (repoOwner: string, repoName: string) => {
+  return await fetchIssuesByUser(repoOwner, repoName); //  Quitamos el parámetro `user`
 };
 
 /**
- * Obtiene los comentarios en PRs e Issues de un usuario en un repositorio.
+ * Obtiene los comentarios en PRs e Issues en un repositorio.
  */
-export const getCommentsByUser = async (repoOwner: string, repoName: string, user: string) => {
-  return await fetchCommentsByUser(repoOwner, repoName, user);
+export const getCommentsByUser = async (repoOwner: string, repoName: string) => {
+  return await fetchCommentsByUser(repoOwner, repoName); //  Quitamos el parámetro `user`
 };

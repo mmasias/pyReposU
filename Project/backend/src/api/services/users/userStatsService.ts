@@ -66,9 +66,9 @@ export const getUserStats = async (
     const repoName = repoNameRaw.replace(/\.git$/, "");
 
     console.log("[DEBUG] Cargando PRs, Issues y Comentarios...");
-    const pullRequests = await getPullRequestsByUser(repoOwner, repoName, "");
-    const issues = await getIssuesByUser(repoOwner, repoName, "");
-    const comments = await getCommentsByUser(repoOwner, repoName, "");
+    const pullRequests = await getPullRequestsByUser(repoOwner, repoName);
+    const issues = await getIssuesByUser(repoOwner, repoName);
+    const comments = await getCommentsByUser(repoOwner, repoName);
 
     [...pullRequests, ...issues, ...comments].forEach(event => {
       const username = event.user?.login;
@@ -89,6 +89,44 @@ export const getUserStats = async (
     if (repoPath) await cleanRepo(repoPath);
   }
 };
+
+//Obtener datos de issue pr y commits
+export const getRepoGeneralStats = async (repoUrl: string) => {
+  try {
+    const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
+    const repoName = repoNameRaw.replace(/\.git$/, "");
+
+    console.log("[DEBUG] Cargando PRs, Issues y Comentarios...");
+    const pullRequests = await getPullRequestsByUser(repoOwner, repoName);
+    const issues = await getIssuesByUser(repoOwner, repoName);
+    const comments = await getCommentsByUser(repoOwner, repoName);
+
+    console.log("[DEBUG] PRs obtenidos:", pullRequests.length);
+    console.log("[DEBUG] Issues obtenidos:", issues.length);
+    console.log("[DEBUG] Comments obtenidos:", comments.length);
+
+    const statsMap: Record<string, { pullRequests: number; issues: number; comments: number }> = {};
+
+    [...pullRequests, ...issues, ...comments].forEach(event => {
+      const username = event.user?.login;
+      if (username) {
+        if (!statsMap[username]) statsMap[username] = { pullRequests: 0, issues: 0, comments: 0 };
+
+        if (pullRequests.some(pr => pr.user?.login === username)) statsMap[username].pullRequests += 1;
+        if (issues.some(issue => issue.user?.login === username)) statsMap[username].issues += 1;
+        if (comments.some(comment => comment.user?.login === username)) statsMap[username].comments += 1;
+      }
+    });
+
+    console.log("[DEBUG] Mapa de PRs, Issues y Comentarios:", statsMap);
+    return statsMap;
+  } catch (error) {
+    console.error("[getRepoGeneralStats] Error:", error);
+    throw new Error("Error al obtener PRs, Issues y Comentarios.");
+  }
+};
+
+
 
 
 

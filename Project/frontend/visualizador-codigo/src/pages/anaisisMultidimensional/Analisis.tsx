@@ -112,8 +112,16 @@ const Analisis: React.FC = () => {
         {/* INTEGRAR GRÁFICOS AQUÍ */}
         <Graficos userData={data} />
 
-        <TablaAnalisis data={data} branches={branches} visibleColumns={visibleColumns} setData={setData} />
-        <ExportarDatos />
+        <TablaAnalisis 
+          data={data} 
+          branches={branches} 
+          visibleColumns={visibleColumns} 
+          setData={setData} 
+          repoUrl={repoUrl} 
+          since={since}   
+          until={until}   
+        />
+        <ExportarDatos repoUrl={repoUrl} branch="main" startDate={since} endDate={until} />
       </div>
     </>
   );

@@ -1,8 +1,20 @@
 import React from "react";
 
-const ExportarDatos = () => {
+interface ExportarDatosProps {
+  repoUrl: string;
+  branch: string;
+  startDate: string;
+  endDate: string;
+}
+
+const ExportarDatos: React.FC<ExportarDatosProps> = ({ repoUrl, branch, startDate, endDate }) => {
   const exportarCSV = () => {
-    window.location.href = `http://localhost:3000/api/stats/user/export/csv?repoUrl=https://github.com/mmasias/pyReposU&branch=main&startDate=2024-01-01&endDate=2025-12-31`;
+    if (!repoUrl) {
+      console.error("No se puede exportar, repoUrl es undefined");
+      return;
+    }
+
+    window.location.href = `http://localhost:3000/api/stats/user/export/csv?repoUrl=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch)}&startDate=${startDate}&endDate=${endDate}`;
   };
 
   return (

@@ -1,31 +1,48 @@
 import { useState, useEffect } from "react";
-import { fetchContributions, fetchBubbleChartData } from "../services/contributionsService";   
+import axios from "axios";
 
-export const useContributions = (repoUrl: string, branch: string, startDate: string, endDate: string) => {
+const API_URL = "http://localhost:3000/api/stats/contributions";
+
+export const useContributions = (
+  repoUrl: string,
+  branch: string,
+  startDate: string,
+  endDate: string
+) => {
   const [contributions, setContributions] = useState<any>(null);
-  const [bubbleData, setBubbleData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
-    if (!repoUrl) return;
+  const fetchContributions = async () => {
+    if (!repoUrl || !startDate) {
+      console.warn(" Esperando un startDate válido antes de hacer la petición...");
+      return;
+    }
+  
     setLoading(true);
-
+  
     try {
-      const contribData = await fetchContributions(repoUrl, branch, startDate, endDate);
-      setContributions(contribData);
-
-      const bubbleData = await fetchBubbleChartData(repoUrl, branch);
-      setBubbleData(bubbleData);
+      console.log(`📡 Fetching contributions -> repoUrl: ${repoUrl}, startDate: ${startDate}, endDate: ${endDate}`);
+      const response = await axios.get(API_URL, {
+        params: { repoUrl, branch, startDate, endDate },
+      });
+  
+      console.log(" Datos recibidos del backend (useContributions):", response.data);
+      setContributions(response.data);
     } catch (error) {
-      console.error("Error al obtener datos:", error);
+      console.error(" Error al obtener contribuciones:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    if (!repoUrl || !startDate) {
+      console.warn(" Esperando un startDate válido antes de hacer la petición...");
+      return;  
+    }
+  
+    fetchContributions();
   }, [repoUrl, branch, startDate, endDate]);
-
-  return { contributions, bubbleData, loading, fetchData };
+  
+  return { contributions, loading, fetchContributions };
 };

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import FiltrosContribuciones from "../../components/FiltrosContribucionesYHeatMap";
 import BubbleChart from "./BubbleChart";
-import { useContributions } from "../../hooks/useContributions";
+import { useBubbleChart } from "../../hooks/useBubbleChart";
 
 const MapaBubbleChart: React.FC = () => {
   const [repoUrl, setRepoUrl] = useState("");
@@ -9,16 +9,27 @@ const MapaBubbleChart: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const { bubbleData, loading, fetchData } = useContributions(repoUrl, branch, startDate, endDate);
+  const { bubbleData, loading, fetchData } = useBubbleChart(repoUrl, branch);
 
   return (
     <>
-      <FiltrosContribuciones {...{ repoUrl, setRepoUrl, branch, setBranch, startDate, setStartDate, endDate, setEndDate, fetchData }} />
+      <FiltrosContribuciones
+        repoUrl={repoUrl}
+        setRepoUrl={setRepoUrl}
+        branch={branch}
+        setBranch={setBranch}
+        startDate={startDate}
+        setStartDate={setStartDate}
+        endDate={endDate}
+        setEndDate={setEndDate}
+        fetchData={fetchData}
+        mode="bubbleChart"  //  Esto evita que pida usuarios y ramas en filtroscontribucY...  
+      />
 
       {loading ? (
         <div className="text-center text-gray-500">Cargando datos...</div>
       ) : (
-        bubbleData && <BubbleChart data={bubbleData} startDate={startDate} endDate={endDate} /> 
+        bubbleData && <BubbleChart data={bubbleData} startDate={startDate} endDate={endDate} />
       )}
     </>
   );

@@ -14,9 +14,7 @@ interface HeatmapProps {
 const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-  const [visibleFiles, setVisibleFiles] = useState<string[]>([]);
 
-  //  Log de los datos que recibe el frontend
   console.log(" Datos recibidos en Heatmap:", data);
   console.log(" ¿docs/recursos/imagenes está en data?", data.hasOwnProperty("docs/recursos/imagenes"));
 
@@ -33,20 +31,34 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
 
   Object.keys(data).forEach((filePath) => {
     const parts = filePath.split("/");
-    if (parts.length === 1) {
-      fileTree["ROOT"].push(filePath);
-    } else {
-      const folder = parts.slice(0, -1).join("/");
-      folders.add(folder);
-
-      if (!fileTree[folder]) fileTree[folder] = [];
-      fileTree[folder].push(filePath);
-
-      if (!fileTree["ROOT"].includes(parts[0])) {
-        fileTree["ROOT"].push(parts[0]);
+  
+    for (let i = 1; i < parts.length; i++) {
+      const folder = parts.slice(0, i).join("/");
+      folders.add(folder); 
+  
+      if (!fileTree[folder]) {
+        fileTree[folder] = []; 
+      }
+  
+      const parent = parts.slice(0, i - 1).join("/") || "ROOT"; 
+      if (!fileTree[parent]) {
+        fileTree[parent] = [];
+      }
+      if (!fileTree[parent].includes(folder)) {
+        fileTree[parent].push(folder);
       }
     }
+  
+    //  Agregar el archivo a su carpeta padre
+    const parentFolder = parts.slice(0, -1).join("/") || "ROOT";
+    if (!fileTree[parentFolder]) {
+      fileTree[parentFolder] = [];
+    }
+    fileTree[parentFolder].push(filePath);
   });
+  
+  //  Verifica que ROOT tiene archivos y carpetas
+  console.log(" Árbol de archivos FINAL:", fileTree);
 
   //  Log de la estructura del árbol de archivos
   console.log(" Árbol de archivos construido:", fileTree);
@@ -63,16 +75,18 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   });
 
   useEffect(() => {
-    const initialExpanded: Record<string, boolean> = {};
-    folders.forEach((folder) => {
-      initialExpanded[folder] = false;
-    });
-    setExpandedFolders(initialExpanded);
-  }, []);
+    if (Object.keys(expandedFolders).length === 0) {  // Solo la primera vez
+      const initialExpanded: Record<string, boolean> = {};
+      folders.forEach((folder) => {
+        initialExpanded[folder] = false;
+      });
+      setExpandedFolders(initialExpanded);
+    }
+  }, []); //  Solo se ejecuta cuando cambian las carpetas
 
   //  Obtener archivos en el orden correcto
   const getVisibleFiles = (): string[] => {
-    let files: string[] = [...fileTree["ROOT"]].filter(file => file !== "." && file !== "TOTAL"); //  excluir "TOTAL" de la lista inicial
+    let files: string[] = [...fileTree["ROOT"]].filter(file => file !== "." && file !== "TOTAL");
   
     const addChildrenRecursively = (parent: string) => {
       if (expandedFolders[parent]) {
@@ -94,20 +108,13 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
       }
     });
   
-    files.push("TOTAL"); // agregar de nuevo TOTl
-  
+    files.push("TOTAL");
     return files;
   };
-
+  
   useEffect(() => {
     setVisibleFiles(getVisibleFiles());
-  }, [expandedFolders]);
-
-  //  Log antes de renderizar el heatmap para ver qué archivos/carpeta están en la lista final
-  console.log(" Archivos y carpetas visibles antes del render:", visibleFiles);
-  console.log(" ¿docs/recursos/imagenes está en visibleFiles?", visibleFiles.includes("docs/recursos/imagenes"));
-
-  //  Función para mostrar solo el padre inmediato en la izquierda
+  }, [expandedFolders]); 
   const formatFileName = (filePath: string): string => {
     const parts = filePath.split("/");
     if (parts.length <= 1) return filePath;
@@ -130,6 +137,7 @@ const colorScale = d3.scaleThreshold<number, string>()
     "#32CD32", // 80-90 (Verde vibrante)
     "#008000"  // 90-100 (Verde intenso)
   ]);
+  const [visibleFiles, setVisibleFiles] = useState<string[]>([]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -179,16 +187,13 @@ const colorScale = d3.scaleThreshold<number, string>()
       .on("click", function (_, filePath) {
         const folderName = filePath as string;
         if (folders.has(folderName)) {
-          setExpandedFolders((prev) => ({
-            ...prev,
-            [folderName]: !prev[folderName]
-          }));
-          console.log(` Expandiendo/cerrando carpeta: ${folderName}`);
-          console.log(" Estado de expandedFolders después del cambio:", expandedFolders);
-
+          setExpandedFolders((prev) => {
+            const newExpanded = { ...prev, [folderName]: !prev[folderName] };
+            console.log("📂 Estado actualizado de expandedFolders:", newExpanded);
+            return newExpanded;
+          });
         }
       });
-
     //  Log de los archivos que se están pintando en el heatmap
     console.log(" Renderizando heatmap con archivos:", visibleFiles);
 
@@ -205,6 +210,9 @@ const colorScale = d3.scaleThreshold<number, string>()
           .attr("fill", colorScale(percentage)) 
           .attr("stroke", "white")
           .on("mouseover", function (event) {
+
+            d3.select("#d3-tooltip").remove();
+          
             d3.select("body")
               .append("div")
               .attr("id", "d3-tooltip")
@@ -224,7 +232,7 @@ const colorScale = d3.scaleThreshold<number, string>()
               .style("top", `${event.pageY}px`);
           })
           .on("mouseout", function () {
-            d3.select("#d3-tooltip").remove();
+            d3.select("#d3-tooltip").remove(); 
           });
       });
     });
@@ -241,7 +249,7 @@ const colorScale = d3.scaleThreshold<number, string>()
 
     // Gradiente de colores para la leyenda
     const legendAxis = d3.axisRight(legendScale)
-      .tickValues([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]) // Etiquetas en múltiplos de 10
+      .tickValues([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
       .tickFormat(d => `${d}%`);
 
     // Contenedor de la leyenda
@@ -281,7 +289,17 @@ const colorScale = d3.scaleThreshold<number, string>()
 
   }, [data, visibleFiles]);
 
-  return <svg ref={svgRef} className="heatmap-container"></svg>;
+  return <div
+  style={{
+    overflow: "auto",
+    maxHeight: "80vh",
+    width: "100%", //  Evita que el heatmap se desborde
+    minHeight: visibleFiles.length * 40 + 200, //  Asegura altura mínima correcta
+  }}
+  key={JSON.stringify(expandedFolders)} //  Evita que el SVG se regenere
+>
+  <svg ref={svgRef} className="heatmap-container"></svg>
+</div>
 };
 
 export default Heatmap;
