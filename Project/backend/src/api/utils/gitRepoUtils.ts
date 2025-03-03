@@ -91,7 +91,7 @@ export const cleanRepo = async (repoPath: string): Promise<void> => {
   console.log(`[cleanRepo] 🧹 Intentando eliminar repositorio en: ${repoPath}`);
 
   if (globalRepoLock[repoPath]) {
-    console.log("[cleanRepo] ⏳ Repo en uso, esperando...");
+    console.log("[cleanRepo]  Repo en uso, esperando...");
     await globalRepoLock[repoPath];
   }
 

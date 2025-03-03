@@ -40,14 +40,14 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
     }
   
     try {
-      console.log("⏳ Cargando información del repo...");
+      console.log(" Cargando información del repo...");
       const url = new URL(repoUrl); 
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
   
       const repoName = repoNameRaw.replace(/\.git$/, "");
   
-      console.log("⏳ Cargando fecha de creación...");
+      console.log(" Cargando fecha de creación...");
       const { data: repoInfo } = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}`);
       const createdAt = repoInfo.created_at.split("T")[0];
   

@@ -22,6 +22,7 @@ export const useBubbleChart = (repoUrl: string, branch: string) => {
   useEffect(() => {
     fetchData();
   }, [repoUrl, branch]);
+  
 
   return { bubbleData, loading, fetchData };
 };
