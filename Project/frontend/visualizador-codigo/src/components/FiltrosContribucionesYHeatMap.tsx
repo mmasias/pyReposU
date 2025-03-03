@@ -30,10 +30,16 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
   const [repoCreatedAt, setRepoCreatedAt] = useState("");
 
   useEffect(() => {
-    fetchRepoData();
+    if (repoUrl.trim() && repoUrl.startsWith("http")) {
+      fetchRepoData();
+    }
   }, [repoUrl, mode]);
   
+
   const fetchRepoData = async () => {
+    if (!repoUrl.trim()) {
+      return; 
+    }
     if (!repoUrl || !repoUrl.startsWith("http")) {
       console.error(" URL del repo inválida:", repoUrl);
       return;
