@@ -1,84 +1,137 @@
-import simpleGit, { SimpleGit } from "simple-git";
+import simpleGit, { SimpleGit, ResetMode } from "simple-git";
 import { existsSync, mkdirSync,unlinkSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
 import { config } from "../../config/config"; 
-import pLimit from "p-limit";
-import {execSync} from "child_process";
+
 
 //  Mutex manual para bloquear repositorios en uso
 const globalRepoLock: Record<string, Promise<void> | null> = {};
 const REPO_CACHE: Record<string, SimpleGit | null> = {}; // Cache de repositorios en memoria
+
+//   Mutex para evitar que varios procesos accedan al mismo tiempo
+const repoLocks: Record<string, Promise<void> | null> = {};
+
 /**
  * Clona o reutiliza un repositorio Git.
  * Si ya está clonado, lo reutiliza.
  * @param repoUrl URL del repositorio remoto.
  * @returns Ruta local del repositorio.
  */
+const repoPendingPromises: Record<string, Promise<string>> = {}; //   Guardar ejecuciones en curso
+
 export const prepareRepo = async (repoUrl: string): Promise<string> => {
   const repoName = new URL(repoUrl).pathname.split("/").pop()?.replace(".git", "") || "cloned-repo";
   const repoPath = path.join(__dirname, config.paths.tempRepo, repoName);
   const gitFolder = path.join(repoPath, ".git");
+  const lockFile = path.join(gitFolder, "index.lock");
 
-  console.log(`\n [prepareRepo] Iniciando para ${repoPath}...\n`);
+  console.log(`\n [prepareRepo]   Iniciando para ${repoPath}...\n`);
 
+  //   Si la promesa ya existe, esperar su resultado en vez de ejecutar de nuevo
+  if (repoPendingPromises[repoPath] !== undefined) {
+    console.log(` [prepareRepo]   Ya hay un proceso en curso para ${repoPath}, esperando...`);
+    return repoPendingPromises[repoPath];
+  }
+
+  //   **Si ya está en caché, lo reutilizamos**
   if (REPO_CACHE[repoPath] && existsSync(gitFolder)) {
-    console.log(` [prepareRepo] Usando repo cacheado: ${repoPath}`);
+    console.log(` [prepareRepo]   Repo en caché, evitando duplicación.`);
     return repoPath;
   }
 
-  let resolveLock: () => void;
-  globalRepoLock[repoPath] = new Promise<void>((resolve) => (resolveLock = resolve));
+  //   **Si otro proceso lo usa, esperamos**
+  if (repoLocks[repoPath]) {
+    console.log(` [prepareRepo]   Esperando desbloqueo de ${repoPath}`);
+    await repoLocks[repoPath];
+  }
 
-  try {
-    console.log(` [prepareRepo]  Bloqueo activado para ${repoPath}`);
+  let unlock: () => void;
+  repoLocks[repoPath] = new Promise<void>((resolve) => (unlock = resolve));
+  
+  //   Guardamos la promesa en curso para evitar dobles ejecuciones
+  repoPendingPromises[repoPath] = (async () => {
+    try {
+      console.log(` [prepareRepo]   Bloqueo activado para ${repoPath}`);
 
-    //  Si la carpeta no existe, la creamos
-    if (!existsSync(repoPath)) {
-      console.log(` [prepareRepo] Creando carpeta: ${repoPath}`);
-      mkdirSync(repoPath, { recursive: true });
-    }
+      if (!existsSync(repoPath)) {
+        console.log(` [prepareRepo]   Creando carpeta: ${repoPath}`);
+        mkdirSync(repoPath, { recursive: true });
+      }
 
-    // **Si el repo está cacheado y el .git existe, usamos cache**
-    if (REPO_CACHE[repoPath] && existsSync(gitFolder)) {
-      console.log(` [prepareRepo] Usando repo cacheado: ${repoPath}`);
+      //   **Esperamos hasta que Git libere `index.lock`**
+      let attempts = 0;
+      while (existsSync(lockFile)) {
+        console.warn(` [prepareRepo]   Repo bloqueado. Esperando... (${attempts + 1})`);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        attempts++;
+        if (attempts > 10) throw new Error("  Timeout esperando Git.");
+      }
+
+      //   **Si no está clonado, clonarlo**
+      if (!existsSync(gitFolder)) {
+        console.log(` [prepareRepo]   Repo corrupto o no existe. Clonando...`);
+        await rm(repoPath, { recursive: true, force: true });
+        await simpleGit().clone(repoUrl, repoPath);
+      }
+
+      console.log(` [prepareRepo]   Inicializando simple-git en: "${repoPath}"`);
+      const git = simpleGit({ baseDir: repoPath });
+
+      if (!(await git.checkIsRepo())) {
+        throw new Error("  ERROR: Git no está bien inicializado");
+      }
+
+      //   **Fetch global para actualizar referencias**
+      console.log(` [prepareRepo]   Haciendo git fetch --all...`);
+      await git.fetch(["--all", "--prune"]);
+
+      //   **Obtenemos todas las ramas**
+      const branchListRaw = await git.branch(["-r"]);
+      const branchList = branchListRaw.all
+        .map((b) => b.replace("origin/", "").trim())
+        .filter((b) => b !== "HEAD");
+
+      console.log(` [prepareRepo]   Ramas encontradas:`, branchList);
+
+      //   **Actualizar cada rama (sin repetir)**
+      for (const branch of branchList) {
+        console.log(` [prepareRepo]   Actualizando rama ${branch}...`);
+
+        try {
+          while (existsSync(lockFile)) {
+            console.warn(` [prepareRepo]   ${branch} bloqueada. Esperando...`);
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+
+          await git.checkout(branch);
+          await git.reset(ResetMode.HARD);
+          await git.pull("origin", branch);
+        } catch (error) {
+          console.warn(`  No se pudo actualizar ${branch}`, error);
+        }
+      }
+
+      console.log(` [prepareRepo]   Repositorio actualizado en todas las ramas.`);
+      REPO_CACHE[repoPath] = git; //   Guardar en cache
+
       return repoPath;
+    } catch (error) {
+      console.error(` [prepareRepo]   ERROR con simple-git:`, error);
+      throw new Error("Error al preparar el repositorio.");
+    } finally {
+      unlock!();
+      repoLocks[repoPath] = null;
+      console.log(` [prepareRepo]   Bloqueo liberado para ${repoPath}`);
+      delete repoPendingPromises[repoPath]; //   Borrar la promesa al finalizar
     }
-    const lockFile = path.join(gitFolder, "index.lock");
+  })();
 
-    if (existsSync(lockFile)) {
-      console.warn(` [prepareRepo] Eliminando manualmente el bloqueo Git: ${lockFile}`);
-      unlinkSync(lockFile);
-    }
-    //  Si la carpeta .git no existe, hay que clonar el repo
-    if (!existsSync(gitFolder)) {
-      console.log(` [prepareRepo] Repo corrupto o no existe. Eliminando...`);
-      await rm(repoPath, { recursive: true, force: true });
-
-      console.log(` [prepareRepo] Clonando repo: ${repoUrl}`);
-      await simpleGit().clone(repoUrl, repoPath);
-    }
-
-    console.log(` [prepareRepo] Inicializando simple-git en: "${repoPath}"`);
-    const git = simpleGit({ baseDir: repoPath });
-
-    const isRepo = await git.checkIsRepo();
-    if (!isRepo) throw new Error(" ERROR: Git no está correctamente inicializado");
-
-    await git.pull("origin", "main");
-    REPO_CACHE[repoPath] = git;
-
-    console.log(` [prepareRepo] simple-git inicializado correctamente.`);
-    return repoPath;
-  } catch (error) {
-    console.error(` [prepareRepo] ERROR con simple-git:`, error);
-    throw new Error("Error al preparar el repositorio.");
-  } finally {
-    resolveLock!();
-    globalRepoLock[repoPath] = null;
-    console.log(` [prepareRepo] Bloqueo liberado para ${repoPath}`);
-  }
+  return repoPendingPromises[repoPath]; //   Retornar la promesa en curso
 };
+
+
+
 
 /**
  * Elimina un repositorio Git de forma segura.
@@ -88,7 +141,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
 export const cleanRepo = async (repoPath: string): Promise<void> => {
   if (!existsSync(repoPath)) return;
 
-  console.log(`[cleanRepo] 🧹 Intentando eliminar repositorio en: ${repoPath}`);
+  console.log(`[cleanRepo]   Intentando eliminar repositorio en: ${repoPath}`);
 
   if (globalRepoLock[repoPath]) {
     console.log("[cleanRepo]  Repo en uso, esperando...");

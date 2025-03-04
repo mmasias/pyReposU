@@ -34,40 +34,61 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       fetchRepoData();
     }
   }, [repoUrl, mode]);
+  useEffect(() => {
+    const fetchBranches = async () => {
+      if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
+    
+      try {
+        console.log(`  Enviando petición a: http://localhost:3000/api/stats/user/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+    
+        const { data } = await axios.get(`http://localhost:3000/api/stats/user/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+    
+        console.log("  Ramas recibidas:", data);
+        setBranches(Array.isArray(data) ? data : ["main"]);
+      } catch (error) {
+        console.error("  Error obteniendo ramas:", error);
+        setBranches(["main"]);
+      }
+    };
+  
+    fetchBranches();
+  }, [repoUrl]);
+  useEffect(() => {
+    console.log(`  useEffect activado - repoUrl: ${repoUrl}`);
+  }, [repoUrl]);
   
 
   const fetchRepoData = async () => {
-    if (!repoUrl.trim()) {
-      return; 
-    }
-    if (!repoUrl || !repoUrl.startsWith("http")) {
+    if (!repoUrl.trim()) return;
+    if (!repoUrl.startsWith("http")) {
       console.error(" URL del repo inválida:", repoUrl);
       return;
     }
   
     try {
-      console.log(" Cargando información del repo...");
-      const url = new URL(repoUrl); 
+      console.log("  Cargando información del repo...");
+      const url = new URL(repoUrl);
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
   
       const repoName = repoNameRaw.replace(/\.git$/, "");
   
-      console.log(" Cargando fecha de creación...");
+      console.log("  Cargando fecha de creación...");
       const { data: repoInfo } = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}`);
       const createdAt = repoInfo.created_at.split("T")[0];
   
       setRepoCreatedAt(createdAt);
       if (!startDate) {
-        console.log(" Asignando startDate:", createdAt);
+        console.log("  Asignando startDate:", createdAt);
         setStartDate(createdAt);
       }
   
-      fetchData(); 
+      fetchData(); // Llama a la función que obtiene los datos del repo con la rama seleccionada
     } catch (error) {
-      console.error(" Error obteniendo datos del repo:", error);
+      console.error("  Error obteniendo datos del repo:", error);
     }
   };
+  
   
   
   useEffect(() => {
@@ -91,9 +112,11 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
         />
       </div>
 
-      {mode === "heatmap" && (
+      {Array.isArray(branches) && branches.length > 0 ? (
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rama:</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Rama:
+          </label>
           <select
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
@@ -106,6 +129,8 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
             ))}
           </select>
         </div>
+      ) : (
+        <p className="text-gray-500">Cargando ramas...</p>
       )}
 
       <div>
