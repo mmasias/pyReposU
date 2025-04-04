@@ -42,6 +42,17 @@ const Dashboard = () => {
         </svg>
       ),
     },
+    {
+      title: "Visualizador de Ramas y Commits",
+      description: "Explora las ramas y commits de tu repositorio con una vista interactiva.",
+      link: "/visualizador-ramas",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-12 h-12 text-red-500">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4m0 0h4M5 7l4-4m5 16v-4m0 4h4m-4 0l4 4M5 17v4m0-4h4m-4 0l4-4" />
+        </svg>
+      ),
+    },
+    
   ];
 
   return (

@@ -1,71 +1,58 @@
-import simpleGit from "simple-git";
-import path from "path";
-import { prepareRepo } from "../../utils/gitRepoUtils";
+import simpleGit from 'simple-git';
+import { prepareRepo } from '../../utils/gitRepoUtils';
 
-interface CommitNode {
-  hash: string;
+type CommitNode = {
+  sha: string;
   message: string;
   author: string;
   date: string;
   parents: string[];
   branches: string[];
-  isMerge: boolean;
-}
+  primaryBranch: string | null;
+};
 
-interface BranchNode {
-  name: string;
-  head: string;
-}
-
-export const getGraphDataForRepo = async (repoUrl: string): Promise<{
-  commits: CommitNode[];
-  branches: BranchNode[];
-}> => {
+export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]> => {
   const repoPath = await prepareRepo(repoUrl);
   const git = simpleGit(repoPath);
 
-  // Obtener commits completos con info de los padres
-  const rawCommits = await git.raw([
-    "log",
-    "--all",
-    "--pretty=format:%H|%P|%an|%ad|%s",
-    "--date=iso"
-  ]);
+  // 1. Obtener todas las ramas remotas
+  const branchList = (await git.branch(['-r'])).all
+    .map((b) => b.replace('origin/', '').trim())
+    .filter((b) => b && !b.includes('HEAD'));
 
-  const commits: CommitNode[] = rawCommits
-    .split("\n")
-    .map((line) => {
-      const [hash, parentsStr, author, date, ...msgParts] = line.split("|");
-      const message = msgParts.join("|").trim(); // por si el mensaje tiene "|"
-      const parents = parentsStr ? parentsStr.trim().split(" ") : [];
-      return {
-        hash,
-        message,
-        author,
-        date,
-        parents,
-        branches: [],
-        isMerge: parents.length > 1
-      };
-    });
+  const commitsMap: Map<string, CommitNode> = new Map();
 
-  // Obtener ramas remotas
-  const branchInfo = await git.branch(["-r"]);
-  const branches: BranchNode[] = [];
+  for (const branch of branchList) {
+    const log = await git.log({ from: `origin/${branch}` });
 
-  for (const rawName of branchInfo.all) {
-    const name = rawName.replace("origin/", "").trim();
-    if (name === "HEAD") continue;
+    for (const commit of log.all) {
+      if (!commitsMap.has(commit.hash)) {
+        const rawParents = await git.raw(['rev-list', '--parents', '-n', '1', commit.hash]);
+        const parts = rawParents.trim().split(' ');
+        const parents = parts.slice(1); // el primero es el hash mismo
 
-    const branchHash = await git.revparse([rawName]);
-    branches.push({ name, head: branchHash });
-
-    // Añadimos la rama al commit correspondiente
-    const commit = commits.find((c) => c.hash === branchHash);
-    if (commit) {
-      commit.branches.push(name);
+        commitsMap.set(commit.hash, {
+          sha: commit.hash,
+          message: commit.message,
+          author: commit.author_name,
+          date: new Date(commit.date).toISOString(),
+          parents,
+          branches: [branch],
+          primaryBranch: branch
+        });
+      } else {
+        const existing = commitsMap.get(commit.hash)!;
+        if (!existing.branches.includes(branch)) {
+          existing.branches.push(branch);
+        }
+      }
     }
   }
 
-  return { commits, branches };
+  // Inferir rama principal por heurística simple
+  for (const commit of commitsMap.values()) {
+    commit.primaryBranch = commit.branches[0] || null;
+  }
+
+  return Array.from(commitsMap.values());
 };
