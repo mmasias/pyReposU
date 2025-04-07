@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CommitGraphSVG from "./CommitGraphSVG";
 import "../styles/ResizableStyles.css";
-import * as d3 from "d3"; 
+import * as d3 from "d3";
 
 type Commit = {
   sha: string;
@@ -50,18 +50,26 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
     }
   });
 
-  //  Mapa de colores únicos por rama
+  // Mapa de colores únicos por rama
   const allBranches = Array.from(branchColumnMap.keys());
   const branchColorScale = d3.scaleOrdinal<string>()
     .domain(allBranches)
     .range(d3.schemeTableau10);
   const branchColorMap = Object.fromEntries(
-      allBranches.map((branch) => [branch, branchColorScale(branch)])
+    allBranches.map((branch) => [branch, branchColorScale(branch)])
   );
+
+  const colWidth = 20;
+  const graphColWidth = branchColumnMap.size * colWidth + 40; // ← ajuste dinámico
+  const gridTemplate = `160px ${graphColWidth}px 1fr 150px 180px 100px 160px`;
 
   return (
     <div className="overflow-auto font-mono text-sm">
-      <div className="grid grid-cols-[160px_80px_1fr_150px_180px_100px_160px] gap-2 border-b p-2 font-bold bg-gray-100">
+      {/* Header */}
+      <div
+        className="grid gap-2 border-b p-2 font-bold bg-gray-100"
+        style={{ gridTemplateColumns: gridTemplate }}
+      >
         <div>Branch</div>
         <div>Graph</div>
         <div>Message</div>
@@ -76,7 +84,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
           commits={commits}
           commitIndexMap={commitIndexMap}
           branchColumnMap={branchColumnMap}
-          branchColorMap={branchColorMap} 
+          branchColorMap={branchColorMap}
         />
 
         <div className="absolute left-0 top-0 w-full">
@@ -88,8 +96,11 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
             return (
               <div
                 key={commit.sha}
-                className="grid grid-cols-[160px_80px_1fr_150px_180px_100px_160px] gap-2 items-center px-2 py-1 border-b hover:bg-gray-50"
-                style={{ height: 40 }}
+                className="grid gap-2 items-center px-2 py-1 border-b hover:bg-gray-50"
+                style={{
+                  height: 40,
+                  gridTemplateColumns: gridTemplate
+                }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
