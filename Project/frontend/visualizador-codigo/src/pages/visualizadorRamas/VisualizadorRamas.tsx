@@ -12,7 +12,7 @@ const VisualizadorRamas = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">🔍 Visualizador de Ramas tipo GitKraken</h2>
+      <h2 className="text-2xl font-bold mb-4"> Visualizador de Ramas</h2>
       <form onSubmit={handleSubmit} className="mb-6 flex gap-4">
         <input
           type="text"
