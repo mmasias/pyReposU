@@ -74,10 +74,17 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     }
   }
 
-  //  Paso 3: Asignar primaryBranch si hay ramas conocidas
-  for (const commit of commitsMap.values()) {
+// Paso 3: Asignar primaryBranch si hay ramas conocidas
+for (const commit of commitsMap.values()) {
+  try {
+    const nameRevOutput = await git.raw(['name-rev', '--name-only', commit.sha]);
+    const cleanBranchName = nameRevOutput.split('~')[0].trim();
+    commit.primaryBranch = cleanBranchName;
+  } catch (e) {
     commit.primaryBranch = commit.branches[0] || null;
   }
+}
+
 
   return Array.from(commitsMap.values());
 };
