@@ -64,3 +64,30 @@ export const getFirstCommitForFileHandler = async (req: Request, res: Response):
     res.status(500).json({ message: "Error al obtener el primer commit del archivo." });
   }
 };
+export const getLatestCommitForFileHandler = async (req: Request, res: Response): Promise<void> => {
+  const { repoUrl, filePath } = req.query;
+
+  if (!repoUrl || !filePath) {
+    res.status(400).json({ message: "Se requieren repoUrl y filePath." });
+    return;
+  }
+
+  try {
+    const commits = await getCommits(repoUrl as string);
+    const last = commits.find((c) => c.files.includes(filePath as string));
+    if (!last) {
+      res.status(404).json({ message: "No se encontró ningún commit que modificara este archivo." });
+      return;
+    }
+
+    res.status(200).json({
+      hash: last.hash,
+      message: last.message,
+      date: last.date,
+      author: last.author,
+    });
+  } catch (error) {
+    console.error(`[getLatestCommitForFileHandler]`, error);
+    res.status(500).json({ message: "Error al obtener último commit del archivo." });
+  }
+};
