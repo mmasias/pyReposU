@@ -51,10 +51,12 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
   });
 
   //  Mapa de colores únicos por rama
-  const branchColorScale = d3.scaleOrdinal(d3.schemeTableau10);
   const allBranches = Array.from(branchColumnMap.keys());
+  const branchColorScale = d3.scaleOrdinal<string>()
+    .domain(allBranches)
+    .range(d3.schemeTableau10);
   const branchColorMap = Object.fromEntries(
-    allBranches.map((branch, i) => [branch, branchColorScale(i)])
+      allBranches.map((branch) => [branch, branchColorScale(branch)])
   );
 
   return (
