@@ -239,7 +239,7 @@ const Playback = () => {
           </div>
         )}
 
-        {/* ⏮️⏭️ Botones ir al primer/último */}
+        {/* Botones ir al primer/último */}
         <div className="flex justify-center gap-4 mb-4">
           <button
             onClick={() => goToCommit(commits[0]?.hash)}
@@ -310,7 +310,7 @@ const Playback = () => {
             </button>
           </div>
 
-          {loadingAnalysis && <p className="mt-4 text-blue-500">⏳ Analizando, esto puede tardar unos minutos...</p>}
+          {loadingAnalysis && <p className="mt-4 text-blue-500"> Analizando, esto puede tardar unos minutos...</p>}
           {analysisResult && (
             <div className="mt-6 bg-white p-4 rounded shadow border text-left max-w-4xl mx-auto">
               <ReactJson src={analysisResult} collapsed={false} enableClipboard={false} />
