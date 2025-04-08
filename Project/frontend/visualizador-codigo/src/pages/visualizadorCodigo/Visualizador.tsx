@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useNavigate, useLocation } from "react-router-dom";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const Visualizador = () => {
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("");
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
   const [availableAuthors, setAvailableAuthors] = useState<string[]>([]);
-
   const [since, setSince] = useState("");
   const [until, setUntil] = useState("");
   const [author, setAuthor] = useState("");
@@ -30,14 +29,10 @@ const Visualizador = () => {
     if (savedRepoUrl) {
       setRepoUrl(savedRepoUrl);
       setBranch(savedBranch);
-
       loadBranches(savedRepoUrl);
       loadAuthorsAndDates(savedRepoUrl);
 
-      if (
-        savedRepoUrl !== sessionStorage.getItem("repoUrl") ||
-        !sessionStorage.getItem("treeData")
-      ) {
+      if (savedRepoUrl !== sessionStorage.getItem("repoUrl") || !sessionStorage.getItem("treeData")) {
         fetchTreeData(savedRepoUrl, savedBranch);
       } else {
         setTreeData(JSON.parse(sessionStorage.getItem("treeData") || "[]"));
@@ -47,10 +42,10 @@ const Visualizador = () => {
 
   const loadBranches = async (url: string) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/stats/user/branches", {
+      const res = await axios.get("http://localhost:3000/api/stats/user/branches", {
         params: { repoUrl: url },
       });
-      setAvailableBranches(response.data);
+      setAvailableBranches(res.data);
     } catch (err) {
       console.error("Error al cargar ramas:", err);
     }
@@ -58,20 +53,14 @@ const Visualizador = () => {
 
   const loadAuthorsAndDates = async (url: string) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/commits", {
-        params: { repoUrl: url },
-      });
-
-      const commits = response.data;
-
-      // Autores únicos
+      const res = await axios.get("http://localhost:3000/api/commits", { params: { repoUrl: url } });
+      const commits = res.data;
       const authors = Array.from(new Set(commits.map((c: any) => c.author)));
       setAvailableAuthors(authors as string[]);
 
-      // Fechas automáticas
       if (commits.length > 0) {
-        setSince(commits[commits.length - 1].date.split("T")[0]); // más antiguo
-        setUntil(commits[0].date.split("T")[0]); // más reciente
+        setSince(commits[commits.length - 1].date.split("T")[0]);
+        setUntil(commits[0].date.split("T")[0]);
       }
     } catch (err) {
       console.error("Error al cargar autores/fechas:", err);
@@ -83,27 +72,22 @@ const Visualizador = () => {
     setError(null);
     setTreeData([]);
     setSelectedFile(null);
-  
+
     try {
       const repo = url || repoUrl;
       let selectedBranch = branchOverride || branch;
-  
       const params: Record<string, string> = { repoUrl: repo };
-      if (selectedBranch) {
-        params.branch = selectedBranch;
-      }
-  
+
+      if (selectedBranch) params.branch = selectedBranch;
       if (since) params.since = since;
       if (until) params.until = until;
       if (author) params.author = author;
-  
-      const response = await axios.get(`http://localhost:3000/api/stats/tree`, { params });
-  
-      if (response.data.warning) alert(response.data.warning);
-  
-      setTreeData(response.data.tree.subfolders || []);
-  
-      // Si no se especificó rama, pedimos al backend la que usó (HEAD)
+
+      const res = await axios.get("http://localhost:3000/api/stats/tree", { params });
+
+      if (res.data.warning) alert(res.data.warning);
+      setTreeData(res.data.tree.subfolders || []);
+
       if (!selectedBranch) {
         const headRes = await axios.get("http://localhost:3000/api/stats/folders/current-branch", {
           params: { repoUrl: repo },
@@ -111,40 +95,34 @@ const Visualizador = () => {
         selectedBranch = headRes.data.currentBranch;
         setBranch(selectedBranch);
       }
-  
-      // Guardar en sesión
+
       sessionStorage.setItem("repoUrl", repo);
       sessionStorage.setItem("branch", selectedBranch);
-      sessionStorage.setItem("treeData", JSON.stringify(response.data.tree.subfolders || []));
-    } catch (err: any) {
+      sessionStorage.setItem("treeData", JSON.stringify(res.data.tree.subfolders || []));
+    } catch (err) {
       console.error("Error al cargar el árbol:", err);
       setError("Error al cargar el árbol del repositorio. Verifica la URL.");
     } finally {
       setLoading(false);
     }
   };
-  
 
   const fetchFileContent = async (filePath: string, commitHash: string) => {
     try {
-      const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-
-      const response = await axios.get(`http://localhost:3000/api/files/content`, {
-        params: { repoUrl, filePath: cleanFilePath, commitHash },
+      const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
+      const res = await axios.get("http://localhost:3000/api/files/content", {
+        params: { repoUrl, filePath: cleanPath, commitHash },
       });
-
-      setSelectedFile({ path: cleanFilePath, content: response.data });
-    } catch (err) {
+      setSelectedFile({ path: cleanPath, content: res.data });
+    } catch {
       setError("Error al cargar el contenido del archivo.");
     }
   };
 
-  const toggleFolder = (folderPath: string) => {
-    if (expandedFolders.includes(folderPath)) {
-      setExpandedFolders(expandedFolders.filter((path) => path !== folderPath));
-    } else {
-      setExpandedFolders([...expandedFolders, folderPath]);
-    }
+  const toggleFolder = (path: string) => {
+    setExpandedFolders((prev) =>
+      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+    );
   };
 
   const clearRepository = () => {
@@ -158,10 +136,11 @@ const Visualizador = () => {
   };
 
   const renderTree = (nodes: any[], currentPath = "") =>
-    nodes.map((node, index) => {
+    nodes.map((node, idx) => {
       const fullPath = `${currentPath}/${node.name}`;
       return (
-        <div key={index} className="ml-4 mt-2">
+        <div key={idx} className="ml-4 mt-2">
+          {/* Carpeta */}
           {node.subfolders && (
             <div
               className="cursor-pointer flex items-center bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md"
@@ -172,11 +151,12 @@ const Visualizador = () => {
             </div>
           )}
 
+          {/* Archivos */}
           {node.files && expandedFolders.includes(fullPath) && (
             <div className="ml-6 mt-2">
-              {node.files.map((file: any, fileIndex: number) => (
+              {node.files.map((file: any, i: number) => (
                 <div
-                  key={fileIndex}
+                  key={i}
                   className="flex items-center bg-white hover:bg-gray-100 px-4 py-2 rounded-md cursor-pointer"
                 >
                   <span className="mr-2">📄</span>
@@ -202,6 +182,7 @@ const Visualizador = () => {
             </div>
           )}
 
+          {/* Subcarpetas recursivas */}
           {expandedFolders.includes(fullPath) && node.subfolders && renderTree(node.subfolders, fullPath)}
         </div>
       );
@@ -214,32 +195,20 @@ const Visualizador = () => {
         <p className="text-lg text-gray-600 mt-2">Ingresa la URL del repositorio para comenzar.</p>
       </header>
 
-      {/* Filtros + Ramas */}
+      {/* Filtros */}
       <div className="flex justify-center gap-4 mb-4 flex-wrap">
-        <select
-          value={branch}
-          onChange={(e) => setBranch(e.target.value)}
-          className="input px-4 py-2 border border-gray-300 rounded-md"
-        >
+        <select value={branch} onChange={(e) => setBranch(e.target.value)} className="input border px-4 py-2 rounded-md">
           <option value="">Seleccionar rama</option>
           {availableBranches.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
+            <option key={b} value={b}>{b}</option>
           ))}
         </select>
         <input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="input" />
         <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="input" />
-        <select
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          className="input px-4 py-2 border border-gray-300 rounded-md"
-        >
+        <select value={author} onChange={(e) => setAuthor(e.target.value)} className="input border px-4 py-2 rounded-md">
           <option value="">Todos los autores</option>
           {availableAuthors.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
+            <option key={a} value={a}>{a}</option>
           ))}
         </select>
         <button onClick={() => fetchTreeData()} className="btn-primary">
@@ -247,7 +216,7 @@ const Visualizador = () => {
         </button>
       </div>
 
-      {/* Input de repo o botón para limpiar */}
+      {/* Cargar o Limpiar Repositorio */}
       <div className="flex justify-center items-center gap-4 mb-10">
         {treeData.length > 0 ? (
           <button
@@ -292,7 +261,7 @@ const Visualizador = () => {
 
       {/* Modal de archivo */}
       {selectedFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-4">{selectedFile.path}</h2>
             <div className="p-4 border rounded bg-gray-100">
