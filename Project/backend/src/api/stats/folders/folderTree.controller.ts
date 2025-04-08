@@ -3,6 +3,7 @@ import simpleGit, { SimpleGit } from "simple-git";
 import path from "path";
 import { removeDirectory, normalizePath } from "../../utils/file.utils";
 import { PATHS } from "../../constants/path.constants";
+import { prepareRepo } from "../../utils/gitRepoUtils"; // 👈 Importamos prepareRepo
 
 export const getRepositoryTree = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, branch, since, until, author } = req.query;
@@ -12,21 +13,14 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
     return;
   }
 
-  const tempRepoPath = path.join(PATHS.TEMP_REPO, "cloned-repo");
-
   try {
-    const git = simpleGit();
-
-    // Decodificar la URL del repositorio
     const decodedRepoUrl = decodeURIComponent(repoUrl as string);
 
-    // Clonar el repositorio
-    console.log("Clonando el repositorio...");
-    await git.clone(decodedRepoUrl, tempRepoPath);
+    // ✅ Usamos prepareRepo en lugar de clonado directo
+    const repoPath = await prepareRepo(decodedRepoUrl);
+    const repoGit = simpleGit(repoPath);
 
-    const repoGit = simpleGit(tempRepoPath);
-
-    // Cambiar a la rama si se especifica
+    // ✅ Checkout a rama si se especifica
     if (branch) {
       try {
         console.log(`[getRepositoryTree] Cambiando a la rama: ${branch}`);
@@ -38,7 +32,6 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
       }
     }
 
-    // Obtener estadísticas de cambios con filtros adicionales
     const logArgs = ["log", "--numstat", "--pretty=format:%H;%an;%ae;%ad;%s"];
     if (since) logArgs.push(`--since=${since}`);
     if (until) logArgs.push(`--until=${until}`);
@@ -63,7 +56,6 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
         return;
       }
 
-      // Si hay coincidencias, reconstruir gitLogOutput
       const matchingHashes = filteredCommits.map((commit) => commit.hash);
       const matchingLog = await getFilteredLog(repoGit, matchingHashes);
       const fileChangesMap: Record<string, number> = parseGitLog(matchingLog);
@@ -89,12 +81,14 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
       message: "Error al obtener el árbol del repositorio.",
       error: error instanceof Error ? error.message : "Error desconocido",
     });
-  } finally {
-    await removeDirectory(tempRepoPath);
   }
+
+  // ❌ Ya no borramos el repo, porque `prepareRepo` controla su uso y limpieza
+  // await removeDirectory(tempRepoPath); <- eliminado
 };
 
-// Procesar la salida de `git log --numstat`
+// --- Helpers sin cambios ---
+
 const parseGitLog = (gitLogOutput: string): Record<string, number> => {
   const fileChangesMap: Record<string, number> = {};
   const lines = gitLogOutput.split("\n");
@@ -113,7 +107,6 @@ const parseGitLog = (gitLogOutput: string): Record<string, number> => {
   return fileChangesMap;
 };
 
-// Obtener log filtrado por hashes
 const getFilteredLog = async (repoGit: SimpleGit, hashes: string[]): Promise<string> => {
   const logs = await Promise.all(
     hashes.map(async (hash) => {
@@ -123,7 +116,6 @@ const getFilteredLog = async (repoGit: SimpleGit, hashes: string[]): Promise<str
   return logs.join("\n");
 };
 
-// Construir el árbol a partir de archivos rastreados por Git y estadísticas de cambios
 const buildTreeFromTrackedFiles = (
   trackedFiles: string[],
   fileChangesMap: Record<string, number>
@@ -153,4 +145,25 @@ const buildTreeFromTrackedFiles = (
   });
 
   return tree;
+};
+// Devuelve la rama actual (HEAD)
+export const getCurrentBranch = async (req: Request, res: Response): Promise<void> => {
+  const { repoUrl } = req.query;
+
+  if (!repoUrl) {
+    res.status(400).json({ message: "Se requiere el parámetro repoUrl." });
+    return;
+  }
+
+  try {
+    const decodedRepoUrl = decodeURIComponent(repoUrl as string);
+    const repoPath = await prepareRepo(decodedRepoUrl); // Usamos prepareRepo como en los otros
+    const git = simpleGit(repoPath);
+
+    const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+    res.status(200).json({ currentBranch: branch.trim() });
+  } catch (err) {
+    console.error("Error al obtener la rama actual:", err);
+    res.status(500).json({ message: "Error al obtener la rama actual." });
+  }
 };

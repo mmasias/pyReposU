@@ -6,10 +6,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const Visualizador = () => {
   const [repoUrl, setRepoUrl] = useState("");
-  const [branch, setBranch] = useState(""); // Rama seleccionada
-  const [since, setSince] = useState(""); // Fecha inicial
-  const [until, setUntil] = useState(""); // Fecha final
-  const [author, setAuthor] = useState(""); // Usuario
+  const [branch, setBranch] = useState("");
+  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  const [availableAuthors, setAvailableAuthors] = useState<string[]>([]);
+
+  const [since, setSince] = useState("");
+  const [until, setUntil] = useState("");
+  const [author, setAuthor] = useState("");
 
   const [treeData, setTreeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,22 +23,62 @@ const Visualizador = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Recuperar el estado del repo de la navegación
   useEffect(() => {
     const savedRepoUrl = location.state?.repoUrl || sessionStorage.getItem("repoUrl") || "";
-    
+    const savedBranch = sessionStorage.getItem("branch") || "";
+
     if (savedRepoUrl) {
       setRepoUrl(savedRepoUrl);
-  
-      if (savedRepoUrl !== sessionStorage.getItem("repoUrl") || !sessionStorage.getItem("treeData")) {
-        fetchTreeData(savedRepoUrl);
+      setBranch(savedBranch);
+
+      loadBranches(savedRepoUrl);
+      loadAuthorsAndDates(savedRepoUrl);
+
+      if (
+        savedRepoUrl !== sessionStorage.getItem("repoUrl") ||
+        !sessionStorage.getItem("treeData")
+      ) {
+        fetchTreeData(savedRepoUrl, savedBranch);
       } else {
         setTreeData(JSON.parse(sessionStorage.getItem("treeData") || "[]"));
       }
     }
   }, [location.state]);
 
-  const fetchTreeData = async (url?: string) => {
+  const loadBranches = async (url: string) => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/stats/user/branches", {
+        params: { repoUrl: url },
+      });
+      setAvailableBranches(response.data);
+    } catch (err) {
+      console.error("Error al cargar ramas:", err);
+    }
+  };
+
+  const loadAuthorsAndDates = async (url: string) => {
+    try {
+      const response = await axios.get("http://localhost:3000/api/commits", {
+        params: { repoUrl: url },
+      });
+
+      const commits = response.data;
+
+      // Autores únicos
+      const authors = Array.from(new Set(commits.map((c: any) => c.author)));
+      setAvailableAuthors(authors as string[]);
+
+      // Fechas automáticas
+      if (commits.length > 0) {
+        setSince(commits[commits.length - 1].date.split("T")[0]); // más antiguo
+        setUntil(commits[0].date.split("T")[0]); // más reciente
+      }
+    } catch (err) {
+      console.error("Error al cargar autores/fechas:", err);
+    }
+  };
+
+  const fetchTreeData = async (url?: string, branchOverride?: string) => {
     setLoading(true);
     setError(null);
     setTreeData([]);
@@ -43,66 +86,60 @@ const Visualizador = () => {
   
     try {
       const repo = url || repoUrl;
-      if (!repo) {
-        setError("Por favor, ingresa una URL válida del repositorio.");
-        setLoading(false);
-        return;
+      let selectedBranch = branchOverride || branch;
+  
+      const params: Record<string, string> = { repoUrl: repo };
+      if (selectedBranch) {
+        params.branch = selectedBranch;
       }
   
-      console.log(`[Visualizador] Solicitando árbol del repo con URL: ${repo}`);
-  
-      const params: Record<string, string> = { repoUrl: repo }; 
-      if (branch) params.branch = branch;
       if (since) params.since = since;
       if (until) params.until = until;
       if (author) params.author = author;
   
       const response = await axios.get(`http://localhost:3000/api/stats/tree`, { params });
   
-      if (response.data.warning) {
-        alert(response.data.warning);
-      }
+      if (response.data.warning) alert(response.data.warning);
   
-      console.log(`[Visualizador] Árbol de datos recibido:`, response.data.tree);
       setTreeData(response.data.tree.subfolders || []);
   
-      // Guardar en sessionStorage
-      sessionStorage.setItem("repoUrl", repo);
-      sessionStorage.setItem("treeData", JSON.stringify(response.data.tree.subfolders || []));
+      // Si no se especificó rama, pedimos al backend la que usó (HEAD)
+      if (!selectedBranch) {
+        const headRes = await axios.get("http://localhost:3000/api/stats/folders/current-branch", {
+          params: { repoUrl: repo },
+        });
+        selectedBranch = headRes.data.currentBranch;
+        setBranch(selectedBranch);
+      }
   
+      // Guardar en sesión
+      sessionStorage.setItem("repoUrl", repo);
+      sessionStorage.setItem("branch", selectedBranch);
+      sessionStorage.setItem("treeData", JSON.stringify(response.data.tree.subfolders || []));
     } catch (err: any) {
-      console.error(`[Visualizador] Error al cargar el árbol del repositorio:`, err);
+      console.error("Error al cargar el árbol:", err);
       setError("Error al cargar el árbol del repositorio. Verifica la URL.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   const fetchFileContent = async (filePath: string, commitHash: string) => {
     try {
-      setError(null);
-  
       const cleanFilePath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-      console.log(`[Visualizador] Cargando contenido de archivo: ${cleanFilePath}`);
-  
+
       const response = await axios.get(`http://localhost:3000/api/files/content`, {
-        params: {
-          repoUrl,
-          filePath: cleanFilePath,
-          commitHash,
-        },
+        params: { repoUrl, filePath: cleanFilePath, commitHash },
       });
-  
-      console.log(`[Visualizador] Contenido del archivo cargado correctamente.`);
+
       setSelectedFile({ path: cleanFilePath, content: response.data });
     } catch (err) {
-      console.error(`[Visualizador] Error al cargar el contenido del archivo:`, err);
-      setError("Error al cargar el contenido del archivo. Verifica la URL o el commit.");
+      setError("Error al cargar el contenido del archivo.");
     }
   };
 
   const toggleFolder = (folderPath: string) => {
-    console.log(`[Visualizador] Toggle folder: ${folderPath}`);
     if (expandedFolders.includes(folderPath)) {
       setExpandedFolders(expandedFolders.filter((path) => path !== folderPath));
     } else {
@@ -112,19 +149,17 @@ const Visualizador = () => {
 
   const clearRepository = () => {
     setRepoUrl("");
+    setBranch("");
     setTreeData([]);
     setSelectedFile(null);
-  
-    // borrar  sessionStorage para que se vuelva a cargar
     sessionStorage.removeItem("repoUrl");
     sessionStorage.removeItem("treeData");
+    sessionStorage.removeItem("branch");
   };
-  
 
-  const renderTree = (nodes: any[], currentPath = "") => {
-    return nodes.map((node, index) => {
+  const renderTree = (nodes: any[], currentPath = "") =>
+    nodes.map((node, index) => {
       const fullPath = `${currentPath}/${node.name}`;
-
       return (
         <div key={index} className="ml-4 mt-2">
           {node.subfolders && (
@@ -132,7 +167,6 @@ const Visualizador = () => {
               className="cursor-pointer flex items-center bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md"
               onClick={() => toggleFolder(fullPath)}
             >
-              <span className="mr-2">{expandedFolders.includes(fullPath) ? "   " : "   "}</span>
               <span className="font-semibold text-gray-800">{node.name}</span>
               <span className="ml-auto text-gray-500">{node.changes || 0} cambios</span>
             </div>
@@ -147,19 +181,18 @@ const Visualizador = () => {
                 >
                   <span className="mr-2">📄</span>
                   <span
-                    className="text-gray-800 cursor-pointer"
+                    className="text-gray-800"
                     onClick={() => fetchFileContent(`${fullPath}/${file.name}`, "HEAD")}
                   >
                     {file.name}
                   </span>
                   <span className="ml-auto text-gray-500">{file.changes || 0} cambios</span>
                   <button
-                    onClick={() => {
-                      console.log(`[Visualizador] Navegando a Playback con ruta completa: ${fullPath}/${file.name}`);
+                    onClick={() =>
                       navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(`${fullPath}/${file.name}`)}`, {
                         state: { repoUrl },
-                      });
-                    }}
+                      })
+                    }
                     className="ml-2 bg-green-500 text-white px-4 py-2 rounded-md shadow hover:bg-green-600"
                   >
                     Playback
@@ -173,7 +206,6 @@ const Visualizador = () => {
         </div>
       );
     });
-  };
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-200 min-h-screen py-10">
@@ -182,38 +214,40 @@ const Visualizador = () => {
         <p className="text-lg text-gray-600 mt-2">Ingresa la URL del repositorio para comenzar.</p>
       </header>
 
-      <div className="flex justify-center gap-4 mb-4">
-        <input
-          type="text"
-          placeholder="Rama (branch)"
+      {/* Filtros + Ramas */}
+      <div className="flex justify-center gap-4 mb-4 flex-wrap">
+        <select
           value={branch}
           onChange={(e) => setBranch(e.target.value)}
-          className="input"
-        />
-        <input
-          type="date"
-          value={since}
-          onChange={(e) => setSince(e.target.value)}
-          className="input"
-        />
-        <input
-          type="date"
-          value={until}
-          onChange={(e) => setUntil(e.target.value)}
-          className="input"
-        />
-        <input
-          type="text"
-          placeholder="Autor"
+          className="input px-4 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Seleccionar rama</option>
+          {availableBranches.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+        <input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="input" />
+        <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="input" />
+        <select
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
-          className="input"
-        />
+          className="input px-4 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Todos los autores</option>
+          {availableAuthors.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+        </select>
         <button onClick={() => fetchTreeData()} className="btn-primary">
           Aplicar Filtros
         </button>
       </div>
 
+      {/* Input de repo o botón para limpiar */}
       <div className="flex justify-center items-center gap-4 mb-10">
         {treeData.length > 0 ? (
           <button
@@ -229,10 +263,14 @@ const Visualizador = () => {
               placeholder="https://github.com/usuario/repositorio.git"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              className="w-96 px-4 py-2 rounded-md border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-96 px-4 py-2 rounded-md border border-gray-300 shadow-sm"
             />
             <button
-              onClick={() => fetchTreeData()}
+              onClick={() => {
+                fetchTreeData();
+                loadBranches(repoUrl);
+                loadAuthorsAndDates(repoUrl);
+              }}
               className="bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-600"
             >
               Cargar Repositorio
@@ -252,25 +290,12 @@ const Visualizador = () => {
         )}
       </div>
 
+      {/* Modal de archivo */}
       {selectedFile && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div
-            className="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto"
-            style={{
-              backgroundColor: "#f5f5f5",
-              border: "1px solid #ddd",
-            }}
-          >
+          <div className="bg-white rounded-lg shadow-lg p-6 w-3/4 max-h-screen overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-800 mb-4">{selectedFile.path}</h2>
-            <div
-              style={{
-                backgroundColor: "#f5f5f5",
-                border: "1px solid #ddd",
-                padding: "1rem",
-                borderRadius: "0.5rem",
-                overflowX: "auto",
-              }}
-            >
+            <div className="p-4 border rounded bg-gray-100">
               <SyntaxHighlighter language="javascript" style={dracula}>
                 {selectedFile.content}
               </SyntaxHighlighter>
