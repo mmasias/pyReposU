@@ -1,5 +1,8 @@
-import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo, getRepoBranches } from "../utils/gitRepoUtils";
+import { Commit } from '../models/Commit';
+import { CommitFile } from '../models/CommitFile';
+import { User } from '../models/User';
+import { Repository } from '../models/Repository';
+import { Op } from 'sequelize';
 
 interface BubbleChartData {
   [user: string]: {
@@ -13,103 +16,56 @@ interface BubbleChartData {
   }[];
 }
 
-/**
- * Obtiene los logs de commits en una rama específica.
- */
-const fetchCommitLogs = async (repoPath: string, branch: string): Promise<string[]> => {
-  const git = simpleGit(repoPath);
-  await git.checkout(branch);
+export const getBubbleChartData = async (
+  repoUrl: string,
+  branch: string = 'main'
+): Promise<BubbleChartData> => {
+  const repo = await Repository.findOne({ where: { url: repoUrl } });
+  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
 
-  const logOutput = await git.raw([
-    "log",
-    "--format=%H;%an;%ad;%s",
-    "--date=iso",
-    "--numstat",
-  ]);
+  // Si decides más adelante guardar branch info, aquí se filtra
+  const commits = await Commit.findAll({
+    where: {
+      repositoryId: repo.id,
+      // opcional: branch filtering si lo implementas en modelos
+    },
+    include: [User],
+    order: [['date', 'ASC']],
+  });
 
-  return logOutput.split("\n");
-};
+  const commitIds = commits.map((c) => c.id);
+  const commitFiles = await CommitFile.findAll({
+    where: { commitId: { [Op.in]: commitIds } },
+  });
 
-/**
- * Procesa los logs de commits y los convierte en datos estructurados.
- */
-const parseCommitLogs = (lines: string[], branchName: string): BubbleChartData => {
   const bubbleData: BubbleChartData = {};
-  const processedCommits = new Set<string>();
 
-  let currentUser = "", currentDate = "", currentHash = "", currentMessage = "";
-  let currentFiles: string[] = [];
-  let linesAdded = 0, linesDeleted = 0;
+  for (const commit of commits) {
+    const author = (commit as any).User?.githubLogin || 'Desconocido';
+    if (!bubbleData[author]) bubbleData[author] = [];
 
-  for (const line of lines) {
-    if (line.includes(";")) {
-      if (currentUser && currentHash && !processedCommits.has(currentHash)) {
-        if (!bubbleData[currentUser]) bubbleData[currentUser] = [];
-        bubbleData[currentUser].push({
-          date: currentDate,
-          linesAdded,
-          linesDeleted,
-          branch: branchName,
-          hash: currentHash,
-          message: currentMessage || "Sin mensaje",
-          files: [...currentFiles],
-        });
+    const files = commitFiles
+      .filter((f) => f.commitId === commit.id)
+      .map((f) => f.filePath);
 
-        processedCommits.add(currentHash);
-      }
+    const added = commitFiles
+      .filter((f) => f.commitId === commit.id)
+      .reduce((sum, f) => sum + (f.linesAdded || 0), 0);
 
-      const [hash, author, date, message] = line.split(";");
-      currentUser = author.trim();
-      currentDate = date.trim();
-      currentHash = hash.trim();
-      currentMessage = message?.trim() || "Sin mensaje";
-      currentFiles = [];
-      linesAdded = 0;
-      linesDeleted = 0;
-    } else if (line.includes("\t")) {
-      const [added, deleted, filePath] = line.split("\t");
-      linesAdded += parseInt(added) || 0;
-      linesDeleted += parseInt(deleted.trim()) || 0;
-      currentFiles.push(filePath.trim());
-    }
+    const deleted = commitFiles
+      .filter((f) => f.commitId === commit.id)
+      .reduce((sum, f) => sum + (f.linesDeleted || 0), 0);
+
+    bubbleData[author].push({
+      date: commit.date.toISOString(),
+      linesAdded: added,
+      linesDeleted: deleted,
+      branch: branch, // placeholder — puedes hacerlo real si guardas ramas
+      hash: commit.hash,
+      message: commit.message || 'Sin mensaje',
+      files,
+    });
   }
 
   return bubbleData;
-};
-
-/**
- * Genera datos para el diagrama de burbujas basado en commits.
- */
-export const getBubbleChartData = async (repoUrl: string, branch: string = "main"): Promise<BubbleChartData> => {
-  let repoPath: string | null = null;
-
-  try {
-    repoPath = await prepareRepo(repoUrl);
-    const branchesToProcess = branch === "Todas"
-      ? await getRepoBranches(repoPath)
-      : [branch];
-
-    const bubbleData: BubbleChartData = {};
-
-    for (const branchName of branchesToProcess) {
-      try {
-        const commitLogs = await fetchCommitLogs(repoPath, branchName);
-        const branchData = parseCommitLogs(commitLogs, branchName);
-
-        Object.entries(branchData).forEach(([user, commits]) => {
-          if (!bubbleData[user]) bubbleData[user] = [];
-          bubbleData[user].push(...commits);
-        });
-      } catch (error) {
-        console.warn(`Error procesando rama ${branchName}:`, error);
-      }
-    }
-
-    return bubbleData;
-  } catch (error) {
-    console.error("[ERROR] getBubbleChartData:", error);
-    throw new Error("Error al generar datos para el diagrama de burbujas.");
-  } finally {
-    if (repoPath) await cleanRepo(repoPath);
-  }
 };

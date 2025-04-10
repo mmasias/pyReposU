@@ -15,11 +15,11 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
   try {
     const decodedRepoUrl = decodeURIComponent(repoUrl as string);
 
-    // ✅ Usamos prepareRepo en lugar de clonado directo
+    //  Usamos prepareRepo en lugar de clonado directo
     const repoPath = await prepareRepo(decodedRepoUrl);
     const repoGit = simpleGit(repoPath);
 
-    // ✅ Checkout a rama si se especifica
+    //  Checkout a rama si se especifica
     if (branch) {
       try {
         console.log(`[getRepositoryTree] Cambiando a la rama: ${branch}`);
@@ -82,11 +82,10 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
     });
   }
 
-  // ❌ Ya no borramos el repo, porque `prepareRepo` controla su uso y limpieza
-  // await removeDirectory(tempRepoPath); <- eliminado
+
 };
 
-// --- Helpers sin cambios ---
+// --- Helpers  ---
 
 const parseGitLog = (gitLogOutput: string): Record<string, number> => {
   const fileChangesMap: Record<string, number> = {};

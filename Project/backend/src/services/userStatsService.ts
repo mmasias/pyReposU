@@ -1,7 +1,12 @@
-import simpleGit from "simple-git";
-import { prepareRepo, cleanRepo } from "../utils/gitRepoUtils"; 
-import { getPullRequestsByUser, getIssuesByUser, getCommentsByUser } from "../services/githubService";
-import { Parser } from "json2csv";
+import { Op } from 'sequelize';
+import { Commit } from '../models/Commit';
+import { CommitFile } from '../models/CommitFile';
+import { Repository } from '../models/Repository';
+import { User } from '../models/User';
+import { PullRequest } from '../models/PullRequest';
+import { Issue } from '../models/Issue';
+import { Comment } from '../models/Comment';
+import { Parser } from 'json2csv';
 
 interface UserStats {
   user: string;
@@ -20,125 +25,112 @@ export const getUserStats = async (
   startDate?: string,
   endDate?: string
 ): Promise<UserStats[]> => {
-  let repoPath: string | null = null;
+  const repo = await Repository.findOne({ where: { url: repoUrl } });
+  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
 
-  try {
-    repoPath = await prepareRepo(repoUrl);
-    const git = simpleGit(repoPath);
-    const branchesToAnalyze = branch && branch !== "all"
-      ? [branch]
-      : (await git.branch(["-r"])).all.map(b => b.trim().replace("origin/", ""));
-
-    console.log(`[DEBUG] Analizando ramas:`, branchesToAnalyze);
-
-    const statsMap: Record<string, UserStats> = {};
-    for (const branchName of branchesToAnalyze) {
-      console.log(`[DEBUG] Checkout de la rama: ${branchName}`);
-      await git.checkout(branchName);
-
-      const logOptions: Record<string, string> = {};
-      if (startDate) logOptions["--since"] = startDate;
-      if (endDate) logOptions["--until"] = endDate;
-
-      const log = await git.log(logOptions);
-      for (const commit of log.all) {
-        const author = commit.author_name;
-        if (!statsMap[author]) statsMap[author] = createEmptyStats(author);
-
-        const diffOutput = await git.raw(["show", "--stat", "--oneline", commit.hash]);
-
-        const addedLines = (diffOutput.match(/\d+ insertions?/g) || []).reduce(
-          (sum, line) => sum + parseInt(line.split(" ")[0]), 0
-        );
-
-        const deletedLines = (diffOutput.match(/\d+ deletions?/g) || []).reduce(
-          (sum, line) => sum + parseInt(line.split(" ")[0]), 0
-        );
-
-        statsMap[author].commits += 1;
-        statsMap[author].linesAdded += addedLines;
-        statsMap[author].linesDeleted += deletedLines;
-        statsMap[author].totalContributions += 1;
-      }
-    }
-
-    const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
-    const repoName = repoNameRaw.replace(/\.git$/, "");
-
-    console.log("[DEBUG] Cargando PRs, Issues y Comentarios...");
-    const pullRequests = await getPullRequestsByUser(repoOwner, repoName);
-    const issues = await getIssuesByUser(repoOwner, repoName);
-    const comments = await getCommentsByUser(repoOwner, repoName);
-
-    [...pullRequests, ...issues, ...comments].forEach(event => {
-      const username = event.user?.login;
-      if (username) {
-        if (!statsMap[username]) statsMap[username] = createEmptyStats(username);
-
-        if (pullRequests.some(pr => pr.id === event.id)) statsMap[username].pullRequests += 1;
-        if (issues.some(issue => issue.id === event.id)) statsMap[username].issues += 1;
-        if (comments.some(comment => comment.id === event.id)) statsMap[username].comments += 1;
-      }
-    });
-
-    return Object.values(statsMap);
-  } catch (error) {
-    console.error("[getUserStats] Error:", error);
-    throw new Error("Error al calcular estadísticas de usuario.");
-  } finally {
-    if (repoPath) await cleanRepo(repoPath);
+  const commitWhere: any = { repositoryId: repo.id };
+  if (startDate) commitWhere.date = { [Op.gte]: new Date(startDate) };
+  if (endDate) {
+    commitWhere.date = commitWhere.date
+      ? { ...commitWhere.date, [Op.lte]: new Date(endDate) }
+      : { [Op.lte]: new Date(endDate) };
   }
+
+  const commits = await Commit.findAll({
+    where: commitWhere,
+    include: [User],
+  });
+
+  const statsMap: Record<string, UserStats> = {};
+
+  for (const commit of commits) {
+    const authorLogin = commit.User?.githubLogin || 'Desconocido';
+
+    if (!statsMap[authorLogin]) statsMap[authorLogin] = createEmptyStats(authorLogin);
+
+    const files = await CommitFile.findAll({ where: { commitId: commit.id } });
+
+    const addedLines = files.reduce((acc, f) => acc + (f.linesAdded || 0), 0);
+    const deletedLines = files.reduce((acc, f) => acc + (f.linesDeleted || 0), 0);
+
+    statsMap[authorLogin].commits += 1;
+    statsMap[authorLogin].linesAdded += addedLines;
+    statsMap[authorLogin].linesDeleted += deletedLines;
+    statsMap[authorLogin].totalContributions += 1;
+  }
+
+  // Pull Requests, Issues y Comments (basado en modelo relacional)
+  const prs = await PullRequest.findAll({ where: { repositoryId: repo.id } });
+  const issues = await Issue.findAll({ where: { repositoryId: repo.id } });
+  const comments = await Comment.findAll({ where: { repositoryId: repo.id } });
+
+  for (const pr of prs) {
+    const user = await User.findByPk(pr.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    if (!statsMap[login]) statsMap[login] = createEmptyStats(login);
+    statsMap[login].pullRequests += 1;
+  }
+
+  for (const issue of issues) {
+    const user = await User.findByPk(issue.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    if (!statsMap[login]) statsMap[login] = createEmptyStats(login);
+    statsMap[login].issues += 1;
+  }
+
+  for (const comment of comments) {
+    const user = await User.findByPk(comment.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    if (!statsMap[login]) statsMap[login] = createEmptyStats(login);
+    statsMap[login].comments += 1;
+  }
+
+  return Object.values(statsMap);
 };
 
-//Obtener datos de issue pr y commits
 export const getRepoGeneralStats = async (repoUrl: string) => {
-  try {
-    const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
-    const repoName = repoNameRaw.replace(/\.git$/, "");
+  const repo = await Repository.findOne({ where: { url: repoUrl } });
+  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
 
-    console.log("[DEBUG] Cargando PRs, Issues y Comentarios...");
-    const pullRequests = await getPullRequestsByUser(repoOwner, repoName);
-    const issues = await getIssuesByUser(repoOwner, repoName);
-    const comments = await getCommentsByUser(repoOwner, repoName);
+  const prs = await PullRequest.findAll({ where: { repositoryId: repo.id } });
+  const issues = await Issue.findAll({ where: { repositoryId: repo.id } });
+  const comments = await Comment.findAll({ where: { repositoryId: repo.id } });
 
-    console.log("[DEBUG] PRs obtenidos:", pullRequests.length);
-    console.log("[DEBUG] Issues obtenidos:", issues.length);
-    console.log("[DEBUG] Comments obtenidos:", comments.length);
+  const statsMap: Record<string, { pullRequests: number; issues: number; comments: number }> = {};
 
-    const statsMap: Record<string, { pullRequests: number; issues: number; comments: number }> = {};
-
-    [...pullRequests, ...issues, ...comments].forEach(event => {
-      const username = event.user?.login;
-      if (username) {
-        if (!statsMap[username]) statsMap[username] = { pullRequests: 0, issues: 0, comments: 0 };
-
-        if (pullRequests.some(pr => pr.user?.login === username)) statsMap[username].pullRequests += 1;
-        if (issues.some(issue => issue.user?.login === username)) statsMap[username].issues += 1;
-        if (comments.some(comment => comment.user?.login === username)) statsMap[username].comments += 1;
-      }
-    });
-
-    console.log("[DEBUG] Mapa de PRs, Issues y Comentarios:", statsMap);
-    return statsMap;
-  } catch (error) {
-    console.error("[getRepoGeneralStats] Error:", error);
-    throw new Error("Error al obtener PRs, Issues y Comentarios.");
+  for (const pr of prs) {
+    const user = await User.findByPk(pr.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    statsMap[login] ||= { pullRequests: 0, issues: 0, comments: 0 };
+    statsMap[login].pullRequests += 1;
   }
+
+  for (const issue of issues) {
+    const user = await User.findByPk(issue.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    statsMap[login] ||= { pullRequests: 0, issues: 0, comments: 0 };
+    statsMap[login].issues += 1;
+  }
+
+  for (const comment of comments) {
+    const user = await User.findByPk(comment.userId);
+    const login = user?.githubLogin || 'Desconocido';
+    statsMap[login] ||= { pullRequests: 0, issues: 0, comments: 0 };
+    statsMap[login].comments += 1;
+  }
+
+  return statsMap;
 };
 
-
-
-
-
-/**
- * Convierte estadísticas de usuario en formato CSV.
- */
-export const generateUserStatsCSV = async (repoUrl: string, branch?: string, startDate?: string, endDate?: string): Promise<string> => {
-  const stats = await getUserStats(repoUrl, branch || "all", startDate || "", endDate || "");
-
-  const fields = ["user", "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"];
+export const generateUserStatsCSV = async (
+  repoUrl: string,
+  branch?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<string> => {
+  const stats = await getUserStats(repoUrl, branch || 'all', startDate || '', endDate || '');
+  const fields = ['user', 'totalContributions', 'commits', 'linesAdded', 'linesDeleted', 'pullRequests', 'issues', 'comments'];
   const json2csv = new Parser({ fields });
-
   return json2csv.parse(stats);
 };
 
