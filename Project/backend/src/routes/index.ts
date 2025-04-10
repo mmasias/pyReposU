@@ -1,9 +1,9 @@
 // src/api/stats/stats.routes.ts
 import { Router } from 'express';
-import folderRoutes from './folders/folderRoutes'; 
-import userRoutes from './user/UserStats.routes';
-import { getRepositoryTree } from './folders/folderTree.controller'; 
-import contributionsRoutes from "./contributions/contributions.routes";
+import folderRoutes from './folderRoutes'; 
+import userRoutes from './UserStats.routes';
+import { getRepositoryTree } from '../controllers/folderTree.controller';
+import contributionsRoutes from "./contributions.routes";
 
 const router = Router();
 

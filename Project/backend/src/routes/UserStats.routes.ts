@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUserStatsHandler, exportStatsToCSV, getBranchesHandler } from "./userStats.controller";
+import { getUserStatsHandler, exportStatsToCSV, getBranchesHandler } from "../controllers/userStats.controller";
 
 const router = Router();
 

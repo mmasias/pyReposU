@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
 import simpleGit, { SimpleGit } from "simple-git";
 import path from "path";
-import { removeDirectory, normalizePath } from "../../utils/file.utils";
-import { PATHS } from "../../constants/path.constants";
-import { prepareRepo } from "../../utils/gitRepoUtils"; // 👈 Importamos prepareRepo
+import { removeDirectory, normalizePath } from "../utils/file.utils";
+import { prepareRepo } from "../utils/gitRepoUtils"; 
 
 export const getRepositoryTree = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, branch, since, until, author } = req.query;

@@ -1,5 +1,5 @@
 import { Request, Response, RequestHandler } from 'express';
-import { getRepoGraphService } from '../services/graph/graph.service';
+import { getRepoGraphService } from '../services/graph.service';
 
 export const getRepoGraphController: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   const repoUrl = req.query.url as string;

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import simpleGit from 'simple-git';
-import { PATHS } from '../../constants/path.constants';
-import { removeDirectory, normalizePath } from '../../utils/file.utils';
+import { PATHS } from '../utils/constants/path.constants';
+import { removeDirectory, normalizePath } from '../utils/file.utils';
 
 export const getFolderStats = async (req: Request, res: Response): Promise<void> => {
   const repoPath = req.query.repoPath as string | undefined;

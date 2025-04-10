@@ -1,8 +1,8 @@
 import { Application } from 'express';
-import commitsRoutes from './commits/commits.routes';
-import statsRoutes from './stats'; 
-import filesRoutes from './files/files.routes'; 
-import graphRoutes from './graph/graph.routes';
+import commitsRoutes from './commits.routes';
+import statsRoutes from '.'; 
+import filesRoutes from './files.routes';
+import graphRoutes from './graph.routes';
 
 /**
  * Configura todas las rutas de la aplicación.

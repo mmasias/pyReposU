@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUserContributionsHandler, getBubbleChartHandler } from "./contributions.controller";
+import { getUserContributionsHandler, getBubbleChartHandler } from "../controllers/contributions.controller";
 
 const router = Router();
 

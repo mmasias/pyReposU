@@ -1,6 +1,5 @@
-// src/api/graph/graph.routes.ts
 import { Router } from 'express';
-import { getRepoGraphController } from './graph.controller';
+import { getRepoGraphController } from '../controllers/graph.controller';
 
 const router = Router();
 

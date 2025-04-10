@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../../services/users/userStatsService";
-import {getRepoBranches} from "../../utils/gitRepoUtils";
+import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../services/userStatsService";
+import {getRepoBranches} from "../utils/gitRepoUtils";
 
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

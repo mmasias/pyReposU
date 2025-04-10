@@ -1,5 +1,5 @@
 import simpleGit from 'simple-git';
-import { prepareRepo } from '../../utils/gitRepoUtils';
+import { prepareRepo } from '../../../utils/gitRepoUtils';
 
 type CommitNode = {
   sha: string;

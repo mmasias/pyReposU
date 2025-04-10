@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { getContributionsByUser } from "../../services/analytics/contributionsService";
-import { getBubbleChartData } from "../../services/analytics/bubbleChartService";
-
+import { getContributionsByUser } from "../services/contributionsService";
+import { getBubbleChartData } from "../services/bubbleChartService";
 export const getUserContributionsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { repoUrl, branch = "main", startDate, endDate } = req.query; 

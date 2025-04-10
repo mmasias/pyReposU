@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getCommitsHandler } from './commits.controller';
+import { getCommitsHandler } from '../controllers/commits.controller';
 
 const router = Router();
 

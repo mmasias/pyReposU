@@ -1,7 +1,6 @@
-// src/api/stats/folders/stats.routes.ts
 import { Router } from 'express';
-import { getFolderStats, getFoldersOrdered } from './stats.controller';
-import { getRepositoryTree, getCurrentBranch } from './folderTree.controller';
+import { getFolderStats, getFoldersOrdered } from '../controllers/stats.controller';
+import { getRepositoryTree, getCurrentBranch } from '../controllers/folderTree.controller'; 
 
 const router = Router();
 

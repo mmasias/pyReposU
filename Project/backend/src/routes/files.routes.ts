@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { getFileContentHandler, getFileDiffHandler, getFirstCommitForFileHandler } from './files.controller';
-import { analyzeDeepHandler, analyzeExpressHandler } from './fileAnalysis.controller';
-import { getLatestCommitForFileHandler } from './files.controller';
+import { getFileContentHandler, getFileDiffHandler, getFirstCommitForFileHandler } from '../controllers/files.controller';
+import { analyzeDeepHandler, analyzeExpressHandler } from '../controllers/fileAnalysis.controller';
+import { getLatestCommitForFileHandler } from '../controllers/files.controller';
 
 const router = Router();
 

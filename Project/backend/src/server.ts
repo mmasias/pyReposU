@@ -1,6 +1,6 @@
 import express, { Application } from 'express';
 import bodyParser from 'body-parser';
-import { setupRoutes } from './api/routes';
+import { setupRoutes } from './routes/routes';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { setupSwagger } from '../src/swagger';  

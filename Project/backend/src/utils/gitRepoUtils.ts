@@ -2,7 +2,7 @@ import simpleGit, { SimpleGit, ResetMode } from "simple-git";
 import { existsSync, mkdirSync,unlinkSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
-import { config } from "../../config/config"; 
+import { config } from "../config/config"; 
 
 
 //  Mutex manual para bloquear repositorios en uso

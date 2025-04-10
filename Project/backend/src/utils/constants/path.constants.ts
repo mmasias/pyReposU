@@ -1,5 +1,5 @@
 import path from 'path';
-
+//TODO REVISAR USO
 export const PATHS = {
   // Carpeta temporal donde se clona el repositorio
   TEMP_REPO: path.resolve(__dirname, '../../temp-repo'),
