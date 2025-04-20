@@ -61,12 +61,21 @@ const Playback = () => {
       const response = await axios.get("http://localhost:3000/api/files/content", {
         params: { repoUrl, filePath: normalizedFilePath, commitHash },
       });
-      setContent(response.data.split("\n"));
-    } catch {
+      const content = response.data || "";
+      const lines = content.split("\n");
+      const isAllEmpty = lines.every((line: string) => line.trim() === "");
+  
+      if (isAllEmpty) {
+        setContent(["// Archivo vacío"]);
+      } else {
+        setContent(lines);
+      }
+    } catch (error) {
+      console.error("[fetchFileContent] Error:", error);
       setContent(["// Error al cargar contenido"]);
     }
   };
-
+  
   const fetchDiff = async (oldHash: string, newHash: string) => {
     try {
       const response = await axios.get("http://localhost:3000/api/files/diff", {
@@ -102,25 +111,28 @@ const Playback = () => {
   }, [repo, filePath]);
 
   useEffect(() => {
-    if (commits.length > 0) {
-      const current = commits[currentIndex];
-      const previous = commits[currentIndex + 1];
-
-      fetchFileContent(current.hash, setCurrContent);
-
-      if (previous) {
-        fetchFileContent(previous.hash, setPrevContent);
-        fetchDiff(previous.hash, current.hash);
-      } else {
-        setPrevContent([]);
-        setAddedLines([]);
-        setRemovedLines([]);
-      }
-
-      setAnalysisResult(null);
+    if (!commits.length) return;
+  
+    const current = commits[currentIndex];
+    const previous = commits[currentIndex + 1];
+  
+    // Evitar commits huérfanos sin hash
+    if (!current?.hash) return;
+  
+    fetchFileContent(current.hash, setCurrContent);
+  
+    if (previous?.hash) {
+      fetchFileContent(previous.hash, setPrevContent);
+      fetchDiff(previous.hash, current.hash);
+    } else {
+      setPrevContent([]);
+      setAddedLines([]);
+      setRemovedLines([]);
     }
+  
+    setAnalysisResult(null);
   }, [commits, currentIndex]);
-
+  
   const handlePrevious = () => {
     if (currentIndex + 1 < commits.length) setCurrentIndex(currentIndex + 1);
   };

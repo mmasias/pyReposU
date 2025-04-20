@@ -2,8 +2,12 @@ import { Commit } from '../models/Commit';
 import { CommitFile } from '../models/CommitFile';
 import { User } from '../models/User';
 import { Repository } from '../models/Repository';
+import { Branch } from '../models/Branch';
+import { CommitBranch } from '../models/CommitBranch';
 import { Op } from 'sequelize';
-
+import { normalizePath } from "../utils/file.utils";
+import { syncRepoIfNeeded } from './syncService';
+import {getCurrentFilesFromBranch} from '../utils/gitRepoUtils';  
 interface ContributionStats {
   [path: string]: {
     [user: string]: { linesAdded: number; linesDeleted: number; percentage: number };
@@ -12,14 +16,49 @@ interface ContributionStats {
 
 export const getContributionsByUser = async (
   repoUrl: string,
-  branch: string = 'main', // por ahora ignorado hasta que branches estén en BBDD
+  branch: string = 'main',
   startDate?: string,
   endDate?: string
 ): Promise<ContributionStats> => {
+  //  1. Sincroniza con flags correctos (solo lo necesario)
+  await syncRepoIfNeeded(repoUrl, {
+    syncCommits: true,
+    syncDiffs: false,
+    syncStats: true,
+    syncGithubActivityOption: false,
+  });
+
+  //2 Recupera repo después de la sync (importante si antes no existía)
   const repo = await Repository.findOne({ where: { url: repoUrl } });
   if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
 
-  const commitWhere: any = { repositoryId: repo.id };
+
+  //  3. IMPORTANTE: Esperamos a que la rama exista (puede tardar tras sync)
+  let branchRecord = await Branch.findOne({
+    where: { name: branch, repositoryId: repo.id }
+  });
+
+  //  Espera pasiva si no existe aún (pequeño delay para evitar race condition)
+  let retries = 0;
+  while (!branchRecord && retries < 5) {
+    await new Promise(res => setTimeout(res, 500));
+    branchRecord = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
+    retries++;
+  }
+
+  if (!branchRecord) {
+    throw new Error(`Rama no encontrada después de sincronización: ${branch}`);
+  }
+
+  const commitBranchLinks = await CommitBranch.findAll({
+    where: { branchId: branchRecord.id }
+  });
+  const commitIds = commitBranchLinks.map(cb => cb.commitId);
+
+  const commitWhere: any = {
+    id: commitIds,
+    repositoryId: repo.id
+  };
   if (startDate) commitWhere.date = { [Op.gte]: new Date(startDate) };
   if (endDate) {
     commitWhere.date = commitWhere.date
@@ -29,22 +68,31 @@ export const getContributionsByUser = async (
 
   const commits = await Commit.findAll({
     where: commitWhere,
-    include: [User],
+    include: [User]
   });
 
-  const commitIds = commits.map((c) => c.id);
+  const filteredCommitIds = commits.map((c) => c.id);
   const files = await CommitFile.findAll({
-    where: { commitId: commitIds },
+    where: { commitId: filteredCommitIds }
   });
+
+  const currentFilesSet = new Set<string>(
+    (await getCurrentFilesFromBranch(repoUrl, branch)).map(normalizePath)
+  );
 
   const contributions: ContributionStats = {};
 
   for (const commit of commits) {
     const login = (commit as any).User?.githubLogin || 'Desconocido';
-
     const commitFiles = files.filter((f) => f.commitId === commit.id);
+
     for (const file of commitFiles) {
-      const filePath = file.filePath;
+      let filePath = normalizePath(file.filePath);
+      filePath = filePath.replace(/\{.*=>\s*(.*?)\}/, '$1');
+      filePath = filePath.replace(/^"(.*)"$/, '$1');
+
+      if (!currentFilesSet.has(filePath)) continue;
+
       const linesAdded = file.linesAdded || 0;
       const linesDeleted = file.linesDeleted || 0;
       const total = linesAdded + linesDeleted;
@@ -64,7 +112,7 @@ export const getContributionsByUser = async (
     }
   }
 
-  // Calcular % por archivo
+  //  Porcentaje por archivo
   for (const filePath of Object.keys(contributions)) {
     const totalMod = Object.values(contributions[filePath])
       .reduce((sum, val) => sum + val.percentage, 0);
@@ -77,13 +125,13 @@ export const getContributionsByUser = async (
     }
   }
 
-  // Agrupar por carpetas
+  //  Agrupar por carpetas
   const folderContributions: ContributionStats = {};
 
   for (const filePath of Object.keys(contributions)) {
-    const parts = filePath.split('/');
+    const parts = filePath.split('/').filter(Boolean);
     for (let i = 1; i < parts.length; i++) {
-      const folder = parts.slice(0, i).join('/');
+      const folder = normalizePath(parts.slice(0, i).join('/'));
 
       if (!folderContributions[folder]) folderContributions[folder] = {};
 
@@ -98,7 +146,7 @@ export const getContributionsByUser = async (
     }
   }
 
-  // Normalizar %
+  //  Normalizar porcentaje en carpetas
   for (const folder of Object.keys(folderContributions)) {
     const totalPercentage = Object.values(folderContributions[folder])
       .reduce((sum, { percentage }) => sum + percentage, 0);
@@ -113,7 +161,7 @@ export const getContributionsByUser = async (
 
   Object.assign(contributions, folderContributions);
 
-  // Calcular total global
+  //  TOTAL
   const userTotals: Record<string, number> = {};
   for (const path of Object.keys(contributions)) {
     for (const user of Object.keys(contributions[path])) {
@@ -139,3 +187,4 @@ export const getContributionsByUser = async (
 
   return contributions;
 };
+

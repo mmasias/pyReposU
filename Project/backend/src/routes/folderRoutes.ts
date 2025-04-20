@@ -5,6 +5,7 @@ import { getRepositoryTree, getCurrentBranch } from '../controllers/folderTree.c
 const router = Router();
 
 router.get('/', getFolderStats); // Estadísticas generales de carpetas
+//TODO REVISAR SI EL FRONT LO USA
 router.get('/order', getFoldersOrdered); // Carpetas ordenadas
 router.get('/tree', getRepositoryTree); // Árbol de repositorio
 router.get('/current-branch', getCurrentBranch);

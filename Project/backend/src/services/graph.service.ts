@@ -1,24 +1,40 @@
+import simpleGit from 'simple-git';
 import { Commit } from '../models/Commit';
 import { CommitFile } from '../models/CommitFile';
 import { User } from '../models/User';
 import { Repository } from '../models/Repository';
+import { CommitBranch } from '../models/CommitBranch';
+import { Branch } from '../models/Branch';
+import { CommitParent } from '../models/CommitParent';
+import { prepareRepo } from '../utils/gitRepoUtils';
+import { syncRepoIfNeeded } from './syncService';
 
 type CommitNode = {
   sha: string;
   message: string;
   author: string;
   date: string;
-  parents: string[]; // <- vacío si no hay relaciones aún
-  branches: string[]; // <- vacías hasta que modeles CommitBranch
-  primaryBranch: string | null; // <- null por ahora
+  parents: string[];
+  branches: string[];
+  primaryBranch: string | null;
   filesChanged: number;
   insertions: number;
   deletions: number;
 };
 
 export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]> => {
+  await syncRepoIfNeeded(repoUrl, {
+    syncCommits: true,
+    syncStats: true,
+    syncDiffs: false,
+    syncGithubActivityOption: false,
+  });
+  
   const repo = await Repository.findOne({ where: { url: repoUrl } });
   if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+
+  const repoPath = await prepareRepo(repoUrl); 
+  const git = simpleGit(repoPath);
 
   const commits = await Commit.findAll({
     where: { repositoryId: repo.id },
@@ -26,14 +42,64 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     order: [['date', 'ASC']],
   });
 
-  const commitIds = commits.map((c) => c.id);
-  const commitFiles = await CommitFile.findAll({
-    where: { commitId: commitIds },
-  });
+  const commitIds = commits.map(c => c.id);
+  const shaToId = new Map<string, number>();
+  commits.forEach(c => shaToId.set(c.hash, c.id));
 
-  const result: CommitNode[] = commits.map((commit) => {
-    const files = commitFiles.filter((f) => f.commitId === commit.id);
+  // Limpia relaciones padre-hijo anteriores (si hay)
+  await CommitParent.destroy({ where: { childId: commitIds } });
 
+  // Calcula relaciones padre-hijo con git.raw
+  for (const commit of commits) {
+    const raw = await git.raw(['rev-list', '--parents', '-n', '1', commit.hash]);
+    const parts = raw.trim().split(' ');
+    const parents = parts.slice(1);
+
+    for (const parentSha of parents) {
+      const parentId = shaToId.get(parentSha);
+      const childId = shaToId.get(commit.hash);
+      if (parentId && childId) {
+        await CommitParent.findOrCreate({
+          where: { parentId, childId },
+        });
+      }
+    }
+  }
+
+  const [commitFiles, commitBranches, commitParents, branches] = await Promise.all([
+    CommitFile.findAll({ where: { commitId: commitIds } }),
+    CommitBranch.findAll({ where: { commitId: commitIds }, include: [Branch] }),
+    CommitParent.findAll({ where: { childId: commitIds } }),
+    Branch.findAll({ where: { repositoryId: repo.id } }),
+  ]);
+
+  const branchMap = new Map<number, string>();
+  branches.forEach(b => branchMap.set(b.id, b.name));
+
+  const commitToBranches: Record<number, string[]> = {};
+  const commitToPrimaryBranch: Record<number, string> = {};
+
+  for (const cb of commitBranches) {
+    const branchName = branchMap.get(cb.branchId);
+    if (!branchName) continue;
+
+    if (!commitToBranches[cb.commitId]) commitToBranches[cb.commitId] = [];
+    commitToBranches[cb.commitId].push(branchName);
+
+    if (cb.isPrimary) {
+      commitToPrimaryBranch[cb.commitId] = branchName;
+    }
+  }
+
+  const commitToParents: Record<number, string[]> = {};
+  for (const cp of commitParents) {
+    if (!commitToParents[cp.childId]) commitToParents[cp.childId] = [];
+    const parentCommit = commits.find(c => c.id === cp.parentId);
+    if (parentCommit) commitToParents[cp.childId].push(parentCommit.hash);
+  }
+
+  const result: CommitNode[] = commits.map(commit => {
+    const files = commitFiles.filter(f => f.commitId === commit.id);
     const filesChanged = files.length;
     const insertions = files.reduce((acc, f) => acc + (f.linesAdded || 0), 0);
     const deletions = files.reduce((acc, f) => acc + (f.linesDeleted || 0), 0);
@@ -41,11 +107,11 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     return {
       sha: commit.hash,
       message: commit.message || '',
-      author: (commit as any).User?.githubLogin || 'Desconocido',
+      author: commit.User?.githubLogin || 'Desconocido',
       date: commit.date.toISOString(),
-      parents: [], // <- si luego lo añades a modelo, se rellena
-      branches: [], // <- si añades CommitBranch, se rellena
-      primaryBranch: null, // <- si quieres priorizar una rama, lo añadimos
+      parents: commitToParents[commit.id] || [],
+      branches: commitToBranches[commit.id] || [],
+      primaryBranch: commitToPrimaryBranch[commit.id] || null,
       filesChanged,
       insertions,
       deletions,

@@ -3,3 +3,4 @@ dist
 .env
 output
 temp-repo
+/backend/src/config/db.ts

@@ -1,5 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/db';
+import { Commit } from './Commit';
 
 export class CommitFile extends Model {
   declare id: number;
@@ -8,16 +9,20 @@ export class CommitFile extends Model {
   declare linesAdded: number;
   declare linesDeleted: number;
   declare diff: string;
+  declare content?: string; 
+
+  declare Commit?: Commit;
 }
 
 CommitFile.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    commitId: DataTypes.INTEGER,
-    filePath: DataTypes.STRING,
-    linesAdded: DataTypes.INTEGER,
-    linesDeleted: DataTypes.INTEGER,
-    diff: DataTypes.TEXT,
+    commitId: { type: DataTypes.INTEGER, allowNull: false },
+    filePath: { type: DataTypes.STRING, allowNull: false },
+    linesAdded: { type: DataTypes.INTEGER, allowNull: false },
+    linesDeleted: { type: DataTypes.INTEGER, allowNull: false },
+    diff: { type: DataTypes.TEXT, allowNull: true },
+    content: { type: DataTypes.TEXT, allowNull: true }, 
   },
   {
     sequelize,

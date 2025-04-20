@@ -7,6 +7,11 @@ import { CommitBranch } from './CommitBranch';
 import { PullRequest } from './PullRequest';
 import { Issue } from './Issue';
 import { Comment } from './Comment';
+import { CommitParent } from './CommitParent';
+import { UserRepoStats } from './UserRepoStats';
+import { FileAnalysis } from './FileAnalysis';
+import { CommitSyncState } from './CommitSyncState';
+
 
 // Commit → User & Repository
 User.hasMany(Commit, { foreignKey: 'authorId' });
@@ -32,6 +37,9 @@ Branch.belongsToMany(Commit, {
   through: CommitBranch,
   foreignKey: 'branchId',
 });
+// Relación directa para poder hacer include
+Commit.hasMany(CommitBranch, { foreignKey: 'commitId' });
+CommitBranch.belongsTo(Commit, { foreignKey: 'commitId' });
 
 // PRs, Issues, Comments
 User.hasMany(PullRequest, { foreignKey: 'userId' });
@@ -49,7 +57,40 @@ Comment.belongsTo(User, { foreignKey: 'userId' });
 Repository.hasMany(Comment, { foreignKey: 'repositoryId' });
 Comment.belongsTo(Repository, { foreignKey: 'repositoryId' });
 
-// Exportamos todos
+
+
+
+//user-commit-stats
+User.hasMany(UserRepoStats, { foreignKey: 'userId' });
+UserRepoStats.belongsTo(User, { foreignKey: 'userId' });
+
+Repository.hasMany(UserRepoStats, { foreignKey: 'repositoryId' });
+UserRepoStats.belongsTo(Repository, { foreignKey: 'repositoryId' });
+
+
+
+Commit.belongsToMany(Commit, {
+  through: CommitParent,
+  as: 'children',
+  foreignKey: 'parentId',
+  otherKey: 'childId',
+});
+
+Commit.belongsToMany(Commit, {
+  through: CommitParent,
+  as: 'parents',
+  foreignKey: 'childId',
+  otherKey: 'parentId',
+});
+
+CommitBranch.belongsTo(Branch, { foreignKey: 'branchId' });
+CommitBranch.belongsTo(Commit, { foreignKey: 'commitId', as: 'commit' });
+
+
+CommitParent.belongsTo(Commit, { foreignKey: 'parentId', as: 'parent' });
+CommitParent.belongsTo(Commit, { foreignKey: 'childId', as: 'child' });
+
+
 export {
   User,
   Repository,
@@ -60,4 +101,8 @@ export {
   PullRequest,
   Issue,
   Comment,
+  UserRepoStats,
+  FileAnalysis,
+  CommitSyncState,
 };
+

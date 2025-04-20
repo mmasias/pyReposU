@@ -182,7 +182,7 @@ const colorScale = d3.scaleThreshold<number, string>()
       .text((filePath) => {
         const path = filePath as string;
         const isFolder = folders.has(path);
-        return isFolder ? (expandedFolders[path] ? `🔽 ${formatFileName(path)}` : `▶️ ${formatFileName(path)}`) : `📄 ${formatFileName(path)}`;
+        return isFolder ? (expandedFolders[path] ? `🔽 ${formatFileName(path)}` : `▶️ ${formatFileName(path)}`) : ` ${formatFileName(path)}`;
       })
       .on("click", function (_, filePath) {
         const folderName = filePath as string;

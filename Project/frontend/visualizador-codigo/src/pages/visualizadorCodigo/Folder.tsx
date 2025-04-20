@@ -22,7 +22,7 @@ const Folder: React.FC<FolderProps> = ({ folderData, level }) => {
         } p-4 rounded-md shadow-md`}
       >
         <h3 className="text-lg font-semibold text-gray-800">
-          {folderData.subfolders ? '   ' : '📄'} {folderData.name}
+          {folderData.subfolders ? '   ' : ''} {folderData.name}
         </h3>
         <span className="text-gray-600">{folderData.changes || 0} cambios</span>
       </div>
@@ -41,7 +41,7 @@ const Folder: React.FC<FolderProps> = ({ folderData, level }) => {
               key={index}
               className="flex justify-between items-center text-gray-700 mt-2 ml-4"
             >
-              <span>📄 {file.name}</span>
+              <span> {file.name}</span>
               <span className="text-sm">{file.changes || 0} cambios</span>
             </div>
           ))}

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../services/userStatsService";
-import {getRepoBranches} from "../utils/gitRepoUtils";
-
+import { getRepoBranches } from "../utils/gitRepoUtils";
+import { syncRepoIfNeeded } from "../services/syncService";
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -15,13 +15,20 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
       return;
     }
 
-    //  Obtener datos de PRs, Issues y Comments solo una vez
-    const repoStats = await getRepoGeneralStats(repoUrl);
+    //  Aquí se asegura que se sincronice el repo y la actividad de GitHub (PRs, Issues, Comments)
+    await syncRepoIfNeeded(repoUrl, {
+      syncCommits: true,
+      syncDiffs: false,
+      syncStats: true,              // Necesitamos líneas añadidas/borradas
+      syncGithubActivityOption: true, // Para PRs, Issues y Comments
+    });
+    // Obtener datos de PRs, Issues y Comments desde BBDD ya actualizada
+    const repoStats = await getRepoGeneralStats(repoUrl, startDate, endDate);
 
-    //  Obtener stats de commits, líneas añadidas y eliminadas por usuario
+    // Obtener stats de commits, líneas añadidas y eliminadas por usuario
     const userStats = await getUserStats(repoUrl, branch, startDate, endDate);
 
-    //  Combinar los datos antes de enviarlos
+    // Combinar los datos antes de enviarlos
     const finalStats = userStats.map(user => ({
       ...user,
       pullRequests: repoStats[user.user]?.pullRequests || 0,
@@ -31,9 +38,11 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
 
     res.json(finalStats);
   } catch (error) {
+    console.error("[getUserStatsHandler] Error:", error);
     next(error);
   }
 };
+
 
 
 export const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

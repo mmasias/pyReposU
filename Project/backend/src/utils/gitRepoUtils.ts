@@ -3,7 +3,9 @@ import { existsSync, mkdirSync,unlinkSync } from "fs";
 import { rm } from "fs/promises";
 import path from "path";
 import { config } from "../config/config"; 
+import { normalizePath } from './file.utils'; // Asegúrate de tener esto bien
 
+import { Branch, CommitBranch, Commit, Repository } from "../models";
 
 //  Mutex manual para bloquear repositorios en uso
 const globalRepoLock: Record<string, Promise<void> | null> = {};
@@ -28,19 +30,16 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
 
   console.log(`\n [prepareRepo]   Iniciando para ${repoPath}...\n`);
 
-  //   Si la promesa ya existe, esperar su resultado en vez de ejecutar de nuevo
   if (repoPendingPromises[repoPath] !== undefined) {
     console.log(` [prepareRepo]   Ya hay un proceso en curso para ${repoPath}, esperando...`);
     return repoPendingPromises[repoPath];
   }
 
-  //   **Si ya está en caché, lo reutilizamos**
   if (REPO_CACHE[repoPath] && existsSync(gitFolder)) {
     console.log(` [prepareRepo]   Repo en caché, evitando duplicación.`);
     return repoPath;
   }
 
-  //   **Si otro proceso lo usa, esperamos**
   if (repoLocks[repoPath]) {
     console.log(` [prepareRepo]   Esperando desbloqueo de ${repoPath}`);
     await repoLocks[repoPath];
@@ -48,8 +47,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
 
   let unlock: () => void;
   repoLocks[repoPath] = new Promise<void>((resolve) => (unlock = resolve));
-  
-  //   Guardamos la promesa en curso para evitar dobles ejecuciones
+
   repoPendingPromises[repoPath] = (async () => {
     try {
       console.log(` [prepareRepo]   Bloqueo activado para ${repoPath}`);
@@ -59,75 +57,74 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
         mkdirSync(repoPath, { recursive: true });
       }
 
-      //   **Esperamos hasta que Git libere `index.lock`**
       let attempts = 0;
       while (existsSync(lockFile)) {
-        console.warn(` [prepareRepo]   Repo bloqueado. Esperando... (${attempts + 1})`);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        attempts++;
+        console.warn(` [prepareRepo]   Repo bloqueado. Esperando... (${++attempts})`);
+        await new Promise((r) => setTimeout(r, 500));
         if (attempts > 10) throw new Error("  Timeout esperando Git.");
       }
 
-      //   **Si no está clonado, clonarlo**
       if (!existsSync(gitFolder)) {
         console.log(` [prepareRepo]   Repo corrupto o no existe. Clonando...`);
         await rm(repoPath, { recursive: true, force: true });
         await simpleGit().clone(repoUrl, repoPath);
       }
 
-      console.log(` [prepareRepo]   Inicializando simple-git en: "${repoPath}"`);
       const git = simpleGit({ baseDir: repoPath });
 
       if (!(await git.checkIsRepo())) {
         throw new Error("  ERROR: Git no está bien inicializado");
       }
 
-      //   **Fetch global para actualizar referencias**
       console.log(` [prepareRepo]   Haciendo git fetch --all...`);
       await git.fetch(["--all", "--prune"]);
 
-      //   **Obtenemos todas las ramas**
-      const branchListRaw = await git.branch(["-r"]);
-      const branchList = branchListRaw.all
-        .map((b) => b.replace("origin/", "").trim())
-        .filter((b) => b !== "HEAD");
+      const remoteBranches = await git.branch(["-r"]);
+      const branchList = remoteBranches.all
+        .filter(b => !b.includes('->'))
+        .map(b => b.replace("origin/", "").trim());
 
-      console.log(` [prepareRepo]   Ramas encontradas:`, branchList);
+      console.log(` [prepareRepo]   Ramas remotas encontradas:`, branchList);
 
-      //   **Actualizar cada rama (sin repetir)**
       for (const branch of branchList) {
-        console.log(` [prepareRepo]   Actualizando rama ${branch}...`);
+        const tempBranch = `temp-sync-${branch}`;
+
+        console.log(` [prepareRepo]   Forzando checkout de ${branch} como ${tempBranch}...`);
 
         try {
           while (existsSync(lockFile)) {
             console.warn(` [prepareRepo]   ${branch} bloqueada. Esperando...`);
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((r) => setTimeout(r, 500));
           }
 
-          await git.checkout(branch);
+          await git.checkout(["-B", tempBranch, `origin/${branch}`]);
           await git.reset(ResetMode.HARD);
           await git.pull("origin", branch);
-        } catch (error) {
-          console.warn(`  No se pudo actualizar ${branch}`, error);
+
+          // ❗ Opcional: eliminar rama temporal
+          await git.checkout("main").catch(() => {});
+          await git.deleteLocalBranch(tempBranch, true).catch(() => {});
+        } catch (err) {
+          console.warn(` [prepareRepo]   Error con rama ${branch}:`, err);
         }
       }
 
-      console.log(` [prepareRepo]   Repositorio actualizado en todas las ramas.`);
-      REPO_CACHE[repoPath] = git; //   Guardar en cache
-
+      console.log(` [prepareRepo]   Repositorio sincronizado y ramas temporales limpiadas.`);
+      REPO_CACHE[repoPath] = git;
       return repoPath;
+
     } catch (error) {
       console.error(` [prepareRepo]   ERROR con simple-git:`, error);
       throw new Error("Error al preparar el repositorio.");
     } finally {
       unlock!();
       repoLocks[repoPath] = null;
+      delete repoPendingPromises[repoPath];
       console.log(` [prepareRepo]   Bloqueo liberado para ${repoPath}`);
-      delete repoPendingPromises[repoPath]; //   Borrar la promesa al finalizar
     }
   })();
 
-  return repoPendingPromises[repoPath]; //   Retornar la promesa en curso
+  return repoPendingPromises[repoPath];
 };
 
 
@@ -187,51 +184,93 @@ export const getRepoBranches = async (repoUrl: string): Promise<string[]> => {
  */
 
 export const getCommits = async (repoUrl: string): Promise<any[]> => {
-
   const repoPath = await prepareRepo(repoUrl);
-  console.log(`[getcommits]  Verificando con fs.existsSync -> ${existsSync(repoPath)}`);
-
   const git = simpleGit(repoPath);
-  const log = await git.log();
+  const log = await git.log(['--all', '--date=iso']);
 
   return Promise.all(
+    
     log.all.map(async (commit) => {
-      // Obtener los archivos modificados en este commit
+      
+      // ✅ Obtener archivos modificados
       const filesOutput = await git.raw([
         "show",
         "--pretty=format:",
         "--name-only",
         commit.hash,
       ]);
+      const files = filesOutput
+        .split("\n")
+        .map(f => f.trim())
+        .filter(Boolean)
+        .map(normalizePath); 
+
+      //  Obtener los parent hashes
+      const rawParents = await git.raw(['rev-list', '--parents', '-n', '1', commit.hash]);
+      const parts = rawParents.trim().split(' ');
+      const parents = parts.slice(1); // el primero es el propio commit
 
       return {
         hash: commit.hash,
         message: commit.message,
         date: commit.date,
         author: commit.author_name,
-        files: filesOutput.split("\n").filter((file) => file.trim() !== ""),
+        files,
+        parents, 
       };
     })
   );
 };
 
+
+
 /**
  * Obtiene el contenido de un archivo en un commit específico.
  */
-export const getFileContent = async (repoUrl: string, commitHash: string, filePath: string): Promise<string> => {
-
+export const getFileContent = async (
+  repoUrl: string,
+  commitHash: string,
+  filePathInput: string | { path: string }
+): Promise<string> => {
   const repoPath = await prepareRepo(repoUrl);
-  console.log(`[getfilecontent]  Verificando con fs.existsSync -> ${existsSync(repoPath)}`);
-
   const git = simpleGit(repoPath);
+
+  let filePath = typeof filePathInput === 'string'
+    ? filePathInput
+    : filePathInput?.path;
+
+  if (!filePath || typeof filePath !== 'string') {
+    console.warn(`[⚠️ getFileContent] Ruta inválida recibida:`, filePathInput);
+    return "// Archivo no válido";
+  }
+
+  const sanitizedPath = sanitizeFilePath(filePath);
+
+  const exists = await fileExistsInCommit(repoPath, commitHash, sanitizedPath);
+  if (!exists) {
+    console.warn(`[getFileContent] Archivo no existe en ${commitHash}: ${sanitizedPath}`);
+    return "// Archivo no existente en este commit";
+  }
+
   try {
-    const content = await git.show([`${commitHash}:${filePath}`]);
+    const tree = await git.raw(['ls-tree', '-r', '--name-only', commitHash]);
+    const availableFiles = tree.split('\n').map(line => line.trim());
+    
+    console.log(`\n🗂️ Archivos disponibles en ${commitHash}:`);
+    console.log(availableFiles.slice(0, 20)); // solo mostramos los primeros 20
+    
+    if (!availableFiles.includes(sanitizedPath)) {
+      console.warn(`⚠️ ${sanitizedPath} NO está en el commit ${commitHash}`);
+    }    
+    const content = await git.show([`${commitHash}:${sanitizedPath}`]);
+    console.log(`[✅ getFileContent] Archivo "${sanitizedPath}" recuperado correctamente`);
     return content || "// Archivo vacío";
-  } catch (error) {
-    console.error(`[getFileContent] Error obteniendo archivo: ${filePath} en commit ${commitHash}`, error);
+  } catch (error: any) {
+    console.error(`[getFileContent] Error inesperado:`, error);
     return "// Error al cargar contenido";
   }
 };
+
 
 /**
  * Obtiene las diferencias entre dos commits para un archivo.
@@ -272,4 +311,172 @@ export const getFirstCommitForFile = async (repoUrl: string, filePath: string): 
   const firstCommitHash = await git.raw(["log", "--diff-filter=A", "--format=%H", filePath]);
 
   return firstCommitHash.trim().split("\n")[0] || null;
+};
+
+export const getCommitBranches = async (repoPath: string, commitHash: string): Promise<string[]> => {
+  const git = simpleGit(repoPath);
+  const raw = await git.raw([
+    'for-each-ref',
+    '--format=%(refname:short)',
+    `refs/remotes/origin`,
+    `--contains=${commitHash}`
+  ]);
+
+  return raw
+    .split('\n')
+    .map(branch => branch.trim())
+    .filter(b => b && !b.includes('HEAD'));
+};
+
+export const getCommitDiffStats = async (
+  repoPath: string,
+  commitHash: string
+): Promise<Record<string, { added: number; deleted: number }>> => {
+  const git = simpleGit(repoPath);
+
+  const output = await git.raw([
+    'show',
+    '--numstat',
+    '--pretty=format:',
+    commitHash,
+  ]);
+
+  const lines = output.trim().split('\n');
+  const stats: Record<string, { added: number; deleted: number }> = {};
+
+  for (const line of lines) {
+    const [addedStr, deletedStr, rawPath] = line.split('\t');
+    if (!rawPath || isNaN(Number(addedStr)) || isNaN(Number(deletedStr))) continue;
+  
+    // Normaliza la ruta aquí como hacías antes
+    let normalizedPath = normalizePath(rawPath.trim());
+  
+    //  Eliminar posibles {a => b} renames
+    normalizedPath = normalizedPath.replace(/\{.*=>\s*(.*?)\}/, '$1');
+    normalizedPath = normalizedPath.replace(/^"(.*)"$/, '$1');
+  
+    stats[normalizedPath] = {
+      added: parseInt(addedStr),
+      deleted: parseInt(deletedStr),
+    };
+  }
+  return stats;
+};
+export const detectRenames = async (
+  git: SimpleGit,
+  filePath: string
+): Promise<string> => {
+  const log = await git.raw([
+    "log",
+    "--follow",
+    "--name-status",
+    "--format=%H",
+    "--",
+    filePath,
+  ]);
+
+  const lines = log.trim().split("\n");
+
+  // Procesamos renames (status 'R100', 'R90', etc.)
+  let currentPath = filePath;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^R\d+\s+(.+?)\s+(.+)$/); // e.g., R100    old/path.txt    new/path.txt
+    if (match) {
+      const [, from, to] = match;
+      currentPath = from.trim();
+    }
+  }
+
+  return currentPath;
+};
+
+export const getCurrentFilesFromBranch = async (
+  repoUrl: string,
+  branch: string
+): Promise<string[]> => {
+  const repoPath = await prepareRepo(repoUrl);
+  const git = simpleGit(repoPath);
+  await git.checkout(branch);
+
+  const rawFiles = await git.raw(["ls-files"]);
+  return rawFiles
+    .split("\n")
+    .map((line) => normalizePath(line.trim()))
+    .filter(Boolean);
+};
+
+
+export const getLastLocalCommitHash = async (repoUrl: string, branch: string): Promise<string | null> => {
+  const repo = await Repository.findOne({ where: { url: repoUrl } });
+  if (!repo) return null;
+
+  const branchModel = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
+  if (!branchModel) return null;
+
+  const latestLink = await CommitBranch.findOne({
+    where: { branchId: branchModel.id },
+    include: [{ model: Commit, as: 'commit' }],
+  }) as CommitBranch & { commit: Commit }; 
+  
+  if (!latestLink?.commit) return null;
+  
+  return latestLink.commit.hash;
+  
+  
+};
+
+
+export const getLatestRemoteCommitHash = async (repoPath: string, branch: string): Promise<string> => {
+  const git = simpleGit(repoPath);
+  await git.fetch(); // Asegura que tienes los últimos refs
+
+  const log = await git.log([branch]);
+  return log.latest?.hash || '';
+};
+
+
+export const fileExistsInCommit = async (repoPath: string, commitHash: string, filePath: string): Promise<boolean> => {
+  const git = simpleGit(repoPath);
+  try {
+    const result = await git.raw(['ls-tree', '-r', commitHash, filePath]);
+    return result.trim() !== '';
+  } catch (error) {
+    console.error('[fileExistsInCommit] Error al comprobar archivo:', error);
+    return false;
+  }
+};
+
+
+export const safeGetFileContent = async (repoUrl: string, commit: string, filePath: string): Promise<string | null> => {
+  const repoPath = await prepareRepo(repoUrl);
+  const git = simpleGit(repoPath);
+
+  const exists = await fileExistsInCommit(repoPath, commit, filePath);
+  if (!exists) {
+    console.warn(`⚠️ El archivo "${filePath}" no existe en el commit "${commit}"`);
+    return null;
+  }
+  try {
+    const content = await git.show([`${commit}:${filePath}`]);
+    return content;
+  } catch (error) {
+    console.error(`[💥 safeGetFileContent] Error al obtener contenido de ${filePath} en ${commit}:`, error);
+    return null;
+  }
+};
+
+export const sanitizeFilePath = (rawPath: string): string => {
+  const tempRepoBase = path.normalize('src/utils/temp-repo');
+  const normalized = path.normalize(rawPath);
+
+  const tempIndex = normalized.indexOf(tempRepoBase + path.sep);
+  if (tempIndex === -1) return rawPath.replace(/\\/g, '/'); // fallback
+
+  const subpath = normalized.slice(tempIndex + tempRepoBase.length + 1);
+  const parts = subpath.split(path.sep);
+  if (parts.length <= 1) return subpath.replace(/\\/g, '/');
+
+  const repoRelative = parts.slice(1).join('/');
+  return repoRelative;
 };

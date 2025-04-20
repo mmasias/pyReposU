@@ -6,6 +6,7 @@ export class Repository extends Model {
   declare url: string;
   declare name: string;
   declare owner: string;
+  public primaryBranch!: string | null;
 }
 
 Repository.init(
@@ -14,6 +15,10 @@ Repository.init(
     url: { type: DataTypes.STRING, allowNull: false, unique: true },
     name: DataTypes.STRING,
     owner: DataTypes.STRING,
+    primaryBranch: {
+      type: DataTypes.STRING,
+      allowNull: true, // Puede ser null si no está aún seteado
+    },
   },
   {
     sequelize,

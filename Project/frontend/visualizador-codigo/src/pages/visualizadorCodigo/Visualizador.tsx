@@ -86,8 +86,14 @@ const Visualizador = () => {
       const res = await axios.get("http://localhost:3000/api/stats/tree", { params });
 
       if (res.data.warning) alert(res.data.warning);
-      setTreeData(res.data.tree.subfolders || []);
-
+      const rootTree = res.data.tree;
+      const rootFiles = rootTree.files || [];
+      const subfolders = rootTree.subfolders || [];
+      
+      setTreeData([...subfolders, { files: rootFiles }]);
+      
+      
+      
       if (!selectedBranch) {
         const headRes = await axios.get("http://localhost:3000/api/stats/folders/current-branch", {
           params: { repoUrl: repo },
@@ -137,11 +143,12 @@ const Visualizador = () => {
 
   const renderTree = (nodes: any[], currentPath = "") =>
     nodes.map((node, idx) => {
-      const fullPath = `${currentPath}/${node.name}`;
+      const fullPath = node.name ? `${currentPath}/${node.name}` : currentPath;
+  
       return (
         <div key={idx} className="ml-4 mt-2">
-          {/* Carpeta */}
-          {node.subfolders && (
+          {/* 🗂️ Carpeta */}
+          {node.name && node.subfolders && (
             <div
               className="cursor-pointer flex items-center bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md"
               onClick={() => toggleFolder(fullPath)}
@@ -150,16 +157,19 @@ const Visualizador = () => {
               <span className="ml-auto text-gray-500">{node.changes || 0} cambios</span>
             </div>
           )}
-
-          {/* Archivos */}
-          {node.files && expandedFolders.includes(fullPath) && (
+  
+          {/* 📁 Subcarpetas recursivas */}
+          {expandedFolders.includes(fullPath) && node.subfolders && renderTree(node.subfolders, fullPath)}
+  
+          {/*  Archivos */}
+          {node.files && (!node.name || expandedFolders.includes(fullPath)) && (
             <div className="ml-6 mt-2">
               {node.files.map((file: any, i: number) => (
                 <div
                   key={i}
                   className="flex items-center bg-white hover:bg-gray-100 px-4 py-2 rounded-md cursor-pointer"
                 >
-                  <span className="mr-2">📄</span>
+                  <span className="mr-2"></span>
                   <span
                     className="text-gray-800"
                     onClick={() => fetchFileContent(`${fullPath}/${file.name}`, "HEAD")}
@@ -169,9 +179,12 @@ const Visualizador = () => {
                   <span className="ml-auto text-gray-500">{file.changes || 0} cambios</span>
                   <button
                     onClick={() =>
-                      navigate(`/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(`${fullPath}/${file.name}`)}`, {
-                        state: { repoUrl },
-                      })
+                      navigate(
+                        `/playback/${encodeURIComponent(repoUrl)}/${encodeURIComponent(
+                          `${fullPath}/${file.name}`
+                        )}`,
+                        { state: { repoUrl } }
+                      )
                     }
                     className="ml-2 bg-green-500 text-white px-4 py-2 rounded-md shadow hover:bg-green-600"
                   >
@@ -181,12 +194,10 @@ const Visualizador = () => {
               ))}
             </div>
           )}
-
-          {/* Subcarpetas recursivas */}
-          {expandedFolders.includes(fullPath) && node.subfolders && renderTree(node.subfolders, fullPath)}
         </div>
       );
     });
+  
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-200 min-h-screen py-10">

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { getCommits, getFileContent } from "../utils/gitRepoUtils";
 import axios from "axios";
+import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
 
 //  Prompt simplificado, sin estructura JSON
 const buildSimplifiedPrompt = (
@@ -22,29 +23,55 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
   const { repoUrl, filePath } = req.query;
 
   if (!repoUrl || !filePath) {
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
+    res.status(400).json({ message: "Se requieren repoUrl y filePath." });
     return;
   }
 
   try {
-    const commits = await getCommits(repoUrl as string);
-    const fileCommits = commits.filter(c => c.files.includes(filePath as string));
-
-    if (fileCommits.length < 2) {
-      res.status(400).json({ message: "No hay suficientes versiones del archivo para comparar." });
+    const repo = await Repository.findOne({ where: { url: repoUrl } });
+    if (!repo) {
+      res.status(404).json({ message: "Repositorio no encontrado." });
       return;
     }
 
-    const first = fileCommits[0];
-    const last = fileCommits[fileCommits.length - 1];
-    const middle = fileCommits
-      .slice(1, -1)
-      .sort((a, b) => b.files.length - a.files.length)
-      .slice(0, 3);
+    // Check si ya lo tenemos analizado
+    const existing = await FileAnalysis.findOne({
+      where: { repoId: repo.id, filePath, type: 'deep' }
+    });
+
+    if (existing) {
+      res.status(200).json({
+        summary: existing.summary,
+        commits: existing.commitHashes,
+        cached: true,
+      });
+    }
+
+    // Obtener commits relacionados
+    const commitFiles = await CommitFile.findAll({
+      where: { filePath },
+      include: [{
+        model: Commit,
+        where: { repositoryId: repo.id },
+      }]
+    });
+
+    const commits = commitFiles.map(cf => cf.Commit!).sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    if (commits.length < 2) {
+      res.status(400).json({ message: "No hay suficientes versiones para comparar." });
+      return;
+    }
+
+    const first = commits[0];
+    const last = commits[commits.length - 1];
+    const middle = commits.slice(1, -1).slice(0, 3);
 
     const selectedCommits = [first, ...middle, last];
 
-    const snapshots = await Promise.all(selectedCommits.map(async (commit) => {
+    const snapshots = await Promise.all(selectedCommits.map(async commit => {
       const content = await getFileContent(repoUrl as string, commit.hash, filePath as string);
       return { commit: commit.hash, content };
     }));
@@ -57,14 +84,21 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
       stream: false,
     });
 
-    const raw = response.data.response.trim();
+    const summary = response.data.response.trim();
+    const commitHashes = selectedCommits.map(c => c.hash);
 
-    res.status(200).json({
-      summary: raw,
-      commits: selectedCommits.map((c) => c.hash),
+    // Guardar análisis en la base de datos
+    await FileAnalysis.create({
+      repoId: repo.id,
+      filePath,
+      type: 'deep',
+      summary,
+      commitHashes,
     });
+
+    res.status(200).json({ summary, commits: commitHashes });
   } catch (error) {
-    console.error(`[analyzeDeepHandler] Error:`, error);
+    console.error(`[analyzeDeepHandler]`, error);
     res.status(500).json({ message: "Error al realizar análisis profundo." });
   }
 };

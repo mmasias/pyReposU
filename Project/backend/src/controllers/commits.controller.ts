@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { getCommits } from "../utils/gitRepoUtils";
+import { syncRepoIfNeeded } from "../services/syncService";
+import { getCommits as getCommitsFromDb } from "../services/commitsService";
 
-//TODO REVISAR HANDLER?, se podría eliminar este archivo y el routes y dejar directamente getcommits de utils enla ruta del router
 export const getCommitsHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const repoUrl = req.query.repoUrl as string;
@@ -10,7 +10,16 @@ export const getCommitsHandler = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const commits = await getCommits(repoUrl);
+    // Sincronización selectiva solo para commits + stats
+    await syncRepoIfNeeded(repoUrl, {
+      syncCommits: true,
+      syncDiffs: false,
+      syncStats: true,
+      syncGithubActivityOption: false,
+    });
+
+    const commits = await getCommitsFromDb(repoUrl);
+
     res.status(200).json(commits);
   } catch (error) {
     console.error("[getCommitsHandler] Error:", error);
