@@ -199,6 +199,7 @@ export const getRepoGeneralStats = async (repoUrl: string, startDate?: string, e
     statsMap[login] ||= { pullRequests: 0, issues: 0, comments: 0 };
     statsMap[login].pullRequests += 1;
   }
+  
 
   for (const issue of issues) {
     const user = await User.findByPk(issue.userId);
