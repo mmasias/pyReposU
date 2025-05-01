@@ -75,6 +75,21 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
       if (!(await git.checkIsRepo())) {
         throw new Error("  ERROR: Git no está bien inicializado");
       }
+      try {
+        const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+        const remoteHash = await getLatestRemoteCommitHash(repoPath, currentBranch);
+        const localLog = await git.log([currentBranch]);
+        const localHash = localLog.latest?.hash;
+      
+        if (remoteHash && localHash && remoteHash !== localHash) {
+          console.log(`[prepareRepo] HEAD local (${localHash}) desactualizado vs remoto (${remoteHash}) — haciendo git pull en ${currentBranch}`);
+          await git.pull("origin", currentBranch);
+        } else {
+          console.log(`[prepareRepo] HEAD ya actualizado (${currentBranch}): ${localHash}`);
+        }
+      } catch (pullError) {
+        console.warn(`[prepareRepo] ❌ Error al intentar comparar/pullear rama activa`, pullError);
+      }
 
       console.log(` [prepareRepo]   Haciendo git fetch --all...`);
       await git.fetch(["--all", "--prune"]);
@@ -340,28 +355,38 @@ export const getCommitDiffStats = async (
     '--pretty=format:',
     commitHash,
   ]);
+  console.log(`[getCommitDiffStats] Output de git show para ${commitHash}:\n${output}`);
+
+  console.log(`[DEBUG] Git output para ${commitHash}:\n${output}`);
 
   const lines = output.trim().split('\n');
   const stats: Record<string, { added: number; deleted: number }> = {};
 
   for (const line of lines) {
+    console.log(`[PARSE] Línea cruda: "${line}"`);
+
     const [addedStr, deletedStr, rawPath] = line.split('\t');
-    if (!rawPath || isNaN(Number(addedStr)) || isNaN(Number(deletedStr))) continue;
-  
-    // Normaliza la ruta aquí como hacías antes
+
+    if (!rawPath || isNaN(Number(addedStr)) || isNaN(Number(deletedStr))) {
+      console.log(`[SKIP] Línea no válida: "${line}"`);
+      continue;
+    }
+
     let normalizedPath = normalizePath(rawPath.trim());
-  
-    //  Eliminar posibles {a => b} renames
     normalizedPath = normalizedPath.replace(/\{.*=>\s*(.*?)\}/, '$1');
     normalizedPath = normalizedPath.replace(/^"(.*)"$/, '$1');
-  
+
     stats[normalizedPath] = {
       added: parseInt(addedStr),
       deleted: parseInt(deletedStr),
     };
+
+    console.log(`[OK] Archivo: ${normalizedPath} => +${addedStr} / -${deletedStr}`);
   }
+
   return stats;
 };
+
 export const detectRenames = async (
   git: SimpleGit,
   filePath: string
@@ -397,13 +422,23 @@ export const getCurrentFilesFromBranch = async (
 ): Promise<string[]> => {
   const repoPath = await prepareRepo(repoUrl);
   const git = simpleGit(repoPath);
-  await git.checkout(branch);
 
-  const rawFiles = await git.raw(["ls-files"]);
-  return rawFiles
-    .split("\n")
-    .map((line) => normalizePath(line.trim()))
-    .filter(Boolean);
+  // Checkout sin cambiar HEAD, usamos directamente `ls-tree`
+  try {
+    const result = await git.raw([
+      'ls-tree',
+      '-r',
+      '--name-only',
+      `origin/${branch}`
+    ]);
+    return result
+      .split('\n')
+      .map((line) => normalizePath(line.trim()))
+      .filter(Boolean);
+  } catch (error) {
+    console.error(`[getCurrentFilesFromBranch] Error en ls-tree de ${branch}:`, error);
+    return [];
+  }
 };
 
 

@@ -11,7 +11,7 @@ import { CommitParent } from './CommitParent';
 import { UserRepoStats } from './UserRepoStats';
 import { FileAnalysis } from './FileAnalysis';
 import { CommitSyncState } from './CommitSyncState';
-
+import { BranchStats } from './BranchStats';
 
 // Commit → User & Repository
 User.hasMany(Commit, { foreignKey: 'authorId' });
@@ -104,5 +104,6 @@ export {
   UserRepoStats,
   FileAnalysis,
   CommitSyncState,
+  BranchStats,
 };
 

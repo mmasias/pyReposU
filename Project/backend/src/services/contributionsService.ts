@@ -6,8 +6,10 @@ import { Branch } from '../models/Branch';
 import { CommitBranch } from '../models/CommitBranch';
 import { Op } from 'sequelize';
 import { normalizePath } from "../utils/file.utils";
-import { syncRepoIfNeeded } from './syncService';
 import {getCurrentFilesFromBranch} from '../utils/gitRepoUtils';  
+import { BranchStats } from '../models/BranchStats';
+import { getLastLocalCommitHash } from '../utils/gitRepoUtils';
+
 interface ContributionStats {
   [path: string]: {
     [user: string]: { linesAdded: number; linesDeleted: number; percentage: number };
@@ -20,35 +22,31 @@ export const getContributionsByUser = async (
   startDate?: string,
   endDate?: string
 ): Promise<ContributionStats> => {
-  //  1. Sincroniza con flags correctos (solo lo necesario)
-  await syncRepoIfNeeded(repoUrl, {
-    syncCommits: true,
-    syncDiffs: false,
-    syncStats: true,
-    syncGithubActivityOption: false,
-  });
-
-  //2 Recupera repo después de la sync (importante si antes no existía)
   const repo = await Repository.findOne({ where: { url: repoUrl } });
   if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
 
-
-  //  3. IMPORTANTE: Esperamos a que la rama exista (puede tardar tras sync)
-  let branchRecord = await Branch.findOne({
+  const branchRecord = await Branch.findOne({
     where: { name: branch, repositoryId: repo.id }
   });
+  const latestHash = await getLastLocalCommitHash(repoUrl, branch);
 
-  //  Espera pasiva si no existe aún (pequeño delay para evitar race condition)
-  let retries = 0;
-  while (!branchRecord && retries < 5) {
-    await new Promise(res => setTimeout(res, 500));
-    branchRecord = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
-    retries++;
-  }
+if (!branchRecord) throw new Error(`Rama no encontrada en DB: ${branch}`);
+const existingStats = await BranchStats.findOne({ where: { branchId: branchRecord.id } });
 
-  if (!branchRecord) {
-    throw new Error(`Rama no encontrada después de sincronización: ${branch}`);
-  }
+//Si ya esta cacheado lo trae de bbdd
+if (existingStats && existingStats.lastCommitHash === latestHash) {
+  console.log('✅ Stats cacheadas. Cargando desde BBDD');
+  return await generateStatsFromDB(repo.id, branchRecord.id);
+} else {
+  console.log('🧠 Stats desactualizadas. Recalculando...');
+  // Esto ya lo haces implícitamente más abajo al cargar todo desde Commit + CommitFile
+
+  await BranchStats.upsert({
+    branchId: branchRecord?.id,
+    lastCommitHash: latestHash,
+  });
+}
+  if (!branchRecord) throw new Error(`Rama no encontrada en DB: ${branch}`);
 
   const commitBranchLinks = await CommitBranch.findAll({
     where: { branchId: branchRecord.id }
@@ -71,68 +69,71 @@ export const getContributionsByUser = async (
     include: [User]
   });
 
-  const filteredCommitIds = commits.map((c) => c.id);
+  const filteredCommitIds = commits.map(c => c.id);
   const files = await CommitFile.findAll({
     where: { commitId: filteredCommitIds }
   });
 
-  const currentFilesSet = new Set<string>(
+  const currentFiles = new Set<string>(
     (await getCurrentFilesFromBranch(repoUrl, branch)).map(normalizePath)
   );
 
   const contributions: ContributionStats = {};
 
+  // Inicializa todos los archivos visibles con 0s aunque no tengan contribuciones
+  for (const filePath of currentFiles) {
+    contributions[filePath] = {};
+  }
+
   for (const commit of commits) {
     const login = (commit as any).User?.githubLogin || 'Desconocido';
-    const commitFiles = files.filter((f) => f.commitId === commit.id);
+    const commitFiles = files.filter(f => f.commitId === commit.id);
 
     for (const file of commitFiles) {
       let filePath = normalizePath(file.filePath);
       filePath = filePath.replace(/\{.*=>\s*(.*?)\}/, '$1');
       filePath = filePath.replace(/^"(.*)"$/, '$1');
 
-      if (!currentFilesSet.has(filePath)) continue;
-
-      const linesAdded = file.linesAdded || 0;
-      const linesDeleted = file.linesDeleted || 0;
-      const total = linesAdded + linesDeleted;
+      if (!currentFiles.has(filePath)) continue;
 
       if (!contributions[filePath]) contributions[filePath] = {};
       if (!contributions[filePath][login]) {
         contributions[filePath][login] = {
           linesAdded: 0,
           linesDeleted: 0,
-          percentage: 0,
+          percentage: 0
         };
       }
 
-      contributions[filePath][login].linesAdded += linesAdded;
-      contributions[filePath][login].linesDeleted += linesDeleted;
-      contributions[filePath][login].percentage += total;
+      contributions[filePath][login].linesAdded += file.linesAdded || 0;
+      contributions[filePath][login].linesDeleted += file.linesDeleted || 0;
     }
   }
 
-  //  Porcentaje por archivo
-  for (const filePath of Object.keys(contributions)) {
-    const totalMod = Object.values(contributions[filePath])
-      .reduce((sum, val) => sum + val.percentage, 0);
+  // Calcula porcentajes por archivo
+  for (const filePath in contributions) {
+    const stats = contributions[filePath];
+    let total = Object.values(stats).reduce((acc, cur) => acc + cur.linesAdded + cur.linesDeleted, 0);
 
-    if (totalMod > 0) {
-      for (const user of Object.keys(contributions[filePath])) {
-        contributions[filePath][user].percentage =
-          (contributions[filePath][user].percentage / totalMod) * 100;
-      }
+    //  Si es un archivo sin líneas contadas, pero alguien lo subió, asignamos autoría completa
+    if (total === 0 && Object.keys(stats).length === 1) {
+      total = 1; // le damos "peso" artificial
     }
+    
+    for (const user in stats) {
+      const userTotal = stats[user].linesAdded + stats[user].linesDeleted;
+      stats[user].percentage = total > 0 ? (userTotal / total) * 100 : 100;
+    }
+    
   }
-
-  //  Agrupar por carpetas
+  
+  
+  // Agrupa en carpetas
   const folderContributions: ContributionStats = {};
-
-  for (const filePath of Object.keys(contributions)) {
-    const parts = filePath.split('/').filter(Boolean);
+  for (const filePath in contributions) {
+    const parts = filePath.split('/');
     for (let i = 1; i < parts.length; i++) {
       const folder = normalizePath(parts.slice(0, i).join('/'));
-
       if (!folderContributions[folder]) folderContributions[folder] = {};
 
       for (const [user, stats] of Object.entries(contributions[filePath])) {
@@ -146,22 +147,23 @@ export const getContributionsByUser = async (
     }
   }
 
-  //  Normalizar porcentaje en carpetas
+  // Calcula porcentajes de carpetas
   for (const folder of Object.keys(folderContributions)) {
-    const totalPercentage = Object.values(folderContributions[folder])
-      .reduce((sum, { percentage }) => sum + percentage, 0);
-
-    if (totalPercentage > 100) {
+    const total = Object.values(folderContributions[folder]).reduce((s, val) => s + val.percentage, 0);
+    if (total > 0) {
       for (const user of Object.keys(folderContributions[folder])) {
         folderContributions[folder][user].percentage =
-          (folderContributions[folder][user].percentage / totalPercentage) * 100;
+          (folderContributions[folder][user].percentage / total) * 100;
       }
     }
   }
 
-  Object.assign(contributions, folderContributions);
+  // Mezcla sin sobrescribir archivos
+  for (const key of Object.keys(folderContributions)) {
+    if (!contributions[key]) contributions[key] = folderContributions[key];
+  }
 
-  //  TOTAL
+  // TOTAL general
   const userTotals: Record<string, number> = {};
   for (const path of Object.keys(contributions)) {
     for (const user of Object.keys(contributions[path])) {
@@ -170,21 +172,138 @@ export const getContributionsByUser = async (
   }
 
   const totalSum = Object.values(userTotals).reduce((sum, val) => sum + val, 0);
-  if (totalSum > 0) {
-    for (const user of Object.keys(userTotals)) {
-      userTotals[user] = (userTotals[user] / totalSum) * 100;
-    }
-  }
-
-  contributions['TOTAL'] = {};
+  const totalObj: Record<string, { linesAdded: number; linesDeleted: number; percentage: number }> = {};
   for (const user of Object.keys(userTotals)) {
-    contributions['TOTAL'][user] = {
+    totalObj[user] = {
       linesAdded: 0,
       linesDeleted: 0,
-      percentage: userTotals[user],
+      percentage: (userTotals[user] / totalSum) * 100
     };
   }
 
+  contributions['TOTAL'] = totalObj;
+
   return contributions;
 };
+const generateStatsFromDB = async (
+  repositoryId: number,
+  branchId: number
+): Promise<ContributionStats> => {
+  const commitBranches = await CommitBranch.findAll({
+    where: { branchId },
+    include: [{ model: Commit, include: [User] }]
+  });
 
+  const commitIds = commitBranches.map(cb => cb.commitId);
+
+  const files = await CommitFile.findAll({
+    where: { commitId: commitIds }
+  });
+
+  const currentFiles = new Set<string>(
+    (await getCurrentFilesFromBranch(
+      (await Repository.findByPk(repositoryId))!.url,
+      (await Branch.findByPk(branchId))!.name
+    )).map(normalizePath)
+  );
+
+  const contributions: ContributionStats = {};
+  for (const filePath of currentFiles) {
+    contributions[filePath] = {};
+  }
+
+  for (const cb of commitBranches) {
+    const commit = cb.get('Commit') as Commit;
+    const login = commit.User?.githubLogin || 'Desconocido';
+    const commitFiles = files.filter(f => f.commitId === commit.id);
+
+    for (const file of commitFiles) {
+      let filePath = normalizePath(file.filePath);
+      filePath = filePath.replace(/\{.*=>\s*(.*?)\}/, '$1');
+      filePath = filePath.replace(/^"(.*)"$/, '$1');
+
+      if (!currentFiles.has(filePath)) continue;
+
+      if (!contributions[filePath]) contributions[filePath] = {};
+      if (!contributions[filePath][login]) {
+        contributions[filePath][login] = {
+          linesAdded: 0,
+          linesDeleted: 0,
+          percentage: 0
+        };
+      }
+
+      contributions[filePath][login].linesAdded += file.linesAdded || 0;
+      contributions[filePath][login].linesDeleted += file.linesDeleted || 0;
+    }
+  }
+
+  // Calcula porcentajes por archivo
+  for (const filePath in contributions) {
+    const stats = contributions[filePath];
+    let total = Object.values(stats).reduce((acc, cur) => acc + cur.linesAdded + cur.linesDeleted, 0);
+
+    if (total === 0 && Object.keys(stats).length === 1) {
+      total = 1;
+    }
+
+    for (const user in stats) {
+      const userTotal = stats[user].linesAdded + stats[user].linesDeleted;
+      stats[user].percentage = total > 0 ? (userTotal / total) * 100 : 100;
+    }
+  }
+
+  // Carpetas
+  const folderContributions: ContributionStats = {};
+  for (const filePath in contributions) {
+    const parts = filePath.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      const folder = normalizePath(parts.slice(0, i).join('/'));
+      if (!folderContributions[folder]) folderContributions[folder] = {};
+
+      for (const [user, stats] of Object.entries(contributions[filePath])) {
+        if (!folderContributions[folder][user]) {
+          folderContributions[folder][user] = { linesAdded: 0, linesDeleted: 0, percentage: 0 };
+        }
+        folderContributions[folder][user].linesAdded += stats.linesAdded;
+        folderContributions[folder][user].linesDeleted += stats.linesDeleted;
+        folderContributions[folder][user].percentage += stats.percentage;
+      }
+    }
+  }
+
+  for (const folder of Object.keys(folderContributions)) {
+    const total = Object.values(folderContributions[folder]).reduce((s, val) => s + val.percentage, 0);
+    if (total > 0) {
+      for (const user of Object.keys(folderContributions[folder])) {
+        folderContributions[folder][user].percentage =
+          (folderContributions[folder][user].percentage / total) * 100;
+      }
+    }
+  }
+
+  for (const key of Object.keys(folderContributions)) {
+    if (!contributions[key]) contributions[key] = folderContributions[key];
+  }
+
+  const userTotals: Record<string, number> = {};
+  for (const path of Object.keys(contributions)) {
+    for (const user of Object.keys(contributions[path])) {
+      userTotals[user] = (userTotals[user] || 0) + contributions[path][user].percentage;
+    }
+  }
+
+  const totalSum = Object.values(userTotals).reduce((sum, val) => sum + val, 0);
+  const totalObj: Record<string, { linesAdded: number; linesDeleted: number; percentage: number }> = {};
+  for (const user of Object.keys(userTotals)) {
+    totalObj[user] = {
+      linesAdded: 0,
+      linesDeleted: 0,
+      percentage: (userTotals[user] / totalSum) * 100
+    };
+  }
+
+  contributions['TOTAL'] = totalObj;
+
+  return contributions;
+};

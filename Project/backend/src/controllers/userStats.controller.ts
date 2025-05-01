@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../services/userStatsService";
 import { getRepoBranches } from "../utils/gitRepoUtils";
-import { syncRepoIfNeeded } from "../services/syncService";
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -15,13 +14,7 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
       return;
     }
 
-    //  Aquí se asegura que se sincronice el repo y la actividad de GitHub (PRs, Issues, Comments)
-    await syncRepoIfNeeded(repoUrl, {
-      syncCommits: true,
-      syncDiffs: false,
-      syncStats: true,              // Necesitamos líneas añadidas/borradas
-      syncGithubActivityOption: true, // Para PRs, Issues y Comments
-    });
+  
     // Obtener datos de PRs, Issues y Comments desde BBDD ya actualizada
     const repoStats = await getRepoGeneralStats(repoUrl, startDate, endDate);
 

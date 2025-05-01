@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { syncRepoIfNeeded } from "../services/syncService";
 import { getCommits as getCommitsFromDb } from "../services/commitsService";
 
 export const getCommitsHandler = async (req: Request, res: Response): Promise<void> => {
@@ -10,13 +9,6 @@ export const getCommitsHandler = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Sincronización selectiva solo para commits + stats
-    await syncRepoIfNeeded(repoUrl, {
-      syncCommits: true,
-      syncDiffs: false,
-      syncStats: true,
-      syncGithubActivityOption: false,
-    });
 
     const commits = await getCommitsFromDb(repoUrl);
 

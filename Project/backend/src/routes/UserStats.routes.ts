@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { getUserStatsHandler, exportStatsToCSV, getBranchesHandler } from "../controllers/userStats.controller";
+import { ensureRepoSynced } from "../middleware/ensureRepoSynced";
 
 const router = Router();
 
-router.get("/", getUserStatsHandler);
-router.get("/export/csv", exportStatsToCSV);
-router.get("/branches", getBranchesHandler);
+router.get("/", ensureRepoSynced({ syncCommits: true, syncStats: true, syncGithubActivityOption: true }), getUserStatsHandler);
+router.get("/export/csv", ensureRepoSynced({ syncCommits: true, syncStats: true, syncGithubActivityOption: true }), exportStatsToCSV);
+//TODO REVISAR QUITAREL syncommmits en /branches
+router.get("/branches", ensureRepoSynced({ syncCommits: true }), getBranchesHandler);
 
 export default router;

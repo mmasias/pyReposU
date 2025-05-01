@@ -19,6 +19,6 @@ CommitBranch.init(
   {
     sequelize,
     tableName: 'commit_branch',
-    timestamps: false,
+    timestamps: true,
   }
 );

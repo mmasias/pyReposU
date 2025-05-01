@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { getUserContributionsHandler, getBubbleChartHandler } from "../controllers/contributions.controller";
+import { ensureRepoSynced } from "../middleware/ensureRepoSynced";
 
 const router = Router();
 
-//  Endpoint para obtener el mapa de calor de contribuciones
-router.get("/", getUserContributionsHandler);
-
-//  Endpoint para obtener los datos del diagrama de burbujas
-router.get("/bubble-chart", getBubbleChartHandler);
+router.get("/", ensureRepoSynced({ syncCommits: true, syncStats: true }), getUserContributionsHandler);
+router.get("/bubble-chart", ensureRepoSynced({ syncCommits: true, syncStats: true }), getBubbleChartHandler);
 
 export default router;

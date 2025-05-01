@@ -7,7 +7,6 @@ import { CommitBranch } from '../models/CommitBranch';
 import { Branch } from '../models/Branch';
 import { CommitParent } from '../models/CommitParent';
 import { prepareRepo } from '../utils/gitRepoUtils';
-import { syncRepoIfNeeded } from './syncService';
 
 type CommitNode = {
   sha: string;
@@ -23,12 +22,6 @@ type CommitNode = {
 };
 
 export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]> => {
-  await syncRepoIfNeeded(repoUrl, {
-    syncCommits: true,
-    syncStats: true,
-    syncDiffs: false,
-    syncGithubActivityOption: false,
-  });
   
   const repo = await Repository.findOne({ where: { url: repoUrl } });
   if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);

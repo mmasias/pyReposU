@@ -3,4 +3,6 @@ export interface SyncOptions {
   syncDiffs?: boolean;
   syncStats?: boolean;
   syncGithubActivityOption?: boolean;
+  forceSyncNow?: boolean;
+  lightSync?: boolean; // <- AÑADIR ESTO
 }
