@@ -2,7 +2,7 @@ import { Commit } from '../models/Commit';
 import { CommitFile } from '../models/CommitFile';
 import { User } from '../models/User';
 import { Repository } from '../models/Repository';
-import { Op } from 'sequelize';
+import { Op, Sequelize } from 'sequelize';
 
 interface BubbleChartData {
   [user: string]: {
@@ -27,11 +27,26 @@ export const getBubbleChartData = async (
   const commits = await Commit.findAll({
     where: {
       repositoryId: repo.id,
-      // opcional: branch filtering si lo implementas en modelos
+      ...(branch !== "all" ? {
+        id: {
+          [Op.in]: [
+            // subconsulta para IDs de commits de esa rama:
+            Sequelize.literal(`(
+              SELECT "commitId"
+              FROM commit_branch
+              INNER JOIN branches ON commit_branch."branchId" = branches."id"
+              WHERE branches."name" = '${branch}'
+                AND branches."repositoryId" = ${repo.id}
+            )`)
+            
+          ],
+        },
+      } : {}),
     },
     include: [User],
-    order: [['date', 'ASC']],
+    order: [["date", "ASC"]],
   });
+  
 
   const commitIds = commits.map((c) => c.id);
   const commitFiles = await CommitFile.findAll({
