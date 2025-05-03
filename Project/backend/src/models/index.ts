@@ -12,7 +12,7 @@ import { UserRepoStats } from './UserRepoStats';
 import { FileAnalysis } from './FileAnalysis';
 import { CommitSyncState } from './CommitSyncState';
 import { BranchStats } from './BranchStats';
-
+import { ContributionCache } from './ContributionCache';
 // Commit → User & Repository
 User.hasMany(Commit, { foreignKey: 'authorId' });
 Commit.belongsTo(User, { foreignKey: 'authorId' });
@@ -105,5 +105,6 @@ export {
   FileAnalysis,
   CommitSyncState,
   BranchStats,
+  ContributionCache,
 };
 

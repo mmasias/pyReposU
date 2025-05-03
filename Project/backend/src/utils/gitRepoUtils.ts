@@ -28,7 +28,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
   const gitFolder = path.join(repoPath, ".git");
   const lockFile = path.join(gitFolder, "index.lock");
 
-  console.log(`\n [prepareRepo]   Iniciando para ${repoPath}...\n`);
+  //console.log(`\n [prepareRepo]   Iniciando para ${repoPath}...\n`);
 
   if (repoPendingPromises[repoPath] !== undefined) {
     console.log(` [prepareRepo]   Ya hay un proceso en curso para ${repoPath}, esperando...`);
@@ -36,7 +36,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
   }
 
   if (REPO_CACHE[repoPath] && existsSync(gitFolder)) {
-    console.log(` [prepareRepo]   Repo en caché, evitando duplicación.`);
+    //console.log(` [prepareRepo]   Repo en caché, evitando duplicación.`);
     return repoPath;
   }
 
@@ -271,14 +271,14 @@ export const getFileContent = async (
     const tree = await git.raw(['ls-tree', '-r', '--name-only', commitHash]);
     const availableFiles = tree.split('\n').map(line => line.trim());
     
-    console.log(`\n🗂️ Archivos disponibles en ${commitHash}:`);
-    console.log(availableFiles.slice(0, 20)); // solo mostramos los primeros 20
+    //console.log(`\n🗂️ Archivos disponibles en ${commitHash}:`);
+    //console.log(availableFiles.slice(0, 20)); // solo mostramos los primeros 20
     
     if (!availableFiles.includes(sanitizedPath)) {
       console.warn(`⚠️ ${sanitizedPath} NO está en el commit ${commitHash}`);
     }    
     const content = await git.show([`${commitHash}:${sanitizedPath}`]);
-    console.log(`[✅ getFileContent] Archivo "${sanitizedPath}" recuperado correctamente`);
+    //console.log(`[✅ getFileContent] Archivo "${sanitizedPath}" recuperado correctamente`);
     return content || "// Archivo vacío";
   } catch (error: any) {
     console.error(`[getFileContent] Error inesperado:`, error);
@@ -348,6 +348,7 @@ export const getCommitDiffStats = async (
   commitHash: string
 ): Promise<Record<string, { added: number; deleted: number }>> => {
   const git = simpleGit(repoPath);
+  console.log(`[🐛 getCommitDiffStats] Commit: ${commitHash}`);
 
   const output = await git.raw([
     'show',
@@ -357,15 +358,14 @@ export const getCommitDiffStats = async (
   ]);
   console.log(`[getCommitDiffStats] Output de git show para ${commitHash}:\n${output}`);
 
-  console.log(`[DEBUG] Git output para ${commitHash}:\n${output}`);
-
   const lines = output.trim().split('\n');
   const stats: Record<string, { added: number; deleted: number }> = {};
 
   for (const line of lines) {
     console.log(`[PARSE] Línea cruda: "${line}"`);
-
-    const [addedStr, deletedStr, rawPath] = line.split('\t');
+    const parts = line.trim().split(/\s+/);
+    const [addedStr, deletedStr, ...pathParts] = parts;
+    const rawPath = pathParts.join(" ");
 
     if (!rawPath || isNaN(Number(addedStr)) || isNaN(Number(deletedStr))) {
       console.log(`[SKIP] Línea no válida: "${line}"`);
@@ -386,6 +386,7 @@ export const getCommitDiffStats = async (
 
   return stats;
 };
+
 
 export const detectRenames = async (
   git: SimpleGit,

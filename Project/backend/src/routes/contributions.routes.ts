@@ -4,7 +4,17 @@ import { ensureRepoSynced } from "../middleware/ensureRepoSynced";
 
 const router = Router();
 
-router.get("/", ensureRepoSynced({ syncCommits: true, syncStats: true }), getUserContributionsHandler);
-router.get("/bubble-chart", ensureRepoSynced({ syncCommits: true, syncStats: true }), getBubbleChartHandler);
+router.get(
+    "/",
+    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 importante
+    getUserContributionsHandler
+  );
+  
+  router.get(
+    "/bubble-chart",
+    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 igual aquí
+    getBubbleChartHandler
+  );
+  
 
 export default router;

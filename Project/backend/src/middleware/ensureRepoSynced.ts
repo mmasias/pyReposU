@@ -18,8 +18,12 @@ export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
     }
 
     try {
-      await syncRepoIfNeeded(repoUrl, options);
-
+      await syncRepoIfNeeded(repoUrl, {
+        syncCommits: true,
+        syncStats: true,
+        syncDiffs: false,
+      });
+      
       const repo = await Repository.findOne({ where: { url: repoUrl } });
       if (!repo) throw new Error("Repositorio no encontrado tras sync");
 
@@ -53,18 +57,26 @@ export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
             isReady = true;
             break;
           }
+          else {
+            console.warn(`[🛑 ensureRepoSynced] Commit ${commit?.hash} encontrado, pero sin archivos (fileCount=${fileCount})`);
+          }
         }
         
 
+        // Justo antes de lanzar el error final
         if (!isReady) {
-          await new Promise(res => setTimeout(res, 500));
-          retries++;
+          console.warn(`[🟡 WARN] Ningún commit con archivos útiles en rama "${branch}" tras sincronización`);
+          // No lanza error si hay commits pero todos vacíos (como merges)
+          const commits = await CommitBranch.count({ where: { branchId: freshBranch.id } });
+          if (commits > 0) {
+            return next(); // ⚠️ Permitir pasar si hay commits, aunque sin archivos útiles
+          }
+
+          throw new Error(`No se encontró una rama con commits y archivos después de sincronizar`);
         }
+
       }
 
-      if (!isReady) {
-        throw new Error(`No se encontró una rama con commits y archivos después de sincronizar`);
-      }
 
       next();
     } catch (err) {

@@ -1,8 +1,4 @@
-import { Repository as RepositoryModel } from "../models/Repository";
 import { User } from "../models/User";
-import { Commit } from "../models/Commit";
-import { CommitFile } from "../models/CommitFile";
-import { Branch } from "../models/Branch";
 import { CommitBranch } from "../models/CommitBranch";
 import { CommitParent } from "../models/CommitParent";
 import { PullRequest } from '../models/PullRequest';
@@ -10,26 +6,19 @@ import axios, { AxiosResponse } from 'axios';
 import { Repository } from '../models/Repository';
 import { Issue } from '../models/Issue';
 import { Comment } from "../models";
-import {getLastLocalCommitHash, getLatestRemoteCommitHash, getFileContent, fileExistsInCommit} from '../utils/gitRepoUtils';
-import { generateFileDiff } from "../utils/diffUtils";
-import { SyncOptions } from "../types/syncOptions";
-import { CommitSyncState } from "../models/CommitSyncState";
-import { wasProcessed, markProcessed } from "../services/syncState";
 import { Branch as BranchModel } from "../models/Branch";
-import { getCurrentFilesFromBranch } from '../utils/gitRepoUtils';
-
-import {
-  prepareRepo,
-  getCommits,
-  getCommitBranches,
-  getCommitDiffStats,
-  detectRenames, 
-} from "../utils/gitRepoUtils";
-import { isRepoUpToDate } from "../utils/repoStatusChecker";
-import { normalizePath } from "../utils/file.utils";
 import simpleGit from "simple-git";
-
-//registro de repos en proceso de sincronizacion
+import { prepareRepo } from "../utils/gitRepoUtils";
+import { Repository as RepositoryModel } from "../models/Repository";
+import { Branch } from "../models/Branch";
+import { BranchStats } from "../models/BranchStats";
+import { ContributionCache } from "../models/ContributionCache";
+import { syncCommits } from "./sync/syncCommits";
+import { syncStatsOnly } from "./sync/syncStatsOnly";
+import { syncDiffsOnly } from "./sync/syncDiffsOnly";
+import { SyncOptions } from "../types/syncOptions";
+import { wasProcessed } from "./syncState";
+import { markProcessed } from "./syncState";
 const syncingRepos = new Set<string>();
 const syncingRepoPromises: Map<string, Promise<void>> = new Map();
 
@@ -37,6 +26,8 @@ export const syncRepoIfNeeded = async (
   repoUrl: string,
   options: SyncOptions = {}
 ): Promise<void> => {
+  console.log(`[syncRepoIfNeeded] Opciones recibidas:`, options);
+
   if (syncingRepoPromises.has(repoUrl)) {
     console.log(`[SYNC] Esperando a que termine la sincronización en curso para ${repoUrl}... ⏳`);
     return await syncingRepoPromises.get(repoUrl);
@@ -45,14 +36,10 @@ export const syncRepoIfNeeded = async (
   const syncPromise = (async () => {
     syncingRepos.add(repoUrl);
     try {
-      const {
-        syncCommits: shouldSyncCommits = true,
-        syncDiffs = true,
-        syncStats = true,
-        syncGithubActivityOption = true,
-        lightSync = false,
-        forceSyncNow: forceImmediateSync = false
-      } = options;
+      const shouldSyncCommits = options.syncCommits ?? true;
+      const syncStats = options.syncStats ?? false;
+      const syncDiffs = options.syncDiffs ?? false;
+      const syncGithubActivityOption = options.syncGithubActivityOption ?? true;
 
       let repo = await RepositoryModel.findOne({ where: { url: repoUrl } });
 
@@ -74,39 +61,21 @@ export const syncRepoIfNeeded = async (
       console.time(`[PREPARE] ${repoUrl}`);
       const localPath = await prepareRepo(repoUrl);
       console.timeEnd(`[PREPARE] ${repoUrl}`);
+
       await syncBranches(repo, localPath);
 
-      const branch = "main";
-      const localHash = await getLastLocalCommitHash(repoUrl, branch);
-      const remoteHash = await getLatestRemoteCommitHash(localPath, branch);
+      // 🔁 Modularized sync flow
+      if (shouldSyncCommits) {
+        await syncCommits(repo, localPath, { syncStats });
+      }
 
-      const lastCommit = await Commit.findOne({
-        where: { hash: localHash, repositoryId: repo.id },
-      });
+      if (syncStats) {
+        await syncStatsOnly(repo, localPath);
+      }
 
-      const hasFiles =
-      lastCommit &&
-      (await CommitFile.count({ where: { commitId: lastCommit.id } })) > 0;
-    
-    const statsDone =
-      lastCommit &&
-      (await wasProcessed(lastCommit.id, "stats"));
-    
-    const alreadySynced = lastCommit && hasFiles && statsDone;
-    
-    if (
-      forceImmediateSync ||
-      (shouldSyncCommits && !alreadySynced)
-    ) {
-      console.log(`[SYNC] 🧠 Ejecutando syncCommits (análisis completo)...`);
-      await syncCommits(repo, localPath, {
-        syncDiffs: forceImmediateSync ? true : syncDiffs,
-        syncStats: forceImmediateSync ? true : syncStats,
-      });
-    } else {
-      console.log(`[SYNC] ✅ Último commit ya sincronizado con archivos y stats (${branch})`);
-    }
-    
+      if (syncDiffs) {
+        await syncDiffsOnly(repo, localPath);
+      }
 
       if (syncGithubActivityOption) {
         console.log('[SYNC] Forzando sincronización de actividad de GitHub...');
@@ -127,6 +96,7 @@ export const syncRepoIfNeeded = async (
 };
 
 
+
 export const syncBranches = async (repo: Repository, localPath: string): Promise<void> => {
   const git = simpleGit(localPath);
   const remoteBranches = await git.branch(['-r']);
@@ -142,205 +112,7 @@ export const syncBranches = async (repo: Repository, localPath: string): Promise
   }
 };
 
-export const syncCommits = async (
-  repo: Repository,
-  localPath: string,
-  options: { syncDiffs?: boolean; syncStats?: boolean } = {}
-): Promise<void> => {
-  const { syncDiffs = true, syncStats = true } = options;
 
-  const git = simpleGit(localPath);
-  const rawCommits = await getCommits(localPath);
-  for (const raw of rawCommits) {
-    const [user] = await User.findOrCreate({
-      where: { githubLogin: raw.author },
-      defaults: { name: raw.author, email: "" },
-    });
-
-    const [newCommit, created] = await Commit.findOrCreate({
-      where: { hash: raw.hash },
-      defaults: {
-        message: raw.message,
-        date: new Date(raw.date),
-        authorId: user.id,
-        repositoryId: repo.id,
-      },
-    });
-
-    if (!created && !syncDiffs && !syncStats) {
-      continue;
-    }
-
-    let normalizedDiffStats: Record<string, { added: number; deleted: number }> = {};
-
-    if (syncStats && raw.hash) {
-      const alreadyProcessed = await wasProcessed(newCommit.id, "stats");
-    
-      if (!alreadyProcessed) {
-        try {
-          const rawStats = await getCommitDiffStats(localPath, raw.hash);
-          console.log(`[DEBUG] rawStats recibidas:`, rawStats);
-          //console.log(`[SYNC][${raw.hash}] Diff stats obtenidas:`, rawStats);
-
-    
-          console.log(`[SYNC][${raw.hash}] 🔍 Stats brutas recibidas:`);
-          for (const [path, value] of Object.entries(rawStats)) {
-            const normalized = normalizePath(path);
-            console.log(`   - Original: "${path}" → Normalizado: "${normalized}" | +${value.added} / -${value.deleted}`);
-            normalizedDiffStats[normalized] = value;
-          }
-    
-          await markProcessed(newCommit.id, "stats");
-        } catch (e) {
-          console.warn(`[SYNC] ❌ No se pudieron obtener stats para ${raw.hash}`, e);
-        }
-      } else {
-        console.log(`[SYNC][${raw.hash}] Stats ya estaban procesadas ✔️`);
-      }
-    }
-    
-    
-/*
-    if (syncDiffs && !(await wasProcessed(newCommit.id, "diff")) && raw.parents?.[0]) {
-      const previousCommit = raw.parents[0];
-      const unifiedPath = normalizePath(""); // Initialize unifiedPath appropriately
-      const existsInPrev = await fileExistsInCommit(localPath, previousCommit, unifiedPath);
-      const existsInCurr = await fileExistsInCommit(localPath, raw.hash, unifiedPath);
-      let diffContent = ""; // Declare diffContent before using it
-    
-      if (existsInPrev && existsInCurr) {
-        const prevContent = await getFileContent(repo.url, previousCommit, unifiedPath);
-        const currContent = await getFileContent(repo.url, raw.hash, unifiedPath);
-        diffContent = generateFileDiff(prevContent, currContent);
-      }
-    }*/
-    
-    if (syncDiffs && !(await wasProcessed(newCommit.id, "diff"))) {
-      await markProcessed(newCommit.id, "diff");
-    }
-    
-    console.log(`[DEBUG] Archivos modificados en ${raw.hash}:`, raw.files);
-    console.log(`[DEBUG] Claves en normalizedDiffStats:`, Object.keys(normalizedDiffStats));
-    
-    for (let rawPath of raw.files) {
-      //console.log('[DEBUG] Comparando rutas:');
-      //      console.log('normalizedPath:', normalizePath(rawPath));
-      //console.log('stats disponibles:', Object.keys(normalizedDiffStats));
-      let filePath = normalizePath(rawPath)
-        .replace(/\{.*=>\s*(.*?)\}/, "$1")
-        .replace(/^"(.*)"$/, "$1")
-        .replace(/^Project\//, "");
-
-      const originalPath = await detectRenames(git, filePath);
-      const unifiedPath = normalizePath(originalPath);
-
-      // Encuentra una key similar dentro de normalizedDiffStats
-      let statsKey = Object.keys(normalizedDiffStats).find(
-        k => k === filePath || k.endsWith(filePath)
-      );
-
-      const stats = statsKey ? normalizedDiffStats[statsKey] : { added: 0, deleted: 0 };
-
-      console.log(`[MATCH] filePath usado: ${filePath} - Clave encontrada: ${statsKey} | +${stats.added} / -${stats.deleted}`);
-      let diffContent = "";
-
-      if (syncDiffs && raw.parents?.[0]) {
-        const previousCommit = raw.parents[0];
-        const existsInPrev = await fileExistsInCommit(localPath, previousCommit, unifiedPath);
-        const existsInCurr = await fileExistsInCommit(localPath, raw.hash, unifiedPath);
-
-        if (existsInPrev && existsInCurr) {
-          const prevContent = await getFileContent(repo.url, previousCommit, unifiedPath);
-          const currContent = await getFileContent(repo.url, raw.hash, unifiedPath);
-          diffContent = generateFileDiff(prevContent, currContent);
-        }
-      }
-
-      await CommitFile.findOrCreate({
-        where: { commitId: newCommit.id, filePath: unifiedPath },
-        defaults: {
-          linesAdded: stats?.added ?? 0,
-          linesDeleted: stats?.deleted ?? 0,
-          diff: diffContent || "", // aunque esté vacío, lo guardamos
-        },
-      });
-
-      console.log(`[DB] CommitFile creado para ${unifiedPath}: +${stats?.added} / -${stats?.deleted}`);
-      
-    }
-
-    const branches = await getCommitBranches(localPath, raw.hash);
-    const cleanBranches = branches.map(b => b.replace(/^origin\//, "").trim());
-
-    const allBranches = await Branch.findAll({ where: { repositoryId: repo.id } });
-    const branchMap = new Map(allBranches.map(b => [b.name, b.id]));
-
-    for (const branchName of cleanBranches) {
-      let branchId = branchMap.get(branchName);
-    
-      if (!branchId) {
-        const branch = await Branch.create({
-          name: branchName,
-          repositoryId: repo.id,
-        });
-        branchId = branch.id;
-        branchMap.set(branchName, branchId);
-      }
-    
-      await CommitBranch.findOrCreate({
-        where: { commitId: newCommit.id, branchId },
-        defaults: { isPrimary: false },
-      });
-    }
-    
-
-    try {
-      const nameRevOutput = await git.raw(["name-rev", "--name-only", raw.hash]);
-      const matchedBranch = nameRevOutput.split("~")[0].trim();
-
-      const primaryBranch = await Branch.findOne({
-        where: { name: matchedBranch, repositoryId: repo.id },
-      });
-
-      if (primaryBranch) {
-        await CommitBranch.update(
-          { isPrimary: true },
-          { where: { commitId: newCommit.id, branchId: primaryBranch.id } }
-        );
-      }
-    } catch (err) {
-      console.warn(`[SYNC][WARN] No se pudo determinar primaryBranch para ${raw.hash}`);
-    }
-
-    for (const parentHash of raw.parents || []) {
-      const parentCommit = await Commit.findOne({ where: { hash: parentHash } });
-
-      if (parentCommit) {
-        await CommitParent.findOrCreate({
-          where: {
-            parentId: parentCommit.id,
-            childId: newCommit.id,
-          },
-        });
-      }
-    }
-  }
-  const remoteBranches = await git.branch(['-r']);
-  const existingBranches = await Branch.findAll({ where: { repositoryId: repo.id } });
-  const existingNames = new Set(existingBranches.map(b => b.name));
-  
-  for (const remoteBranch of Object.keys(remoteBranches.branches)) {
-    const cleanName = remoteBranch.replace(/^origin\//, "").trim();
-    if (!existingNames.has(cleanName)) {
-      await Branch.create({ name: cleanName, repositoryId: repo.id });
-      console.log(`[SYNC] Rama añadida manualmente: ${cleanName}`);
-    }
-  }
-  
-  await RepositoryModel.update({ primaryBranch: "main" }, { where: { id: repo.id } });
-  
-  console.log(`[SYNC] Commits y ramas sincronizadas correctamente ✅`);
-};
 
 
 
