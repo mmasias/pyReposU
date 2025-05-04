@@ -2,7 +2,8 @@ import { Request, Response, RequestHandler } from 'express';
 import { getRepoGraphService } from '../services/graph.service';
 
 export const getRepoGraphController: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  const repoUrl = req.query.url as string;
+  console.log("[GRAPH] Query recibida:", req.query); 
+  const repoUrl = req.query.repoUrl as string;
 
   if (!repoUrl) {
     res.status(400).json({ error: 'Falta el parámetro url' });

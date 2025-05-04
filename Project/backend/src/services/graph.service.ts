@@ -79,9 +79,10 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     if (!commitToBranches[cb.commitId]) commitToBranches[cb.commitId] = [];
     commitToBranches[cb.commitId].push(branchName);
 
-    if (cb.isPrimary) {
+    if (cb.isPrimary === true) {
       commitToPrimaryBranch[cb.commitId] = branchName;
     }
+    
   }
 
   const commitToParents: Record<number, string[]> = {};
@@ -110,6 +111,8 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
       deletions,
     };
   });
-
+  console.log('[GRAPH DEBUG] Ejemplo de commit node:');
+  console.dir(result.find(c => c.branches.length > 1), { depth: null });
+  
   return result;
 };

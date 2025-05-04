@@ -26,15 +26,31 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch(`/api/graph?url=${encodeURIComponent(repoUrl)}`);
+      if (!repoUrl) return;
+    
+      const encodedUrl = encodeURIComponent(repoUrl);
+      const res = await fetch(`http://localhost:3000/api/graph?repoUrl=${encodedUrl}`);
+    
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`❌ Error en fetch: ${res.status} ${errText}`);
+        return;
+      }
+    
       const data = await res.json();
-
+    
+      if (!Array.isArray(data)) {
+        console.error("❌ La respuesta del backend no es un array:", data);
+        return;
+      }
+    
       const sorted = data.sort(
         (a: Commit, b: Commit) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-
+    
       setCommits(sorted);
     };
+    
 
     fetchData();
   }, [repoUrl]);

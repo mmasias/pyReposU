@@ -62,12 +62,18 @@ export const syncRepoIfNeeded = async (
       const localPath = await prepareRepo(repoUrl);
       console.timeEnd(`[PREPARE] ${repoUrl}`);
 
-      await syncBranches(repo, localPath);
+      console.timeEnd(`[PREPARE] ${repoUrl}`);
 
-      // 🔁 Modularized sync flow
+      await syncBranches(repo, localPath);
+      
+      // Obtiene la rama actual del repositorio local
+      const git = simpleGit(localPath);
+      const currentBranch = (await git.branchLocal()).current;
+      
       if (shouldSyncCommits) {
-        await syncCommits(repo, localPath, { syncStats });
+        await syncCommits(repo, localPath, currentBranch, { syncStats });
       }
+      
 
       if (syncStats) {
         await syncStatsOnly(repo, localPath);

@@ -111,12 +111,11 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
             console.warn(` [prepareRepo]   ${branch} bloqueada. Esperando...`);
             await new Promise((r) => setTimeout(r, 500));
           }
-
+          await git.clean('f', ['-d']);
           await git.checkout(["-B", tempBranch, `origin/${branch}`]);
           await git.reset(ResetMode.HARD);
           await git.pull("origin", branch);
 
-          // ❗ Opcional: eliminar rama temporal
           await git.checkout("main").catch(() => {});
           await git.deleteLocalBranch(tempBranch, true).catch(() => {});
         } catch (err) {
