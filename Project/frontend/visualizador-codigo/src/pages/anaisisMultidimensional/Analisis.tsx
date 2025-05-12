@@ -46,7 +46,7 @@ const Analisis: React.FC = () => {
 
     const loadMetadata = async () => {
       try {
-        const { data: branchData } = await axios.get("http://localhost:3000/api/stats/user/branches", { params: { repoUrl } });
+        const { data: branchData } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", { params: { repoUrl } });
         const allBranches = ["Todas", ...branchData];
         setBranches(allBranches);
 
@@ -84,7 +84,7 @@ const Analisis: React.FC = () => {
       const allStats: StatsMap = {};
 
       for (const branch of loadedBranches) {
-        const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
+        const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
           params: {
             repoUrl: url,
             branch: branch === "Todas" ? undefined : branch,
@@ -114,7 +114,7 @@ const Analisis: React.FC = () => {
   };
 const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
   try {
-    const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
+    const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
       params: { repoUrl: url, startDate: from, endDate: to }
     });
 

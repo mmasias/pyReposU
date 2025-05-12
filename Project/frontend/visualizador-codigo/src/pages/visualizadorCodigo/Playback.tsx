@@ -34,7 +34,7 @@ const Playback = () => {
 
   const fetchCommits = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/commits", {
+      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo", {
         params: { repoUrl: repo },
       });
 
@@ -58,7 +58,7 @@ const Playback = () => {
 
   const fetchFileContent = async (commitHash: string, setContent: (content: string[]) => void) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/files/content", {
+      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/content", {
         params: { repoUrl, filePath: normalizedFilePath, commitHash },
       });
       const content = response.data || "";
@@ -78,7 +78,7 @@ const Playback = () => {
   
   const fetchDiff = async (oldHash: string, newHash: string) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/files/diff", {
+      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/diff", {
         params: {
           repoUrl,
           filePath: normalizedFilePath,
@@ -96,7 +96,7 @@ const Playback = () => {
 
   const fetchCommitBounds = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/files/first-commit", {
+      const res = await axios.get("http://localhost:3000/api/visualizadorCodigo/first-commit", {
         params: { repoUrl, filePath: normalizedFilePath },
       });
       setFirstCommitHash(res.data.commitHash);
@@ -158,7 +158,7 @@ const Playback = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await axios.get("http://localhost:3000/api/files/analyze-express", {
+      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/analyze-express", {
         params: { repoUrl, filePath: normalizedFilePath, commitHashOld: oldHash, commitHashNew: newHash },
       });
       setAnalysisResult(response.data);
@@ -175,7 +175,7 @@ const Playback = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await axios.get("http://localhost:3000/api/files/analyze-deep", {
+      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/analyze-deep", {
         params: { repoUrl, filePath: normalizedFilePath },
       });
       setAnalysisResult(response.data);

@@ -29,7 +29,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
       if (!repoUrl) return;
     
       const encodedUrl = encodeURIComponent(repoUrl);
-      const res = await fetch(`http://localhost:3000/api/graph?repoUrl=${encodedUrl}`);
+      const res = await fetch(`http://localhost:3000/api/mapaEvolucionRepo?repoUrl=${encodedUrl}`);
     
       if (!res.ok) {
         const errText = await res.text();

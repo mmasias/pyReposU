@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/api/stats/contributions";
+const API_URL = "http://localhost:3000/api/mapaContribuciones/";
 
 export const useContributions = (
   repoUrl: string,

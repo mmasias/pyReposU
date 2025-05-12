@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/common/Layout";
 import Dashboard from "./pages/Dashboard";
-import Visualizador from "./pages/VisualizadorCodigo/Visualizador";
-import Playback from "./pages/VisualizadorCodigo/Playback";
+import Visualizador from "./pages/visualizadorCodigo/Visualizador";
+import Playback from "./pages/visualizadorCodigo/Playback";
 import Analisis from "./pages/anaisisMultidimensional/Analisis";
-import MapaHeatmap from "./pages/MapaContribuciones/MapaHeatmap";
+import MapaHeatmap from "./pages/mapaContribuciones/MapaHeatmap";
 import MapaBubbleChart from "./pages/mapaEvolucionRepo/MapaBubbleChart";
 import VisualizadorRamas from "./pages/visualizadorRamas/VisualizadorRamas";
 const App: React.FC = () => (

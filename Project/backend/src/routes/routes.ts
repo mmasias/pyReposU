@@ -1,16 +1,19 @@
-import { Application } from 'express';
-import commitsRoutes from './commits.routes';
-import statsRoutes from '.'; 
-import filesRoutes from './files.routes';
-import graphRoutes from './graph.routes';
+import { Router, Application } from 'express';
+import analisisMultidimensionalRoutes from './analisisMultidimensional.routes';
+import mapaContribucionesRoutes from './mapaContribuciones.routes';
+import mapaEvolucionRepoRoutes from './mapaEvolucionRepo.routes';
+import visualizadorCodigoRoutes from './visualizadorCodigo.routes';
+import visualizadorRamasRoutes from './visualizadorRamas.routes';
+import commonRoutes from './common.routes';
 
-/**
- * Configura todas las rutas de la aplicación.
- */
+const router = Router();
+
 export const setupRoutes = (app: Application): void => {
-  app.use('/api/commits', commitsRoutes);
-  app.use('/api/stats', statsRoutes);
-  app.use('/api/files', filesRoutes); // Registrar rutas relacionadas con archivos
-  app.use('/api/graph', graphRoutes);
-
+  app.use('/api/analisisMultidimensional', analisisMultidimensionalRoutes);
+  app.use('/api/mapaContribuciones', mapaContribucionesRoutes);
+  app.use('/api/mapaEvolucionRepo', mapaEvolucionRepoRoutes);
+  app.use('/api/visualizadorCodigo', visualizadorCodigoRoutes);
+  app.use('/api/visualizadorRamas', visualizadorRamasRoutes);
+  app.use('/api/common', commonRoutes); 
 };
+

@@ -9,12 +9,12 @@ router.get(
     ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 importante
     getUserContributionsHandler
   );
-  
+
   router.get(
     "/bubble-chart",
     ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 igual aquí
     getBubbleChartHandler
   );
-  
+
 
 export default router;

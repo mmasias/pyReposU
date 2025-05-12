@@ -23,7 +23,7 @@ const CommitTimeline: React.FC<Props> = ({ repoUrl, filePath, onCommitClick }) =
     const loadCommits = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("http://localhost:3000/api/commits", {
+        const res = await axios.get("http://localhost:3000/api/visualizadorCodigo", {
           params: { repoUrl },
         });
 

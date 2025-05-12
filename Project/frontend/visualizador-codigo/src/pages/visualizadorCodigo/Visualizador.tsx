@@ -42,7 +42,7 @@ const Visualizador = () => {
 
   const loadBranches = async (url: string) => {
     try {
-      const res = await axios.get("http://localhost:3000/api/stats/user/branches", {
+      const res = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", {
         params: { repoUrl: url },
       });
       setAvailableBranches(res.data);
@@ -53,7 +53,7 @@ const Visualizador = () => {
 
   const loadAuthorsAndDates = async (url: string) => {
     try {
-      const res = await axios.get("http://localhost:3000/api/commits", { params: { repoUrl: url } });
+      const res = await axios.get("http://localhost:3000/api/visualizadorCodigo", { params: { repoUrl: url } });
       const commits = res.data;
       const authors = Array.from(new Set(commits.map((c: any) => c.author)));
       setAvailableAuthors(authors as string[]);
@@ -83,7 +83,7 @@ const Visualizador = () => {
       if (until) params.until = until;
       if (author) params.author = author;
 
-      const res = await axios.get("http://localhost:3000/api/stats/tree", { params });
+      const res = await axios.get("http://localhost:3000/api/visualizadorCodigo/tree", { params });
 
       if (res.data.warning) alert(res.data.warning);
       const rootTree = res.data.tree;
@@ -95,7 +95,7 @@ const Visualizador = () => {
       
       
       if (!selectedBranch) {
-        const headRes = await axios.get("http://localhost:3000/api/stats/folders/current-branch", {
+        const headRes = await axios.get("http://localhost:3000/api/visualizadorCodigo/current-branch", {
           params: { repoUrl: repo },
         });
         selectedBranch = headRes.data.currentBranch;
@@ -116,7 +116,7 @@ const Visualizador = () => {
   const fetchFileContent = async (filePath: string, commitHash: string) => {
     try {
       const cleanPath = filePath.startsWith("/") ? filePath.slice(1) : filePath;
-      const res = await axios.get("http://localhost:3000/api/files/content", {
+      const res = await axios.get("http://localhost:3000/api/visualizadorCodigo/content", {
         params: { repoUrl, filePath: cleanPath, commitHash },
       });
       setSelectedFile({ path: cleanPath, content: res.data });

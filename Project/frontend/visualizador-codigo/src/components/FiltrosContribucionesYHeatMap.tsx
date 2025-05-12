@@ -39,9 +39,9 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
     
       try {
-        console.log(`  Enviando petición a: http://localhost:3000/api/stats/user/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+        console.log(`  Enviando petición a: http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
     
-        const { data } = await axios.get(`http://localhost:3000/api/stats/user/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+        const { data } = await axios.get(`http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
     
         console.log("  Ramas recibidas:", data);
         setBranches(Array.isArray(data) ? data : ["main"]);
