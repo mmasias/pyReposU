@@ -9,6 +9,8 @@ import { Comment } from '../models/Comment';
 import { Parser } from 'json2csv';
 import { Branch, CommitBranch } from '../models';
 import { UserRepoStats } from '../models/UserRepoStats';
+import { wasProcessed, markProcessed } from './syncState';
+import { CommitSyncState } from '../models/CommitSyncState';
 
 interface UserStats {
   user: string;
@@ -23,11 +25,9 @@ interface UserStats {
 
 function parseSafeDate(input?: string | null, fallback: Date = new Date('1970-01-01')): Date {
   if (!input || input.trim() === '') return fallback;
-
   const date = new Date(input);
   return isNaN(date.getTime()) ? fallback : date;
 }
-
 
 export const getUserStats = async (
   repoUrl: string,
@@ -43,29 +43,21 @@ export const getUserStats = async (
 
   const whereClause: any = {
     repositoryId: repo.id,
-    branch,
     startDate: start,
     endDate: end,
+    branch,
   };
 
-  type UserRepoStatsWithUser = UserRepoStats & { User: User };
-  const cachedStats = await UserRepoStats.findAll({
-    where: whereClause,
-    include: [User],
-  }) as UserRepoStatsWithUser[];
+  const cachedStats = await UserRepoStats.findAll({ where: whereClause });
 
-  const statsMap: Record<string, UserStats> = {};
-
-  //  Recuperamos commits SIEMPRE
+  // 🧠 Obtener commits en el rango
   const commitWhere: any = {
     repositoryId: repo.id,
     date: { [Op.gte]: start, [Op.lte]: end },
   };
 
   if (branch !== 'all') {
-    const branchRecord = await Branch.findOne({
-      where: { name: branch, repositoryId: repo.id },
-    });
+    const branchRecord = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
     if (!branchRecord) throw new Error(`Rama no encontrada: ${branch}`);
 
     const commitBranchLinks = await CommitBranch.findAll({
@@ -75,10 +67,45 @@ export const getUserStats = async (
     commitWhere.id = commitIds;
   }
 
-  const commits = await Commit.findAll({
-    where: commitWhere,
-    include: [User],
+  const commits = await Commit.findAll({ where: commitWhere, include: [User] });
+  const commitIds = commits.map(c => c.id);
+
+  // 🔍 Verificar si todos los commits tienen `stats` procesado
+  const processedStats = await CommitSyncState.findAll({
+    where: {
+      commitId: { [Op.in]: commitIds },
+      type: 'stats',
+    },
+    attributes: ['commitId'],
   });
+
+  const processedCommitIds = new Set(processedStats.map(p => p.commitId));
+  const allHaveStats = commitIds.every(id => processedCommitIds.has(id));
+
+  if (cachedStats.length > 0 && allHaveStats) {
+    console.log(`[STATS] Usando caché UserRepoStats + CommitSyncState ✅`);
+    const usersById: Record<number, string> = {};
+    for (const stat of cachedStats) {
+      if (!usersById[stat.userId]) {
+        const user = await User.findByPk(stat.userId);
+        usersById[stat.userId] = user?.githubLogin || 'Desconocido';
+      }
+    }
+
+    return cachedStats.map(s => ({
+      user: usersById[s.userId] || 'Desconocido',
+      totalContributions: s.totalContributions,
+      commits: s.commits,
+      linesAdded: s.linesAdded,
+      linesDeleted: s.linesDeleted,
+      pullRequests: s.pullRequests,
+      issues: s.issues,
+      comments: s.comments,
+    }));
+  }
+
+  // ⛏️ Procesamiento en vivo
+  const statsMap: Record<string, UserStats> = {};
 
   for (const commit of commits) {
     const user = commit.User;
@@ -88,7 +115,6 @@ export const getUserStats = async (
     statsMap[login] ||= createEmptyStats(login);
 
     const files = await CommitFile.findAll({ where: { commitId: commit.id } });
-
     const addedLines = files.reduce((acc, f) => acc + (f.linesAdded || 0), 0);
     const deletedLines = files.reduce((acc, f) => acc + (f.linesDeleted || 0), 0);
 
@@ -98,11 +124,13 @@ export const getUserStats = async (
     statsMap[login].totalContributions += 1;
   }
 
-  //  PRs
+  // PRs
   const prs = await PullRequest.findAll({
-    where: { repositoryId: repo.id }
+    where: {
+      repositoryId: repo.id,
+      createdAt: { [Op.gte]: start, [Op.lte]: end },
+    },
   });
-  
 
   for (const pr of prs) {
     const user = await User.findByPk(pr.userId);
@@ -112,9 +140,12 @@ export const getUserStats = async (
     statsMap[login].pullRequests += 1;
   }
 
-  //  Issues
+  // Issues
   const issues = await Issue.findAll({
-    where: { repositoryId: repo.id }
+    where: {
+      repositoryId: repo.id,
+      createdAt: { [Op.gte]: start, [Op.lte]: end },
+    },
   });
 
   for (const issue of issues) {
@@ -125,9 +156,12 @@ export const getUserStats = async (
     statsMap[login].issues += 1;
   }
 
-  //  Comments
+  // Comments
   const comments = await Comment.findAll({
-    where: { repositoryId: repo.id }
+    where: {
+      repositoryId: repo.id,
+      createdAt: { [Op.gte]: start, [Op.lte]: end },
+    },
   });
 
   for (const comment of comments) {
@@ -138,30 +172,23 @@ export const getUserStats = async (
     statsMap[login].comments += 1;
   }
 
-  // 💾 Guardar si no hay caché
-  if (cachedStats.length === 0) {
-    for (const [login, stat] of Object.entries(statsMap)) {
-      const user = await User.findOne({ where: { githubLogin: login } });
-      if (!user) continue;
-
-      if (branch !== 'all' && stat.commits === 0) continue;
-
-      await UserRepoStats.create({
-        repositoryId: repo.id,
-        userId: user.id,
-        branch,
-        startDate: start,
-        endDate: end,
-        ...stat,
-      });
-    }
+  // 💾 Guardar resultado
+  for (const [login, stat] of Object.entries(statsMap)) {
+    const user = await User.findOne({ where: { githubLogin: login } });
+    if (!user) continue;
+    await UserRepoStats.create({
+      repositoryId: repo.id,
+      userId: user.id,
+      branch,
+      startDate: start,
+      endDate: end,
+      ...stat,
+    });
   }
-  console.log('[DEBUG] Final stats map:', statsMap);
 
+  console.log(`[STATS] Stats actualizados para repo ${repoUrl} ✅`);
   return Object.values(statsMap);
 };
-
-
 
 export const getRepoGeneralStats = async (repoUrl: string, startDate?: string, endDate?: string) => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
@@ -199,7 +226,6 @@ export const getRepoGeneralStats = async (repoUrl: string, startDate?: string, e
     statsMap[login] ||= { pullRequests: 0, issues: 0, comments: 0 };
     statsMap[login].pullRequests += 1;
   }
-  
 
   for (const issue of issues) {
     const user = await User.findByPk(issue.userId);

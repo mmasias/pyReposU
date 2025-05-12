@@ -17,49 +17,17 @@ interface UserData {
   selectedBranch: string;
 }
 
+type StatsMap = Record<string, Record<string, UserData>>;
+
 const Analisis: React.FC = () => {
   const [data, setData] = useState<UserData[]>([]);
   const [repoUrl, setRepoUrl] = useState("");
-  const [since, setSince] = useState("");  
-  const [until, setUntil] = useState(new Date().toISOString().split("T")[0]); 
+  const [since, setSince] = useState("");
+  const [until, setUntil] = useState(new Date().toISOString().split("T")[0]);
   const [branches, setBranches] = useState<string[]>(["Todas"]);
-  const [visibleColumns] = useState<string[]>([
-    "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"
-  ]);
+  const [statsMap, setStatsMap] = useState<StatsMap>({});
 
-  useEffect(() => {
-    if (!repoUrl) return;
-
-    axios.get("http://localhost:3000/api/stats/user/branches", { params: { repoUrl } })
-      .then(response => setBranches(["Todas", ...response.data]))
-      .catch(error => console.error("Error al obtener ramas:", error));
-
-    const [repoOwner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
-    const repoName = repoNameRaw.replace(/\.git$/, "");
-
-    axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}`)
-      .then(response => setSince(response.data.created_at.split("T")[0]))
-      .catch(error => console.error("Error al obtener la fecha de creación:", error));
-
-  }, [repoUrl]);  
-
-  const fetchData = async () => {
-    try {
-      const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
-        params: { repoUrl, startDate: since, endDate: until }
-      });
-
-      const userStatsWithBranches = response.data.map((user: UserData) => ({
-        ...user,
-        selectedBranch: "Todas"
-      }));
-
-      setData(userStatsWithBranches);
-    } catch (error) {
-      console.error("Error al obtener datos:", error);
-    }
-  };
-
+  // ⏱️ Calculamos resumen general del repo
   const resumen = data.reduce(
     (acc, user) => {
       acc.commits += user.commits;
@@ -73,57 +41,131 @@ const Analisis: React.FC = () => {
     { commits: 0, linesAdded: 0, linesDeleted: 0, pullRequests: 0, issues: 0, comments: 0 }
   );
 
+  useEffect(() => {
+    if (!repoUrl) return;
+
+    const loadMetadata = async () => {
+      try {
+        const { data: branchData } = await axios.get("http://localhost:3000/api/stats/user/branches", { params: { repoUrl } });
+        const allBranches = ["Todas", ...branchData];
+        setBranches(allBranches);
+
+        const [owner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
+        const repoName = repoNameRaw.replace(/\.git$/, "");
+
+        const { data: repoMeta } = await axios.get(`https://api.github.com/repos/${owner}/${repoName}`);
+        const created = repoMeta.created_at.split("T")[0];
+        setSince(created);
+
+        const localKey = `userStatsCache_${repoUrl}_${created}_${until}`;
+        const cached = localStorage.getItem(localKey);
+
+        if (cached) {
+          const parsed = JSON.parse(cached) as StatsMap;
+          setStatsMap(parsed);
+          const defaultView = Object.entries(parsed).map(([user, branches]) => ({
+            ...branches["Todas"] || Object.values(branches)[0],
+            selectedBranch: "Todas"
+          }));
+          setData(defaultView);
+        } else {
+          await fetchInitialBranch(repoUrl, created, until, localKey);
+        }
+      } catch (err) {
+        console.error("❌ Error al inicializar datos:", err);
+      }
+    };
+
+    loadMetadata();
+  }, [repoUrl]);
+
+  const fetchData = async (url: string, loadedBranches: string[], from: string, to: string, localKey: string) => {
+    try {
+      const allStats: StatsMap = {};
+
+      for (const branch of loadedBranches) {
+        const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
+          params: {
+            repoUrl: url,
+            branch: branch === "Todas" ? undefined : branch,
+            startDate: from,
+            endDate: to
+          }
+        });
+
+        for (const user of response.data) {
+          allStats[user.user] ||= {};
+          allStats[user.user][branch] = { ...user, selectedBranch: branch };
+        }
+      }
+
+      localStorage.setItem(localKey, JSON.stringify(allStats));
+      setStatsMap(allStats);
+
+      const dataForDefault = Object.entries(allStats).map(([user, branches]) => ({
+        ...branches["Todas"] || Object.values(branches)[0],
+        selectedBranch: "Todas"
+      }));
+
+      setData(dataForDefault);
+    } catch (error) {
+      console.error("Error al obtener datos:", error);
+    }
+  };
+const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
+  try {
+    const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
+      params: { repoUrl: url, startDate: from, endDate: to }
+    });
+
+    const map: StatsMap = {};
+    for (const user of response.data) {
+      map[user.user] ||= {};
+      map[user.user]["Todas"] = { ...user, selectedBranch: "Todas" };
+    }
+
+    localStorage.setItem(localKey, JSON.stringify(map));
+    setStatsMap(map);
+
+    const initial = Object.entries(map).map(([_, branches]) => ({
+      ...branches["Todas"],
+      selectedBranch: "Todas"
+    }));
+
+    setData(initial);
+  } catch (err) {
+    console.error("❌ Error inicial al obtener datos:", err);
+  }
+};
+
   return (
-    <>
-      <div className="space-y-6">
-        <Filtros {...{ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData }} />
+    <div className="space-y-6">
+      <Filtros {...{ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData: async () => {} }} />
 
-        {/* MINI RESUMEN GENERAL */}
-        <div className="p-6 mb-6 bg-gray-100 dark:bg-gray-800 border rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">📊 Resumen del Repositorio</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Commits totales</p>
-              <p className="text-lg font-bold">{resumen.commits}</p>
+      <div className="p-6 mb-6 bg-gray-100 dark:bg-gray-800 border rounded-lg shadow-md">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">📊 Resumen del Repositorio</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {Object.entries(resumen).map(([key, val]) => (
+            <div key={key} className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{key}</p>
+              <p className="text-lg font-bold">{val}</p>
             </div>
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Líneas añadidas</p>
-              <p className="text-lg font-bold">{resumen.linesAdded}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Líneas eliminadas</p>
-              <p className="text-lg font-bold">{resumen.linesDeleted}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Pull Requests</p>
-              <p className="text-lg font-bold">{resumen.pullRequests}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Issues</p>
-              <p className="text-lg font-bold">{resumen.issues}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Comentarios</p>
-              <p className="text-lg font-bold">{resumen.comments}</p>
-            </div>
-          </div>
+          ))}
         </div>
-
-        {/* INTEGRAR GRÁFICOS AQUÍ */}
-        <Graficos userData={data} />
-
-        <TablaAnalisis 
-          data={data} 
-          branches={branches} 
-          visibleColumns={visibleColumns} 
-          setData={setData} 
-          repoUrl={repoUrl} 
-          since={since}   
-          until={until}   
-        />
-        <ExportarDatos repoUrl={repoUrl} branch="main" startDate={since} endDate={until} />
       </div>
-    </>
+
+      <Graficos userData={data} />
+      <TablaAnalisis
+        data={data}
+        branches={branches}
+        visibleColumns={[
+          "totalContributions", "commits", "linesAdded", "linesDeleted", "pullRequests", "issues", "comments"
+        ]}
+        setData={setData}
+        statsMap={statsMap}
+      />
+      <ExportarDatos repoUrl={repoUrl} branch="main" startDate={since} endDate={until} />
+    </div>
   );
 };
 

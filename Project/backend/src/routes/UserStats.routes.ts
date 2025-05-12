@@ -6,7 +6,7 @@ const router = Router();
 
 router.get("/", ensureRepoSynced({ syncCommits: true, syncStats: true, syncGithubActivityOption: true }), getUserStatsHandler);
 router.get("/export/csv", ensureRepoSynced({ syncCommits: true, syncStats: true, syncGithubActivityOption: true }), exportStatsToCSV);
-//TODO REVISAR QUITAREL syncommmits en /branches
+//TODO REVISAR si QUITAREL syncommmits en /branches
 router.get("/branches", ensureRepoSynced({ syncCommits: true }), getBranchesHandler);
 
 export default router;

@@ -1,5 +1,4 @@
 import React from "react";
-import axios from "axios";
 
 interface UserData {
   user: string;
@@ -18,37 +17,24 @@ interface TablaAnalisisProps {
   branches: string[];
   visibleColumns: string[];
   setData: React.Dispatch<React.SetStateAction<UserData[]>>;
-  repoUrl: string;
-  since: string;  //  AÑADIR ESTO
-  until: string;  //  AÑADIR ESTO
+  statsMap: Record<string, Record<string, UserData>>;
 }
 
-const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleColumns, setData, repoUrl, since, until }) => {
-  
-  const updateBranchData = async (user: string, branch: string) => {
-    try {
-      const response = await axios.get<UserData[]>("http://localhost:3000/api/stats/user", {
-        params: { 
-          repoUrl,
-          branch: branch === "Todas" ? undefined : branch,
-          startDate: since,  //  USAMOS EL `since` QUE RECIBIMOS DEL PARENT
-          endDate: until     //  USAMOS EL `until` QUE RECIBIMOS DEL PARENT
-        }
-      });
-  
-      const updatedUserStats = response.data.find((u) => u.user === user);
-      if (updatedUserStats) {
-        setData((prevData) =>
-          prevData.map((u) => 
-            u.user === user ? { ...u, ...updatedUserStats, selectedBranch: branch } : u
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error al actualizar datos de la rama:", error);
-    }
+const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleColumns, setData, statsMap }) => {
+  const updateBranchData = (user: string, branch: string) => {
+    const userBranches = statsMap[user];
+    if (!userBranches) return;
+
+    const newStats = userBranches[branch] || userBranches["Todas"] || Object.values(userBranches)[0];
+    if (!newStats) return;
+
+    setData(prev =>
+      prev.map(u =>
+        u.user === user ? { ...newStats, selectedBranch: branch } : u
+      )
+    );
   };
-  
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse border border-gray-300 dark:border-gray-600">
@@ -66,15 +52,15 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleCo
             <tr key={userData.user} className="hover:bg-gray-100 dark:hover:bg-gray-800">
               <td className="border p-2">{userData.user}</td>
               <td className="border p-2">
-              <select
-                value={userData.selectedBranch}
-                onChange={(e) => updateBranchData(userData.user, e.target.value)}
-                className="border rounded p-1 bg-white dark:bg-gray-700"
-              >
-                {branches.map((branch, index) => (
-                  <option key={`${branch}-${index}`} value={branch}>{branch}</option> //  Se agrega un índice único
-                ))}
-              </select>
+                <select
+                  value={userData.selectedBranch}
+                  onChange={(e) => updateBranchData(userData.user, e.target.value)}
+                  className="border rounded p-1 bg-white dark:bg-gray-700"
+                >
+                  {branches.map((branch, index) => (
+                    <option key={`${branch}-${index}`} value={branch}>{branch}</option>
+                  ))}
+                </select>
               </td>
               {visibleColumns.map(col => (
                 <td key={col} className="border p-2">{userData[col as keyof UserData]}</td>
