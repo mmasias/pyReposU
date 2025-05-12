@@ -234,7 +234,6 @@ const Playback = () => {
           onDeepAnalysis={handleDeepAnalysis}
         />
 
-        <h2 className="text-xl font-bold text-gray-700 mt-10 mb-4">Historial de Commits</h2>
         <CommitTimeline
           repoUrl={repo}
           filePath={normalizedFilePath}

@@ -1,8 +1,6 @@
-// services/filePlayback.service.ts
-
-import { Repository, Commit, CommitFile } from '../models';
-import { getFileContent } from '../utils/gitRepoUtils';
+import { Repository, Commit } from '../models';
 import { generateFileDiff } from '../utils/diffUtils';
+import { ensureCommitFileContentAndDiff } from './commitFileCache.service';
 
 export const getPlaybackHistory = async (
   repoUrl: string,
@@ -50,36 +48,24 @@ export const getPlaybackHistory = async (
 
   let prevContent: string | null = null;
 
-  for (const commit of commitsFromBranch) {
-    const [commitFile] = await CommitFile.findOrCreate({
-      where: {
-        commitId: commit.id,
-        filePath,
-      },
-      defaults: {
-        linesAdded: 0,
-        linesDeleted: 0,
-        diff: '',
-        content: '',
-      },
-    });
+  for (let i = 0; i < commitsFromBranch.length; i++) {
+    const commit = commitsFromBranch[i];
+    const prevCommit = commitsFromBranch[i - 1];
 
-    // Si no tenemos contenido cacheado aún, lo obtenemos del repo
-    if (!commitFile.content) {
-      const newContent = await getFileContent(repoUrl, commit.hash, filePath);
-      commitFile.content = newContent;
-      await commitFile.save();
-    }
+    const commitFile = await ensureCommitFileContentAndDiff(
+      repoUrl,
+      commit.hash,
+      filePath,
+      prevCommit?.hash
+    );
 
-    let diff = undefined;
-    if (prevContent !== null) {
-      diff = generateFileDiff(prevContent, commitFile.content!);
-    }
-    prevContent = commitFile.content!;
+    const content = commitFile.content!;
+    const diff = prevContent ? generateFileDiff(prevContent, content) : undefined;
+    prevContent = content;
 
     results.push({
       commitHash: commit.hash,
-      content: commitFile.content!,
+      content,
       date: commit.date.toISOString(),
       diffWithPrev: diff,
     });

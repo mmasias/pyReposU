@@ -20,9 +20,9 @@ router.get('/diff', ensureRepoSynced({ syncCommits: true, syncStats: true }), ge
 router.get('/first-commit', ensureRepoSynced({ syncCommits: true }), getFirstCommitForFileHandler);
 router.get('/latest-commit', ensureRepoSynced({ syncCommits: true }), getLatestCommitForFileHandler);
 
-router.get('/analyze-express', ensureRepoSynced({ syncCommits: true }), analyzeExpressHandler);
-router.get('/analyze-deep', ensureRepoSynced({ syncCommits: true }), analyzeDeepHandler);
+router.get('/analyze-express', ensureRepoSynced({ syncCommits: true, syncDiffs: true }), analyzeExpressHandler);
+router.get('/analyze-deep', ensureRepoSynced({ syncCommits: true, syncDiffs: true }), analyzeDeepHandler);
 
-router.get('/playback', ensureRepoSynced({ syncCommits: true, syncStats: true }), getFilePlaybackHandler);
+router.get('/playback', ensureRepoSynced({ syncCommits: true, syncDiffs: true }), getFilePlaybackHandler);
 
 export default router;

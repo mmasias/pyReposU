@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { getCommits, getFileContent } from "../utils/gitRepoUtils";
 import axios from "axios";
 import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
+import { ensureCommitFileContentAndDiff } from "../services/commitFileCache.service";
 
-//  Prompt simplificado, sin estructura JSON
+// Prompt simplificado sin estructura JSON
 const buildSimplifiedPrompt = (
   snapshots: { commit: string; content: string }[]
 ): string => {
@@ -18,7 +18,7 @@ ${versionedContent}
 Resumen del análisis:`;
 };
 
-// --- ANALISIS PROFUNDO ---
+// --- ANÁLISIS PROFUNDO ---
 export const analyzeDeepHandler = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, filePath } = req.query;
 
@@ -34,7 +34,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Check si ya lo tenemos analizado
+    // Verificar si ya está cacheado
     const existing = await FileAnalysis.findOne({
       where: { repoId: repo.id, filePath, type: 'deep' }
     });
@@ -45,6 +45,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
         commits: existing.commitHashes,
         cached: true,
       });
+      return;
     }
 
     // Obtener commits relacionados
@@ -65,16 +66,23 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // Elegir versiones representativas
     const first = commits[0];
     const last = commits[commits.length - 1];
     const middle = commits.slice(1, -1).slice(0, 3);
-
     const selectedCommits = [first, ...middle, last];
 
-    const snapshots = await Promise.all(selectedCommits.map(async commit => {
-      const content = await getFileContent(repoUrl as string, commit.hash, filePath as string);
-      return { commit: commit.hash, content };
-    }));
+    // Asegurar contenido cacheado y obtenerlo
+    const snapshots = await Promise.all(
+      selectedCommits.map(async commit => {
+        const cf = await ensureCommitFileContentAndDiff(
+          repoUrl as string,
+          commit.hash,
+          filePath as string
+        );
+        return { commit: commit.hash, content: cf.content || "" };
+      })
+    );
 
     const prompt = buildSimplifiedPrompt(snapshots);
 
@@ -87,7 +95,6 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
     const summary = response.data.response.trim();
     const commitHashes = selectedCommits.map(c => c.hash);
 
-    // Guardar análisis en la base de datos
     await FileAnalysis.create({
       repoId: repo.id,
       filePath,
@@ -103,7 +110,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
   }
 };
 
-// --- ANALISIS EXPRESS ---
+// --- ANÁLISIS EXPRESS ---
 export const analyzeExpressHandler = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, filePath, commitHashOld, commitHashNew } = req.query;
 
@@ -115,20 +122,39 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
   }
 
   try {
-    const contentOld = await getFileContent(
-      repoUrl as string,
-      commitHashOld as string,
-      filePath as string
-    );
-    const contentNew = await getFileContent(
-      repoUrl as string,
-      commitHashNew as string,
-      filePath as string
-    );
+    const repo = await Repository.findOne({ where: { url: repoUrl } });
+    if (!repo) {
+      res.status(404).json({ message: "Repositorio no encontrado." });
+      return;
+    }
+
+    // Buscar si ya existe el análisis express para ese par de commits
+    const existing = await FileAnalysis.findOne({
+      where: {
+        repoId: repo.id,
+        filePath,
+        type: 'express',
+        commitHashes: [commitHashOld, commitHashNew], // <- Sequelize JSON match
+      },
+    });
+
+    if (existing) {
+      res.status(200).json({
+        summary: existing.summary,
+        commits: existing.commitHashes,
+        cached: true,
+      });
+      return;
+    }
+
+    const [oldSnapshot, newSnapshot] = await Promise.all([
+      ensureCommitFileContentAndDiff(repoUrl as string, commitHashOld as string, filePath as string),
+      ensureCommitFileContentAndDiff(repoUrl as string, commitHashNew as string, filePath as string),
+    ]);
 
     const prompt = buildSimplifiedPrompt([
-      { commit: commitHashOld as string, content: contentOld },
-      { commit: commitHashNew as string, content: contentNew },
+      { commit: commitHashOld as string, content: oldSnapshot.content || "" },
+      { commit: commitHashNew as string, content: newSnapshot.content || "" },
     ]);
 
     const response = await axios.post("http://127.0.0.1:11434/api/generate", {
@@ -138,6 +164,15 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
     });
 
     const raw = response.data.response.trim();
+
+    // Guardar en DB para futuras ejecuciones
+    await FileAnalysis.create({
+      repoId: repo.id,
+      filePath,
+      type: 'express',
+      summary: raw,
+      commitHashes: [commitHashOld, commitHashNew],
+    });
 
     res.status(200).json({
       summary: raw,
