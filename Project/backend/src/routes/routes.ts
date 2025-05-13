@@ -1,7 +1,7 @@
 import { Router, Application } from 'express';
 import analisisMultidimensionalRoutes from './analisisMultidimensional.routes';
 import mapaContribucionesRoutes from './mapaContribuciones.routes';
-import mapaEvolucionRepoRoutes from './mapaEvolucionRepo.routes';
+import mapaEvolucionRepoRoutes from './mapaEGraficoCommits.routes';
 import visualizadorCodigoRoutes from './visualizadorCodigo.routes';
 import commonRoutes from './common.routes';
 
