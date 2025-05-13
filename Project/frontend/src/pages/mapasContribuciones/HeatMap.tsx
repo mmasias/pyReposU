@@ -60,12 +60,10 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
   //  Verifica que ROOT tiene archivos y carpetas
   console.log(" Árbol de archivos FINAL:", fileTree);
 
-  //  Log de la estructura del árbol de archivos
   console.log(" Árbol de archivos construido:", fileTree);
   console.log(" Contenido de fileTree[docs/recursos]:", fileTree["docs/recursos"]);
   console.log(" Contenido de fileTree[docs/recursos/imagenes]:", fileTree["docs/recursos/imagenes"]);
 
-  //  Asegurar que TODAS las carpetas aparecen en `fileTree`, aunque solo tengan imágenes
   folders.forEach((folder) => {
     const parent = folder.split("/").slice(0, -1).join("/");
     if (!fileTree[parent]) fileTree[parent] = [];
@@ -82,39 +80,48 @@ const Heatmap: React.FC<HeatmapProps> = ({ data }) => {
       });
       setExpandedFolders(initialExpanded);
     }
-  }, []); //  Solo se ejecuta cuando cambian las carpetas
+  }, []); 
 
   //  Obtener archivos en el orden correcto
-  const getVisibleFiles = (): string[] => {
-    let files: string[] = [...fileTree["ROOT"]].filter(file => file !== "." && file !== "TOTAL");
-  
-    const addChildrenRecursively = (parent: string) => {
-      if (expandedFolders[parent]) {
-        const children = fileTree[parent] || [];
-        children.forEach(child => {
-          if (!files.includes(child)) {
-            files.push(child);
-            if (folders.has(child)) {
-              addChildrenRecursively(child);
-            }
-          }
-        });
+const getVisibleFiles = (): string[] => {
+  const visible: string[] = [];
+
+  const visit = (parent: string) => {
+    const children = fileTree[parent] || [];
+
+    const foldersFirst = children
+      .slice()
+      .sort((a, b) => {
+        const aIsFolder = folders.has(a);
+        const bIsFolder = folders.has(b);
+
+        if (aIsFolder && !bIsFolder) return -1;
+        if (!aIsFolder && bIsFolder) return 1;
+
+        return a.localeCompare(b);
+      });
+
+    foldersFirst.forEach((child) => {
+      if (!visible.includes(child)) {
+        visible.push(child);
       }
-    };
-  
-    [...fileTree["ROOT"]].forEach(rootFolder => {
-      if (folders.has(rootFolder)) {
-        addChildrenRecursively(rootFolder);
+
+      if (folders.has(child) && expandedFolders[child]) {
+        visit(child);
       }
     });
-  
-    files.push("TOTAL");
-    return files;
   };
+
+  visit("ROOT");
+  if (!visible.includes("TOTAL")) visible.push("TOTAL");
+
+  return visible;
+};
+
   
   useEffect(() => {
     setVisibleFiles(getVisibleFiles());
-  }, [expandedFolders]); 
+  }, [expandedFolders, data]);
   const formatFileName = (filePath: string): string => {
     const parts = filePath.split("/");
     if (parts.length <= 1) return filePath;
@@ -146,15 +153,18 @@ const colorScale = d3.scaleThreshold<number, string>()
     svg.selectAll("*").remove();
 
     const cellSize = 40;
-    const extraLegendSpace = 120; //  Espacio reservado SOLO para la leyenda
+    const y = (index: number) => margin.top + index * cellSize;
+
+    const extraLegendSpace = 120; 
     const heatmapWidth = users.length * cellSize + 350; //  Mantiene el heatmap sin cambios
     const svgWidth = heatmapWidth + extraLegendSpace; 
-    const height = visibleFiles.length * cellSize + 200;
 
     const margin = { top: 150, right: 20, bottom: 50, left: 300 };
-    const xScale = d3.scaleBand<string>().domain(users).range([margin.left, heatmapWidth]).padding(0.1);
-    const yScale = d3.scaleBand<string>().domain(visibleFiles).range([margin.top, height]).padding(0.1);
+    const height = margin.top + margin.bottom + visibleFiles.length * cellSize;
 
+    const xScale = d3.scaleBand<string>().domain(users).range([margin.left, heatmapWidth]).padding(0.1);
+
+      
     svg.attr("width", svgWidth).attr("height", height);
 
     //  Eje X (Usuarios)
@@ -170,31 +180,40 @@ const colorScale = d3.scaleThreshold<number, string>()
       .attr("transform", "rotate(-30)");
 
     //  Eje Y (Archivos/Carpetas)
-    const yAxis = svg.append("g")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale).tickSize(0));
+  const yAxis = svg.append("g")
+    .attr("transform", `translate(${margin.left - 10},0)`); 
 
-    yAxis.selectAll("text")
-      .style("cursor", (filePath) => (folders.has(filePath as string) ? "pointer" : "default"))
-      .style("fill", (filePath) => (expandedFolders[filePath as string] ? "blue" : "black"))
-      .style("font-weight", (filePath) => (folders.has(filePath as string) ? "bold" : "normal"))
-      .style("text-indent", (filePath) => `${((filePath as string).split("/").length - 1) * 15}px`)
-      .text((filePath) => {
-        const path = filePath as string;
-        const isFolder = folders.has(path);
-        return isFolder ? (expandedFolders[path] ? `🔽 ${formatFileName(path)}` : `▶️ ${formatFileName(path)}`) : ` ${formatFileName(path)}`;
-      })
-      .on("click", function (_, filePath) {
-        const folderName = filePath as string;
-        if (folders.has(folderName)) {
-          setExpandedFolders((prev) => {
-            const newExpanded = { ...prev, [folderName]: !prev[folderName] };
-            console.log("📂 Estado actualizado de expandedFolders:", newExpanded);
-            return newExpanded;
-          });
-        }
-      });
-    //  Log de los archivos que se están pintando en el heatmap
+  // Renderiza manualmente los labels (texto) Y
+  yAxis.selectAll("text")
+    .data(visibleFiles)
+    .enter()
+    .append("text")
+    .style("font-family", "sans-serif")
+    .style("font-size", "13px")
+    .attr("x", 0)
+    .attr("y", (_, i) => y(i) + cellSize / 2 + 5)
+    .attr("text-anchor", "end")
+    .style("font-size", "13px")
+    .style("cursor", (filePath) => (folders.has(filePath) ? "pointer" : "default"))
+    .style("fill", (filePath) => (expandedFolders[filePath] ? "blue" : "black"))
+    .style("font-weight", (filePath) => (folders.has(filePath) ? "bold" : "normal"))
+    .text((filePath) => {
+      const depth = (filePath.match(/\//g) || []).length;
+      const isFolder = folders.has(filePath);
+      const prefix = " ".repeat(depth * 2); // sangría visual
+      return isFolder
+        ? `${expandedFolders[filePath] ? "🔽" : "▶️"} ${prefix}${formatFileName(filePath)}`
+        : `${prefix}${formatFileName(filePath)}`;
+    })
+    .on("click", function (_, filePath) {
+      if (folders.has(filePath)) {
+        setExpandedFolders((prev) => ({
+          ...prev,
+          [filePath]: !prev[filePath],
+        }));
+      }
+    });
+
     console.log(" Renderizando heatmap con archivos:", visibleFiles);
 
     //  Renderizar las celdas del heatmap (incluyendo "TOTAL")
@@ -204,9 +223,9 @@ const colorScale = d3.scaleThreshold<number, string>()
 
         svg.append("rect")
           .attr("x", xScale(user as string) ?? 0)
-          .attr("y", yScale(file as string) ?? 0)
+          .attr("y", y(visibleFiles.indexOf(file)))
           .attr("width", xScale.bandwidth() || 10)
-          .attr("height", yScale.bandwidth() || 10)
+          .attr("height", cellSize)
           .attr("fill", colorScale(percentage)) 
           .attr("stroke", "white")
           .on("mouseover", function (event) {
