@@ -6,6 +6,7 @@ import { Repository } from "../models/Repository";
 import { CommitBranch } from "../models/CommitBranch";
 import { CommitFile } from "../models/CommitFile";
 import { Commit } from "../models/Commit";
+import { AppError } from "../middleware/errorHandler";
 
 export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
   return async (req, res, next) => {
@@ -13,8 +14,7 @@ export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
     const branch = (req.query.branch as string) || "main";
 
     if (!repoUrl) {
-      res.status(400).json({ message: "Falta el parámetro repoUrl" });
-      return;
+      return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
     }
 
     try {
@@ -23,9 +23,9 @@ export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
         syncStats: true,
         syncDiffs: false,
       });
-      
+
       const repo = await Repository.findOne({ where: { url: repoUrl } });
-      if (!repo) throw new Error("Repositorio no encontrado tras sync");
+      if (!repo) throw new AppError("REPO_NOT_FOUND", "Repositorio no encontrado tras sync", 404);
 
       let retries = 0;
       let isReady = false;
@@ -41,47 +41,41 @@ export const ensureRepoSynced = (options: SyncOptions = {}): RequestHandler => {
           retries++;
           continue;
         }
-        
+
         const commitBranches = await CommitBranch.findAll({
           where: { branchId: freshBranch.id },
           order: [["createdAt", "DESC"]],
         });
-        
+
         for (const cb of commitBranches) {
           const [commit, fileCount] = await Promise.all([
             Commit.findByPk(cb.commitId),
             CommitFile.count({ where: { commitId: cb.commitId } }),
           ]);
-        
+
           if (commit && fileCount > 0) {
             isReady = true;
             break;
-          }
-          else {
+          } else {
             console.warn(`[🛑 ensureRepoSynced] Commit ${commit?.hash} encontrado, pero sin archivos (fileCount=${fileCount})`);
           }
         }
-        
 
-        // Justo antes de lanzar el error final
         if (!isReady) {
           console.warn(`[🟡 WARN] Ningún commit con archivos útiles en rama "${branch}" tras sincronización`);
-          // No lanza error si hay commits pero todos vacíos (como merges)
           const commits = await CommitBranch.count({ where: { branchId: freshBranch.id } });
           if (commits > 0) {
-            return next(); // ⚠️ Permitir pasar si hay commits, aunque sin archivos útiles
+            return next(); // ⚠️ Permitir pasar si hay commits, aunque vacíos
           }
 
-          throw new Error(`No se encontró una rama con commits y archivos después de sincronizar`);
+          throw new AppError("SYNC_FAILED", `No se encontró una rama con commits y archivos después de sincronizar`, 500);
         }
-
       }
-
 
       next();
     } catch (err) {
       console.error("[ensureRepoSynced] Error al sincronizar:", err);
-      res.status(500).json({ message: "Error al sincronizar el repositorio y ramas" });
+      next(new AppError("SYNC_FAILED"));
     }
   };
 };

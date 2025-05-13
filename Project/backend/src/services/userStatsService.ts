@@ -11,6 +11,7 @@ import { Branch, CommitBranch } from '../models';
 import { UserRepoStats } from '../models/UserRepoStats';
 import { wasProcessed, markProcessed } from './syncState';
 import { CommitSyncState } from '../models/CommitSyncState';
+import { AppError } from "../middleware/errorHandler";
 
 interface UserStats {
   user: string;
@@ -36,7 +37,7 @@ export const getUserStats = async (
   endDate?: string
 ): Promise<UserStats[]> => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+  if (!repo) throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
 
   const start = parseSafeDate(startDate);
   const end = parseSafeDate(endDate, new Date());
@@ -58,7 +59,7 @@ export const getUserStats = async (
 
   if (branch !== 'all') {
     const branchRecord = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
-    if (!branchRecord) throw new Error(`Rama no encontrada: ${branch}`);
+  if (!branchRecord) throw new AppError("BRANCH_NOT_FOUND", `Rama no encontrada: ${branch}`, 404);
 
     const commitBranchLinks = await CommitBranch.findAll({
       where: { branchId: branchRecord.id },
@@ -192,7 +193,7 @@ export const getUserStats = async (
 
 export const getRepoGeneralStats = async (repoUrl: string, startDate?: string, endDate?: string) => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+  if (!repo) throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
 
   const start = parseSafeDate(startDate);
   const end = parseSafeDate(endDate, new Date());

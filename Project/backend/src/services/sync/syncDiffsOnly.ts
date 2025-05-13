@@ -1,5 +1,3 @@
-// services/sync/syncDiffsOnly.ts
-
 import { Commit } from "../../models/Commit";
 import { CommitFile } from "../../models/CommitFile";
 import { Repository } from "../../models/Repository";
@@ -8,6 +6,7 @@ import { getFileContent, fileExistsInCommit } from "../../utils/gitRepoUtils";
 import { generateFileDiff } from "../../utils/diffUtils";
 import path from "path";
 import { CommitParent } from "../../models/CommitParent";
+import { AppError } from "../../middleware/errorHandler";
 
 export const syncDiffsOnly = async (repo: Repository, localPath: string) => {
   const commits = await Commit.findAll({
@@ -28,10 +27,10 @@ export const syncDiffsOnly = async (repo: Repository, localPath: string) => {
         const filePath = cf.filePath;
         const parentLink = await CommitParent.findOne({ where: { childId: commit.id } });
         if (!parentLink) continue;
-        
+
         const parentCommit = await Commit.findByPk(parentLink.parentId);
         if (!parentCommit) continue;
-        
+
         const parentHash = parentCommit.hash;
 
         const existsInPrev = await fileExistsInCommit(localPath, parentHash, filePath);
@@ -49,6 +48,8 @@ export const syncDiffsOnly = async (repo: Repository, localPath: string) => {
         }
       } catch (err) {
         console.error(`[DIFF] ❌ Error en archivo para commit ${commit.hash}:`, err);
+        // 👉 Si quieres que el error rompa el proceso, lanza AppError aquí
+        throw new AppError("FAILED_TO_GET_FILE_DIFF", `Error procesando diff para commit ${commit.hash}`);
       }
     }
 

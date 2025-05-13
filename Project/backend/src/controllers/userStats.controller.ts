@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getUserStats, generateUserStatsCSV, getRepoGeneralStats } from "../services/userStatsService";
 import { getRepoBranches } from "../utils/gitRepoUtils";
+import { AppError } from "../middleware/errorHandler";
 
 export const getUserStatsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -10,18 +11,12 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
     const endDate = req.query.endDate as string;
 
     if (!repoUrl || !startDate || !endDate) {
-      res.status(400).json({ error: "Parámetros faltantes" });
-      return;
+      return next(new AppError("USER_STATS_PARAMS_MISSING", undefined, 400));
     }
 
-  
-    // Obtener datos de PRs, Issues y Comments desde BBDD ya actualizada
     const repoStats = await getRepoGeneralStats(repoUrl, startDate, endDate);
-
-    // Obtener stats de commits, líneas añadidas y eliminadas por usuario
     const userStats = await getUserStats(repoUrl, branch, startDate, endDate);
 
-    // Combinar los datos antes de enviarlos
     const finalStats = userStats.map(user => ({
       ...user,
       pullRequests: repoStats[user.user]?.pullRequests || 0,
@@ -32,11 +27,9 @@ export const getUserStatsHandler = async (req: Request, res: Response, next: Nex
     res.json(finalStats);
   } catch (error) {
     console.error("[getUserStatsHandler] Error:", error);
-    next(error);
+    next(new AppError("INTERNAL_ERROR"));
   }
 };
-
-
 
 export const exportStatsToCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -46,8 +39,7 @@ export const exportStatsToCSV = async (req: Request, res: Response, next: NextFu
     const endDate = req.query.endDate as string;
 
     if (!repoUrl) {
-      res.status(400).json({ message: "El parámetro repoUrl es obligatorio." });
-      return;
+      return next(new AppError("REPO_URL_REQUIRED_FOR_CSV", undefined, 400));
     }
 
     const csv = await generateUserStatsCSV(repoUrl, branch, startDate, endDate);
@@ -56,7 +48,8 @@ export const exportStatsToCSV = async (req: Request, res: Response, next: NextFu
     res.attachment("user-stats.csv");
     res.send(csv);
   } catch (error) {
-    next(error);
+    console.error("[exportStatsToCSV] Error:", error);
+    next(new AppError("INTERNAL_ERROR"));
   }
 };
 
@@ -64,13 +57,13 @@ export const getBranchesHandler = async (req: Request, res: Response, next: Next
   try {
     const repoUrl = req.query.repoUrl as string;
     if (!repoUrl) {
-      res.status(400).json({ error: "Se requiere repoUrl" });
-      return;
+      return next(new AppError("REPO_URL_REQUIRED_FOR_BRANCHES", undefined, 400));
     }
 
     const branches = await getRepoBranches(repoUrl);
     res.json(branches);
   } catch (error) {
-    next(error);
+    console.error("[getBranchesHandler] Error:", error);
+    next(new AppError("INTERNAL_ERROR"));
   }
 };

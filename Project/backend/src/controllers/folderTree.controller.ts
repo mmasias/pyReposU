@@ -1,15 +1,15 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { Repository } from "../models/Repository";
 import { getRepositoryTreeService } from "../services/getRepositoryTreeService";
 import simpleGit from "simple-git";
 import { prepareRepo } from "../utils/gitRepoUtils";
+import { AppError } from "../middleware/errorHandler";
 
-export const getRepositoryTree = async (req: Request, res: Response): Promise<void> => {
+export const getRepositoryTree = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, author, since, until, branch } = req.query;
 
   if (!repoUrl) {
-    res.status(400).json({ message: "Se requiere el parámetro repoUrl." });
-    return;
+    return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
   }
 
   try {
@@ -17,13 +17,11 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
     const repo = await Repository.findOne({ where: { url: decodedRepoUrl } });
 
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      return next(new AppError("REPO_NOT_FOUND", undefined, 404));
     }
 
     let branchToUse = branch as string | undefined;
 
-    //  Validamos que la rama exista en Git si se especifica
     if (branchToUse) {
       const repoPath = await prepareRepo(decodedRepoUrl);
       const git = simpleGit(repoPath);
@@ -32,7 +30,7 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
       );
 
       if (!branchExists) {
-        res.status(400).json({ message: `La rama '${branchToUse}' no existe en el repositorio.` });
+        return next(new AppError("BRANCH_NOT_EXISTS_IN_REPO", `La rama '${branchToUse}' no existe en el repositorio.`, 400));
       }
     }
 
@@ -55,19 +53,15 @@ export const getRepositoryTree = async (req: Request, res: Response): Promise<vo
     res.status(200).json({ tree });
   } catch (error) {
     console.error("[getRepositoryTree] Error:", error);
-    res.status(500).json({
-      message: "Error al obtener el árbol del repositorio.",
-      error: error instanceof Error ? error.message : "Error desconocido",
-    });
+    next(new AppError("FAILED_TO_GET_REPO_TREE"));
   }
 };
 
-export const getCurrentBranch = async (req: Request, res: Response): Promise<void> => {
+export const getCurrentBranch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl } = req.query;
 
   if (!repoUrl) {
-    res.status(400).json({ message: "Se requiere el parámetro repoUrl." });
-    return;
+    return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
   }
 
   try {
@@ -79,6 +73,6 @@ export const getCurrentBranch = async (req: Request, res: Response): Promise<voi
     res.status(200).json({ currentBranch: branch.trim() });
   } catch (err) {
     console.error("Error al obtener la rama actual:", err);
-    res.status(500).json({ message: "Error al obtener la rama actual." });
+    next(new AppError("FAILED_TO_GET_CURRENT_BRANCH"));
   }
 };

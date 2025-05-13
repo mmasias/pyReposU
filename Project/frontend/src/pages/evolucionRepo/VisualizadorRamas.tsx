@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import CommitGraph from "../../components/evolucionRepo/CommitGraph";
 import FiltrosContribucionesYHeatMap from "../../components/BarraConFiltros";
+import { ERROR_MESSAGES } from "../../utils/constants/errorConstants";
 
 type Commit = {
   sha: string;
@@ -42,7 +43,7 @@ const VisualizadorRamas = () => {
 
       setCommits(filtered);
     } catch (err) {
-      console.error("❌ Error al cargar commits:", err);
+      console.error(ERROR_MESSAGES.ERROR_LOADING_COMMITS, err);
     }
   };
 

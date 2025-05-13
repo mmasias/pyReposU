@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchBubbleChartData } from "../services/bubbleChartService";
+import { CONSOLE_LOG_MESSAGES, ERROR_MESSAGES } from "../utils/constants/errorConstants";
 
 export const useBubbleChart = (repoUrl: string, branch: string) => {
   const [bubbleData, setBubbleData] = useState<any>(null);
@@ -7,18 +8,18 @@ export const useBubbleChart = (repoUrl: string, branch: string) => {
 
   const fetchData = async () => {
     if (!repoUrl || !branch) {
-      console.warn("  Esperando valores válidos antes de hacer la petición...");
+      console.warn(CONSOLE_LOG_MESSAGES.WAITING_FOR_VALID_VALUES);
       return;
     }
   
     setLoading(true);
   
     try {
-      console.log(`  Fetching bubble chart data -> repoUrl: ${repoUrl}, branch: ${branch}`);
+      console.log(CONSOLE_LOG_MESSAGES.FETCHING_BUBBLE_CHART_DATA, repoUrl, branch);
       const data = await fetchBubbleChartData(repoUrl, branch);
       setBubbleData(data);
     } catch (error) {
-      console.error("  Error al obtener datos del diagrama de burbujas:", error);
+      console.error(CONSOLE_LOG_MESSAGES.ERROR_GETTING_BUBBLE_CHART_DATA, error);
     } finally {
       setLoading(false);
     }
@@ -26,7 +27,7 @@ export const useBubbleChart = (repoUrl: string, branch: string) => {
 
   useEffect(() => {
     if (!repoUrl || !branch) {
-      console.warn("  Esperando valores válidos antes de hacer la petición...");
+      console.warn(CONSOLE_LOG_MESSAGES.WAITING_FOR_VALID_VALUES);
       return;
     }
   

@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { ERROR_MESSAGES, CONSOLE_LOG_MESSAGES } from "../../utils/constants/errorConstants";
 
 const Visualizador = () => {
   const [repoUrl, setRepoUrl] = useState("");
@@ -47,7 +48,7 @@ const Visualizador = () => {
       });
       setAvailableBranches(res.data);
     } catch (err) {
-      console.error("Error al cargar ramas:", err);
+      console.error(CONSOLE_LOG_MESSAGES.ERROR_LOADING_BRANCHES, err);
     }
   };
 
@@ -63,7 +64,7 @@ const Visualizador = () => {
         setUntil(commits[0].date.split("T")[0]);
       }
     } catch (err) {
-      console.error("Error al cargar autores/fechas:", err);
+      console.error(CONSOLE_LOG_MESSAGES.ERROR_LOADING_AUTHORS_DATES, err);
     }
   };
 
@@ -106,8 +107,9 @@ const Visualizador = () => {
       sessionStorage.setItem("branch", selectedBranch);
       sessionStorage.setItem("treeData", JSON.stringify(res.data.tree.subfolders || []));
     } catch (err) {
-      console.error("Error al cargar el árbol:", err);
-      setError("Error al cargar el árbol del repositorio. Verifica la URL.");
+      console.error(CONSOLE_LOG_MESSAGES.ERROR_LOADING_TREE, err);
+      setError(ERROR_MESSAGES.ERROR_LOADING_REPO_TREE);
+
     } finally {
       setLoading(false);
     }
@@ -121,7 +123,7 @@ const Visualizador = () => {
       });
       setSelectedFile({ path: cleanPath, content: res.data });
     } catch {
-      setError("Error al cargar el contenido del archivo.");
+      setError(ERROR_MESSAGES.ERROR_LOADING_FILE_CONTENT);
     }
   };
 

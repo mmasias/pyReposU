@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { ERROR_MESSAGES, CONSOLE_LOG_MESSAGES } from "../../utils/constants/errorConstants";
+
 
 interface Commit {
   hash: string;
@@ -33,7 +35,8 @@ const CommitTimeline: React.FC<Props> = ({ repoUrl, filePath, onCommitClick }) =
 
         setCommits(filtered);
       } catch (err) {
-        setError("Error al cargar la timeline de commits.");
+        console.error(CONSOLE_LOG_MESSAGES.FETCHING_COMMIT_TIMELINE, err);
+        setError(ERROR_MESSAGES.FETCHING_COMMIT_TIMELINE);
       } finally {
         setLoading(false);
       }

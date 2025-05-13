@@ -1,13 +1,13 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { Repository } from "../models/Repository";
 import { getFolderStatsService } from "../services/getFolderStatsService";
+import { AppError } from "../middleware/errorHandler";
 
-export const getFolderStats = async (req: Request, res: Response): Promise<void> => {
+export const getFolderStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl } = req.query;
 
   if (!repoUrl) {
-    res.status(400).json({ message: "Se requiere el parámetro repoUrl." });
-    return;
+    return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
   }
 
   try {
@@ -15,17 +15,13 @@ export const getFolderStats = async (req: Request, res: Response): Promise<void>
     const repo = await Repository.findOne({ where: { url: decodedRepoUrl } });
 
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      return next(new AppError("REPO_NOT_FOUND", undefined, 404));
     }
 
     const stats = await getFolderStatsService(repo.id, decodedRepoUrl);
     res.status(200).json(stats);
   } catch (error) {
     console.error("[getFolderStats] Error:", error);
-    res.status(500).json({
-      message: "Error al obtener estadísticas de carpetas.",
-      error: error instanceof Error ? error.message : "Error desconocido",
-    });
+    next(new AppError("FAILED_TO_GET_FOLDER_STATS"));
   }
 };

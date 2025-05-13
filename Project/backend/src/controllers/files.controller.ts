@@ -1,15 +1,16 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { getCommits, getFileContent, getFileDiff, getFirstCommitForFile } from "../utils/gitRepoUtils";
 import { Commit, CommitFile, Repository } from "../models";
 import { getPlaybackHistory } from "../services/filePlayback.service";
 import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
-//  Obtener contenido de un archivo en un commit
-export const getFileContentHandler = async (req: Request, res: Response): Promise<void> => {
+import { AppError } from "../middleware/errorHandler";
+
+// Obtener contenido de un archivo en un commit
+export const getFileContentHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
 
   if (!repoUrl || !filePath || !commitHash) {
-    res.status(400).json({ message: "Faltan parámetros: repoUrl, filePath, commitHash." });
-    return;
+    return next(new AppError("FILE_CONTENT_PARAMS_REQUIRED", undefined, 400));
   }
 
   try {
@@ -21,17 +22,16 @@ export const getFileContentHandler = async (req: Request, res: Response): Promis
     res.status(200).send(commitFile.content || "// Archivo vacío");
   } catch (error) {
     console.error(`[getFileContentHandler]`, error);
-    res.status(500).json({ message: "Error al obtener contenido del archivo." });
+    next(new AppError("FAILED_TO_GET_FILE_CONTENT"));
   }
 };
 
-//  Obtener diff entre dos commits para un archivo
-export const getFileDiffHandler = async (req: Request, res: Response): Promise<void> => {
+// Obtener diff entre dos commits para un archivo
+export const getFileDiffHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, commitHashOld, commitHashNew, filePath } = req.query;
 
   if (!repoUrl || !commitHashOld || !commitHashNew || !filePath) {
-    res.status(400).json({ message: "Faltan parámetros requeridos." });
-    return;
+    return next(new AppError("FILE_DIFF_PARAMS_REQUIRED", undefined, 400));
   }
 
   try {
@@ -54,24 +54,22 @@ export const getFileDiffHandler = async (req: Request, res: Response): Promise<v
     res.status(200).json({ addedLines, removedLines });
   } catch (error) {
     console.error(`[getFileDiffHandler]`, error);
-    res.status(500).json({ message: "Error al obtener el diff." });
+    next(new AppError("FAILED_TO_GET_FILE_DIFF"));
   }
 };
 
-//  Obtener primer commit donde aparece un archivo
-export const getFirstCommitForFileHandler = async (req: Request, res: Response): Promise<void> => {
+// Obtener primer commit donde aparece un archivo
+export const getFirstCommitForFileHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, filePath } = req.query;
 
   if (!repoUrl || !filePath) {
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
-    return;
+    return next(new AppError("REPO_URL_AND_FILE_PATH_REQUIRED", undefined, 400));
   }
 
   try {
     const repo = await Repository.findOne({ where: { url: repoUrl as string } });
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      throw new AppError("REPO_NOT_FOUND", undefined, 404);
     }
 
     const commitFile = await CommitFile.findOne({
@@ -86,34 +84,28 @@ export const getFirstCommitForFileHandler = async (req: Request, res: Response):
     });
 
     if (!commitFile) {
-      res.status(404).json({ message: "No se encontró el primer commit del archivo." });
+      throw new AppError("FIRST_COMMIT_NOT_FOUND", undefined, 404);
     }
 
-    if (commitFile) {
-      res.status(200).json({ commitHash: commitFile.commitId });
-    } else {
-      res.status(404).json({ message: "No se encontró el primer commit del archivo." });
-    }
+    res.status(200).json({ commitHash: commitFile.commitId });
   } catch (error) {
     console.error(`[getFirstCommitForFileHandler] Error:`, error);
-    res.status(500).json({ message: "Error interno." });
+    next(new AppError("FAILED_TO_GET_FILE_CONTENT"));
   }
 };
 
-//  Obtener último commit donde aparece un archivo
-export const getLatestCommitForFileHandler = async (req: Request, res: Response): Promise<void> => {
+// Obtener último commit donde aparece un archivo
+export const getLatestCommitForFileHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, filePath } = req.query;
 
   if (!repoUrl || !filePath) {
-    res.status(400).json({ message: "Se requieren los parámetros repoUrl y filePath." });
-    return;
+    return next(new AppError("REPO_URL_AND_FILE_PATH_REQUIRED", undefined, 400));
   }
 
   try {
     const repo = await Repository.findOne({ where: { url: repoUrl as string } });
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      throw new AppError("REPO_NOT_FOUND", undefined, 404);
     }
 
     const latestFile = await CommitFile.findOne({
@@ -126,35 +118,28 @@ export const getLatestCommitForFileHandler = async (req: Request, res: Response)
       order: [[Commit, 'date', 'DESC']]
     });
 
-    if (!latestFile || !latestFile.commitId) {
-      res.status(404).json({ message: "No se encontró ningún commit para este archivo." });
-    }
-
-    if (!latestFile) {
-      res.status(404).json({ message: "No se encontró ningún commit para este archivo." });
-      return;
+    if (!latestFile || !latestFile.commitId || !latestFile.Commit) {
+      throw new AppError("LATEST_COMMIT_NOT_FOUND", undefined, 404);
     }
 
     res.status(200).json({
-      hash: latestFile.Commit!.hash,
-      message: latestFile.Commit!.message,
-      date: latestFile.Commit!.date,
-      author: latestFile.Commit!.authorId,
+      hash: latestFile.Commit.hash,
+      message: latestFile.Commit.message,
+      date: latestFile.Commit.date,
+      author: latestFile.Commit.authorId,
     });
-
   } catch (error) {
     console.error(`[getLatestCommitForFileHandler]`, error);
-    res.status(500).json({ message: "Error interno." });
+    next(new AppError("INTERNAL_ERROR"));
   }
 };
 
-//  NUEVO: Playback de archivo a lo largo del tiempo
-export const getFilePlaybackHandler = async (req: Request, res: Response) => {
+// Playback de archivo a lo largo del tiempo
+export const getFilePlaybackHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, branch, filePath } = req.query;
 
   if (!repoUrl || !branch || !filePath) {
-    res.status(400).json({ message: "Faltan parámetros: repoUrl, branch, filePath" });
-    return;
+    return next(new AppError("FILE_PLAYBACK_PARAMS_REQUIRED", undefined, 400));
   }
 
   try {
@@ -167,6 +152,6 @@ export const getFilePlaybackHandler = async (req: Request, res: Response) => {
     res.status(200).json(data);
   } catch (err) {
     console.error("[getFilePlaybackHandler]", err);
-    res.status(500).json({ message: "Error al obtener historial del archivo." });
+    next(new AppError("FAILED_TO_GET_FILE_HISTORY"));
   }
 };

@@ -1,4 +1,5 @@
 import React from "react";
+import { ERROR_MESSAGES } from "../../utils/constants/errorConstants";
 
 interface ExportarDatosProps {
   repoUrl: string;
@@ -10,7 +11,7 @@ interface ExportarDatosProps {
 const ExportarDatos: React.FC<ExportarDatosProps> = ({ repoUrl, branch, startDate, endDate }) => {
   const exportarCSV = () => {
     if (!repoUrl) {
-      console.error("No se puede exportar, repoUrl es undefined");
+      console.error(ERROR_MESSAGES.CANNOT_EXPORT_NO_REPO_URL);
       return;
     }
 

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { getContributionsByUser } from "../services/contributionsService";
 import { Repository } from "../models/Repository"; 
 import { CommitBranch } from "../models/CommitBranch";
@@ -6,26 +6,23 @@ import { Branch } from "../models/Branch";
 import { Commit } from "../models/Commit"; 
 import { getBubbleChartData } from "../services/bubbleChartService";
 import { wasProcessed } from "../services/syncState";
-import { CommitBranch as CommitBranchModel } from "../models/CommitBranch";
+import { AppError } from "../middleware/errorHandler"; 
 
-type CommitBranchWithCommit = CommitBranchModel & {
+type CommitBranchWithCommit = CommitBranch & {
   commit?: Commit;
 };
 
-export const getUserContributionsHandler = async (req: Request, res: Response): Promise<void> => {
+export const getUserContributionsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { repoUrl, branch = "main", startDate, endDate } = req.query; 
+    const { repoUrl, branch = "main", startDate, endDate } = req.query;
 
     if (!repoUrl) {
-      res.status(400).json({ error: "Se requiere el parámetro repoUrl." });
-      return;
+      throw new AppError("REPO_URL_REQUIRED", undefined, 400);
     }
 
-    // ⏳ Espera hasta que el último commit tenga stats procesadas
     const repo = await Repository.findOne({ where: { url: repoUrl } });
     if (!repo) {
-      res.status(404).json({ error: "Repositorio no encontrado" });
-      return;
+      throw new AppError("REPO_NOT_FOUND", undefined, 404);
     }
 
     const branchRecord = await Branch.findOne({
@@ -33,8 +30,7 @@ export const getUserContributionsHandler = async (req: Request, res: Response): 
     });
 
     if (!branchRecord) {
-      res.status(404).json({ error: `Rama no encontrada: ${branch}` });
-      return;
+      throw new AppError("BRANCH_NOT_FOUND", `Rama no encontrada: ${branch}`, 404); // Custom message allowed
     }
 
     const latestCommitBranch = await CommitBranch.findOne({
@@ -42,18 +38,12 @@ export const getUserContributionsHandler = async (req: Request, res: Response): 
       include: [{ model: Commit, as: 'commit' }],
       order: [[{ model: Commit, as: 'commit' }, 'date', 'DESC']],
     }) as CommitBranchWithCommit | null;
-    
-    
-    
 
-    if (latestCommitBranch && latestCommitBranch.commit) {
+    if (latestCommitBranch?.commit) {
       const hasStats = await wasProcessed(latestCommitBranch.commit.id, "stats");
 
       if (!hasStats) {
-        res.status(202).json({
-          message: "Datos aún en procesamiento. Inténtalo de nuevo en unos segundos.",
-        });
-        return;
+        throw new AppError("DATA_PROCESSING", undefined, 202);
       }
     }
 
@@ -66,28 +56,22 @@ export const getUserContributionsHandler = async (req: Request, res: Response): 
 
     res.json(contributions);
   } catch (error) {
-    console.error("[getUserContributionsHandler] Error:", error);
-    res.status(500).json({ error: "Error al obtener contribuciones de usuarios." });
+    next(error);
   }
 };
 
-
-
-export const getBubbleChartHandler = async (req: Request, res: Response): Promise<void> => {
+export const getBubbleChartHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const repoUrl = req.query.repoUrl as string;
     const branch = (req.query.branch as string) || "main";
 
     if (!repoUrl) {
-      res.status(400).json({ error: "Se requiere el parámetro repoUrl." });
-      return;
+      throw new AppError("REPO_URL_REQUIRED", undefined, 400);
     }
-
 
     const bubbleData = await getBubbleChartData(repoUrl, branch);
     res.json(bubbleData);
   } catch (error) {
-    console.error("[getBubbleChartHandler] Error:", error);
-    res.status(500).json({ error: "Error al generar datos del diagrama de burbujas." });
+    next(error);
   }
 };

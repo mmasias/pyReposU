@@ -14,11 +14,12 @@ import {
 import simpleGit from "simple-git";
 import { Repository } from "../../models/Repository";
 import { wasProcessed, markProcessed } from "../syncState";
+import { AppError } from "../../middleware/errorHandler";
 
 export const syncCommits = async (
   repo: Repository,
   localPath: string,
-  _currentBranchName: string, // ya no lo usaremos directamente para isPrimary
+  _currentBranchName: string,
   options: { syncStats?: boolean } = {}
 ) => {
   const { syncStats = false } = options;
@@ -30,6 +31,7 @@ export const syncCommits = async (
     attributes: ["hash"],
     raw: true,
   });
+
   const dbHashSet = new Set(dbHashes.map(c => c.hash));
   const newCommits = gitCommits.filter(c => !dbHashSet.has(c.hash));
 
@@ -71,6 +73,7 @@ export const syncCommits = async (
         await markProcessed(newCommit.id, "stats");
       } catch (err) {
         console.warn(`[STATS] ❌ Error al obtener stats para ${raw.hash}:`, err);
+        throw new AppError("FAILED_TO_GET_FOLDER_STATS", `Error al calcular estadísticas para commit ${raw.hash}`);
       }
     }
 
@@ -102,7 +105,6 @@ export const syncCommits = async (
       }
     }
 
-    // ⛳ Obtener ramas y primary branch real con `name-rev`
     const branches = await getCommitBranches(localPath, raw.hash);
     const cleanBranches = branches.map(b => b.replace(/^origin\//, "").trim());
     const allBranches = await Branch.findAll({ where: { repositoryId: repo.id } });
@@ -112,7 +114,6 @@ export const syncCommits = async (
 
     try {
       const nameRevOutput = await git.raw(['name-rev', '--name-only', raw.hash]);
-      // name-rev puede devolver "remotes/origin/develop~2"
       primaryBranchName = nameRevOutput
         .replace(/^remotes\/origin\//, '')
         .replace(/^origin\//, '')
@@ -122,7 +123,6 @@ export const syncCommits = async (
       console.warn(`[SYNC] name-rev falló para ${raw.hash}:`, err);
       primaryBranchName = null;
     }
-    
 
     for (const branchName of cleanBranches) {
       let branchId = branchMap.get(branchName);
@@ -139,10 +139,9 @@ export const syncCommits = async (
         where: { commitId: newCommit.id, branchId },
         defaults: {
           isPrimary: primaryBranchName !== null && branchName === primaryBranchName,
-        },        
+        },
       });
 
-      // Patch: si ya existe pero isPrimary no es correcto, actualízalo
       if (!created && branchName === primaryBranchName && !commitBranch.isPrimary) {
         await commitBranch.update({ isPrimary: true });
       }

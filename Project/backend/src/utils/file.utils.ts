@@ -1,34 +1,6 @@
 import { readFile, remove } from 'fs-extra';
 import { decode } from 'utf8';
 
-/**
- * Lee un archivo JSON y lo devuelve como un objeto.
- * @param path Ruta del archivo JSON.
- * @returns Contenido del archivo como objeto.
- */
-export const readJSONFile = async (path: string): Promise<any> => {
-  try {
-    const content = await readFile(path, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    throw new Error(`Error leyendo el archivo ${path}: ${errorMessage}`);
-  }
-};
-
-/**
- * Elimina un directorio y su contenido de forma asíncrona.
- * @param path Ruta del directorio a eliminar.
- */
-export const removeDirectory = async (path: string): Promise<void> => {
-  try {
-    await remove(path);
-    console.log(`Directorio eliminado: ${path}`);
-  } catch (error) {
-    console.error(`Error al eliminar el directorio ${path}:`, error);
-    throw error;
-  }
-};
 
 /**
  * Normaliza rutas codificadas UTF-8 o Latin1.

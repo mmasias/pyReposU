@@ -13,6 +13,7 @@ import {
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
 import "chartjs-adapter-date-fns";
+import { CONSOLE_LOG_MESSAGES } from "../../utils/constants/errorConstants";
 
 //     Registrar escalas y plugins en Chart.js
 ChartJS.register(LinearScale, TimeScale, CategoryScale, PointElement, Tooltip, Legend, zoomPlugin);
@@ -46,7 +47,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
   const chartRef = useRef<ChartInstance<"bubble"> | null>(null);
 
   useEffect(() => {
-    console.log("    Datos para burbujas:", data);
+    console.log(CONSOLE_LOG_MESSAGES.DATA_FOR_BUBBLES, data);
   }, [data]);
 
   const users = Object.keys(data);
@@ -56,7 +57,7 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
     data[user].map(commit => commit.linesAdded + commit.linesDeleted)
   );
   const maxLinesModified = Math.max(...allLinesModified, 1);
-  console.log("    Máximo de líneas modificadas:", maxLinesModified);
+  console.log(CONSOLE_LOG_MESSAGES.MAX_MODIFIED_LINES, maxLinesModified);
 
   const datasets = users.map(user => ({
     label: user,
@@ -82,12 +83,12 @@ const BubbleChart: React.FC<BubbleChartProps> = ({ data, startDate, endDate }) =
     const xScale = chart.scales.x;
   
     if (!(xScale instanceof TimeScale)) {
-      console.error("    La escala X no es de tipo TimeScale.");
+      console.error(CONSOLE_LOG_MESSAGES.X_SCALE_NOT_TIMESCALES);
       return;
     }
   
     const visibleRange = xScale.max - xScale.min;
-    console.log("    Visible Range (ms):", visibleRange);
+    console.log(CONSOLE_LOG_MESSAGES.VISIBLE_RANGE_MS, visibleRange);
   
     if (!chart.options.scales) return;
   

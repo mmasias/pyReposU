@@ -1,4 +1,5 @@
 import React from "react";
+import axios from "axios";
 
 interface UserData {
   user: string;
@@ -18,21 +19,58 @@ interface TablaAnalisisProps {
   visibleColumns: string[];
   setData: React.Dispatch<React.SetStateAction<UserData[]>>;
   statsMap: Record<string, Record<string, UserData>>;
+  repoUrl: string;
+  since: string;
+  until: string;
 }
 
-const TablaAnalisis: React.FC<TablaAnalisisProps> = ({ data, branches, visibleColumns, setData, statsMap }) => {
-  const updateBranchData = (user: string, branch: string) => {
-    const userBranches = statsMap[user];
-    if (!userBranches) return;
+const TablaAnalisis: React.FC<TablaAnalisisProps> = ({
+  data,
+  branches,
+  visibleColumns,
+  setData,
+  statsMap,
+  repoUrl,
+  since,
+  until
+}) => {
 
-    const newStats = userBranches[branch] || userBranches["Todas"] || Object.values(userBranches)[0];
-    if (!newStats) return;
 
-    setData(prev =>
-      prev.map(u =>
-        u.user === user ? { ...newStats, selectedBranch: branch } : u
-      )
-    );
+
+  const updateBranchData = async (user: string, branch: string) => {
+    const userBranches = statsMap[user] || {};
+
+    if (userBranches[branch]) {
+      // ✔️ Ya está cacheado
+      setData(prev =>
+        prev.map(u =>
+          u.user === user ? { ...userBranches[branch], selectedBranch: branch } : u
+        )
+      );
+    } else {
+      // ⚠️ No está cacheado, lo buscamos dinámicamente
+      try {
+        const branchParam = branch === "Todas" ? "all" : branch;
+        const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
+          params: { repoUrl, branch: branchParam, startDate: since, endDate: until }
+        });
+
+        const foundUser = response.data.find(u => u.user === user);
+        if (!foundUser) return;
+
+        // Actualizar statsMap y data
+        statsMap[user] ||= {};
+        statsMap[user][branch] = { ...foundUser, selectedBranch: branch };
+
+        setData(prev =>
+          prev.map(u =>
+            u.user === user ? { ...foundUser, selectedBranch: branch } : u
+          )
+        );
+      } catch (err) {
+        console.error("❌ Error al obtener datos de la rama:", err);
+      }
+    }
   };
 
   return (

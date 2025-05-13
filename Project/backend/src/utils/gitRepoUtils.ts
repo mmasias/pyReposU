@@ -4,7 +4,7 @@ import { rm } from "fs/promises";
 import path from "path";
 import { config } from "../config/config"; 
 import { normalizePath } from './file.utils'; // Asegúrate de tener esto bien
-
+import { AppError } from "../middleware/errorHandler";
 import { Branch, CommitBranch, Commit, Repository } from "../models";
 
 //  Mutex manual para bloquear repositorios en uso
@@ -61,7 +61,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
       while (existsSync(lockFile)) {
         console.warn(` [prepareRepo]   Repo bloqueado. Esperando... (${++attempts})`);
         await new Promise((r) => setTimeout(r, 500));
-        if (attempts > 10) throw new Error("  Timeout esperando Git.");
+        if (attempts > 10) throw new AppError("GIT_TIMEOUT", "Timeout esperando Git.", 500);
       }
 
       if (!existsSync(gitFolder)) {
@@ -73,7 +73,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
       const git = simpleGit({ baseDir: repoPath });
 
       if (!(await git.checkIsRepo())) {
-        throw new Error("  ERROR: Git no está bien inicializado");
+        throw new AppError("GIT_NOT_INITIALIZED", "Git no está bien inicializado", 500);
       }
       try {
         const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
@@ -129,7 +129,7 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
 
     } catch (error) {
       console.error(` [prepareRepo]   ERROR con simple-git:`, error);
-      throw new Error("Error al preparar el repositorio.");
+      throw new AppError("GIT_NOT_INITIALIZED", "Git no está bien inicializado", 500);
     } finally {
       unlock!();
       repoLocks[repoPath] = null;
@@ -255,7 +255,7 @@ export const getFileContent = async (
 
   if (!filePath || typeof filePath !== 'string') {
     console.warn(`[⚠️ getFileContent] Ruta inválida recibida:`, filePathInput);
-    return "// Archivo no válido";
+    throw new AppError("FILE_CONTENT_PARAMS_REQUIRED", "Faltan parámetros: repoUrl, filePath, commitHash.", 400);
   }
 
   const sanitizedPath = sanitizeFilePath(filePath);
@@ -263,7 +263,8 @@ export const getFileContent = async (
   const exists = await fileExistsInCommit(repoPath, commitHash, sanitizedPath);
   if (!exists) {
     console.warn(`[getFileContent] Archivo no existe en ${commitHash}: ${sanitizedPath}`);
-    return "// Archivo no existente en este commit";
+    throw new AppError("FILE_NOT_FOUND", `El archivo ${sanitizedPath} no existe en el commit ${commitHash}.`, 404);
+
   }
 
   try {
@@ -281,7 +282,7 @@ export const getFileContent = async (
     return content || "// Archivo vacío";
   } catch (error: any) {
     console.error(`[getFileContent] Error inesperado:`, error);
-    return "// Error al cargar contenido";
+    throw new AppError("FAILED_TO_GET_FILE_CONTENT", "Error al obtener contenido del archivo.", 500);
   }
 };
 
@@ -309,7 +310,7 @@ export const getFileDiff = async (repoUrl: string, commitHashOld: string, commit
     return { addedLines, removedLines };
   } catch (error) {
     console.error(`[getFileDiff] Error:`, error);
-    return { addedLines: [], removedLines: [] };
+    throw new AppError("FAILED_TO_GET_FILE_DIFF", "Error al obtener el diff del archivo.", 500);
   }  
 };
 
@@ -437,8 +438,7 @@ export const getCurrentFilesFromBranch = async (
       .filter(Boolean);
   } catch (error) {
     console.error(`[getCurrentFilesFromBranch] Error en ls-tree de ${branch}:`, error);
-    return [];
-  }
+    throw new AppError("FAILED_TO_GET_REPO_TREE", `Error al obtener archivos de la rama ${branch}.`, 500);  }
 };
 
 
@@ -490,14 +490,14 @@ export const safeGetFileContent = async (repoUrl: string, commit: string, filePa
   const exists = await fileExistsInCommit(repoPath, commit, filePath);
   if (!exists) {
     console.warn(`⚠️ El archivo "${filePath}" no existe en el commit "${commit}"`);
-    return null;
+    throw new AppError("FAILED_TO_GET_FILE_CONTENT", `Error al obtener contenido de ${filePath} en ${commit}`, 500);
   }
   try {
     const content = await git.show([`${commit}:${filePath}`]);
     return content;
   } catch (error) {
     console.error(`[💥 safeGetFileContent] Error al obtener contenido de ${filePath} en ${commit}:`, error);
-    return null;
+    throw new AppError("FAILED_TO_GET_FILE_CONTENT", `Error al obtener contenido de ${filePath} en ${commit}`, 500);
   }
 };
 

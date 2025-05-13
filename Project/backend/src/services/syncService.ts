@@ -19,6 +19,9 @@ import { syncDiffsOnly } from "./sync/syncDiffsOnly";
 import { SyncOptions } from "../types/syncOptions";
 import { wasProcessed } from "./syncState";
 import { markProcessed } from "./syncState";
+import { AppError } from '../middleware/errorHandler';
+
+
 const syncingRepos = new Set<string>();
 const syncingRepoPromises: Map<string, Promise<void>> = new Map();
 
@@ -55,7 +58,7 @@ export const syncRepoIfNeeded = async (
           attempts++;
         }
 
-        if (!repo) throw new Error(`No se pudo encontrar el repo recién creado: ${repoUrl}`);
+        if (!repo) throw new AppError("REPO_NOT_FOUND", `No se pudo encontrar el repo recién creado: ${repoUrl}`, 404);
       }
 
       console.time(`[PREPARE] ${repoUrl}`);
@@ -128,7 +131,7 @@ export const syncGithubActivity = async (repoUrl: string): Promise<void> => {
   const [, owner, nameRaw] = new URL(repoUrl).pathname.split('/');
   const name = nameRaw.replace(/\.git$/, '');
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+  if (!repo) throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
   
   const wasGithubDone = await wasProcessed(repo.id, "github");
   
@@ -136,7 +139,7 @@ export const syncGithubActivity = async (repoUrl: string): Promise<void> => {
     console.log("[SYNC] Actividad de GitHub ya sincronizada anteriormente ✅");
     return;
   }
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+  if (!repo) throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
 
   const headers = {
     Accept: 'application/vnd.github+json',

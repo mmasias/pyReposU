@@ -1,4 +1,3 @@
-// src/utils/d3Graph.ts
 import * as d3 from "d3";
 
 interface Commit {

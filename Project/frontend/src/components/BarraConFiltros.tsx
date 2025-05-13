@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { CONSOLE_LOG_MESSAGES } from "../utils/constants/errorConstants";
 
 interface FiltrosContribucionesProps {
   repoUrl: string;
@@ -47,10 +48,9 @@ useEffect(() => {
         `http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
       );
 
-      console.log("  Ramas recibidas:", data);
-      setBranches(Array.isArray(data) ? data : ["main"]);
+      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);
     } catch (error) {
-      console.error("  Error obteniendo ramas:", error);
+      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, error);
       setBranches(["main"]);
     }
   };
@@ -65,12 +65,12 @@ useEffect(() => {
   const fetchRepoData = async () => {
     if (!repoUrl.trim()) return;
     if (!repoUrl.startsWith("http")) {
-      console.error(" URL del repo inválida:", repoUrl);
+    console.log("[INIT] Inicializando datos con repo:", repoUrl);
       return;
     }
 
     try {
-      console.log("  Cargando información del repo...");
+      console.log(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, repoUrl);
       const url = new URL(repoUrl);
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
@@ -97,7 +97,7 @@ useEffect(() => {
 
       fetchData();
     } catch (error) {
-      console.error("  Error obteniendo datos del repo:", error);
+        console.error(CONSOLE_LOG_MESSAGES.ERROR_FETCHING_CONTRIBUTIONS, error);
     }
   };
 

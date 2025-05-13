@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
 import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
+import { AppError } from "../middleware/errorHandler";
 
 // Prompt simplificado sin estructura JSON
 const buildSimplifiedPrompt = (
@@ -19,22 +20,19 @@ Resumen del análisis:`;
 };
 
 // --- ANÁLISIS PROFUNDO ---
-export const analyzeDeepHandler = async (req: Request, res: Response): Promise<void> => {
+export const analyzeDeepHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, filePath } = req.query;
 
   if (!repoUrl || !filePath) {
-    res.status(400).json({ message: "Se requieren repoUrl y filePath." });
-    return;
+    return next(new AppError("REPO_URL_AND_FILE_PATH_REQUIRED", undefined, 400));
   }
 
   try {
     const repo = await Repository.findOne({ where: { url: repoUrl } });
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      throw new AppError("REPO_NOT_FOUND", undefined, 404);
     }
 
-    // Verificar si ya está cacheado
     const existing = await FileAnalysis.findOne({
       where: { repoId: repo.id, filePath, type: 'deep' }
     });
@@ -48,7 +46,6 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    // Obtener commits relacionados
     const commitFiles = await CommitFile.findAll({
       where: { filePath },
       include: [{
@@ -62,17 +59,14 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
     );
 
     if (commits.length < 2) {
-      res.status(400).json({ message: "No hay suficientes versiones para comparar." });
-      return;
+      throw new AppError("NOT_ENOUGH_VERSIONS", undefined, 400);
     }
 
-    // Elegir versiones representativas
     const first = commits[0];
     const last = commits[commits.length - 1];
     const middle = commits.slice(1, -1).slice(0, 3);
     const selectedCommits = [first, ...middle, last];
 
-    // Asegurar contenido cacheado y obtenerlo
     const snapshots = await Promise.all(
       selectedCommits.map(async commit => {
         const cf = await ensureCommitFileContentAndDiff(
@@ -106,33 +100,27 @@ export const analyzeDeepHandler = async (req: Request, res: Response): Promise<v
     res.status(200).json({ summary, commits: commitHashes });
   } catch (error) {
     console.error(`[analyzeDeepHandler]`, error);
-    res.status(500).json({ message: "Error al realizar análisis profundo." });
+    next(new AppError("FAILED_TO_PERFORM_DEEP_ANALYSIS"));
   }
 };
 
 // --- ANÁLISIS EXPRESS ---
-export const analyzeExpressHandler = async (req: Request, res: Response): Promise<void> => {
+export const analyzeExpressHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const { repoUrl, filePath, commitHashOld, commitHashNew } = req.query;
 
   if (!repoUrl || !filePath || !commitHashOld || !commitHashNew) {
-    res.status(400).json({
-      message: "Faltan parámetros requeridos: repoUrl, filePath, commitHashOld y commitHashNew.",
-    });
-    return;
+    return next(new AppError("EXPRESS_ANALYSIS_PARAMS_REQUIRED", undefined, 400));
   }
 
   try {
     const repo = await Repository.findOne({ where: { url: repoUrl } });
     if (!repo) {
-      res.status(404).json({ message: "Repositorio no encontrado." });
-      return;
+      throw new AppError("REPO_NOT_FOUND", undefined, 404);
     }
 
-    // Normalizar commits y crear clave determinística
     const normalizedHashes = [commitHashOld as string, commitHashNew as string].sort();
     const commitPairId = normalizedHashes.join("::");
 
-    // Verificar si ya existe el análisis express para ese par de commits
     const existing = await FileAnalysis.findOne({
       where: {
         repoId: repo.id,
@@ -151,7 +139,6 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
       return;
     }
 
-    // Obtener contenido de ambos commits
     const [oldSnapshot, newSnapshot] = await Promise.all([
       ensureCommitFileContentAndDiff(repoUrl as string, commitHashOld as string, filePath as string),
       ensureCommitFileContentAndDiff(repoUrl as string, commitHashNew as string, filePath as string),
@@ -185,6 +172,6 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
     });
   } catch (error) {
     console.error(`[analyzeExpressHandler] Error:`, error);
-    res.status(500).json({ message: "Error al realizar análisis express." });
+    next(new AppError("FAILED_TO_PERFORM_EXPRESS_ANALYSIS"));
   }
 };

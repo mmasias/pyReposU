@@ -3,6 +3,7 @@ import { CommitFile } from '../models/CommitFile';
 import { User } from '../models/User';
 import { Repository } from '../models/Repository';
 import { Op, Sequelize } from 'sequelize';
+import { AppError } from '../middleware/errorHandler';
 
 interface BubbleChartData {
   [user: string]: {
@@ -21,16 +22,16 @@ export const getBubbleChartData = async (
   branch: string = 'main'
 ): Promise<BubbleChartData> => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
+  if (!repo) {
+    throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
+  }
 
-  // Si decides más adelante guardar branch info, aquí se filtra
   const commits = await Commit.findAll({
     where: {
       repositoryId: repo.id,
       ...(branch !== "all" ? {
         id: {
           [Op.in]: [
-            // subconsulta para IDs de commits de esa rama:
             Sequelize.literal(`(
               SELECT "commitId"
               FROM commit_branch
@@ -38,7 +39,6 @@ export const getBubbleChartData = async (
               WHERE branches."name" = '${branch}'
                 AND branches."repositoryId" = ${repo.id}
             )`)
-            
           ],
         },
       } : {}),
@@ -46,7 +46,6 @@ export const getBubbleChartData = async (
     include: [User],
     order: [["date", "ASC"]],
   });
-  
 
   const commitIds = commits.map((c) => c.id);
   const commitFiles = await CommitFile.findAll({
@@ -75,7 +74,7 @@ export const getBubbleChartData = async (
       date: commit.date.toISOString(),
       linesAdded: added,
       linesDeleted: deleted,
-      branch: branch, // placeholder — puedes hacerlo real si guardas ramas
+      branch: branch, // placeholder
       hash: commit.hash,
       message: commit.message || 'Sin mensaje',
       files,

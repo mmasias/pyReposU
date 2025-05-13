@@ -1,13 +1,13 @@
-import { Request, Response, RequestHandler } from 'express';
+import { Request, Response, RequestHandler, NextFunction } from 'express';
 import { getRepoGraphService } from '../services/graph.service';
+import { AppError } from '../middleware/errorHandler';
 
-export const getRepoGraphController: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+export const getRepoGraphController: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   console.log("[GRAPH] Query recibida:", req.query); 
   const repoUrl = req.query.repoUrl as string;
 
   if (!repoUrl) {
-    res.status(400).json({ error: 'Falta el parámetro url' });
-    return;
+    return next(new AppError("REPO_URL_MISSING", undefined, 400));
   }
 
   try {
@@ -15,6 +15,6 @@ export const getRepoGraphController: RequestHandler = async (req: Request, res: 
     res.json(graph);
   } catch (error: any) {
     console.error(`[getRepoGraphController] Error:`, error);
-    res.status(500).json({ error: 'Error al procesar el repositorio' });
+    next(new AppError("FAILED_TO_PROCESS_REPO_GRAPH"));
   }
 };

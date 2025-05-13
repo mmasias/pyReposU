@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { CONSOLE_LOG_MESSAGES } from "../utils/constants/errorConstants";
 
 const API_URL = "http://localhost:3000/api/mapaContribuciones/";
 
@@ -14,22 +15,22 @@ export const useContributions = (
 
   const fetchContributions = async () => {
     if (!repoUrl || !startDate || !branch) {
-      console.warn("  Esperando valores válidos antes de hacer la petición...");
+      console.warn(CONSOLE_LOG_MESSAGES.WAITING_FOR_VALID_VALUES);
       return;
     }
   
     setLoading(true);
   
     try {
-      console.log(`  Fetching contributions -> repoUrl: ${repoUrl}, branch: ${branch}, startDate: ${startDate}, endDate: ${endDate}`);
+      console.log(CONSOLE_LOG_MESSAGES.FETCHING_CONTRIBUTIONS, repoUrl, branch, startDate, endDate);
       const response = await axios.get(API_URL, {
         params: { repoUrl, branch, startDate, endDate },
       });
   
-      console.log("  Datos recibidos del backend (useContributions):", response.data);
+      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, response.data);
       setContributions(response.data);
     } catch (error) {
-      console.error("  Error al obtener contribuciones:", error);
+      console.error(CONSOLE_LOG_MESSAGES.ERROR_FETCHING_CONTRIBUTIONS, error);
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ export const useContributions = (
 
   useEffect(() => {
     if (!repoUrl || !startDate || !branch) {
-      console.warn("  Esperando valores válidos antes de hacer la petición...");
+      console.warn(CONSOLE_LOG_MESSAGES.WAITING_FOR_VALID_VALUES);
       return;
     }
   

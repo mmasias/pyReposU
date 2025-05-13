@@ -4,6 +4,7 @@ import TablaAnalisis from "./TablaAnalisis";
 import ExportarDatos from "./ExportarDatos";
 import Graficos from "../../components/Graficos";
 import BarraConFiltros from "../../components/BarraConFiltros";
+import { CONSOLE_LOG_MESSAGES, ERROR_MESSAGES } from "../../utils/constants/errorConstants";
 
 interface UserData {
   user: string;
@@ -73,7 +74,7 @@ const Analisis: React.FC = () => {
           await fetchInitialBranch(repoUrl, created, until, localKey);
         }
       } catch (err) {
-        console.error("❌ Error al inicializar datos:", err);
+        console.error(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, err);
       }
     };
 
@@ -82,14 +83,25 @@ const Analisis: React.FC = () => {
 
   const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
     try {
-      const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
-        params: { repoUrl: url, startDate: from, endDate: to }
+      const { data: branchList } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", {
+        params: { repoUrl: url }
       });
 
+      const allBranches = ["Todas", ...branchList];
+
       const map: StatsMap = {};
-      for (const user of response.data) {
-        map[user.user] ||= {};
-        map[user.user]["Todas"] = { ...user, selectedBranch: "Todas" };
+
+      for (const branch of allBranches) {
+        const branchParam = branch === "Todas" ? "all" : branch;
+
+        const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
+          params: { repoUrl: url, branch: branchParam, startDate: from, endDate: to }
+        });
+
+        for (const user of response.data) {
+          map[user.user] ||= {};
+          map[user.user][branch] = { ...user, selectedBranch: branch };
+        }
       }
 
       localStorage.setItem(localKey, JSON.stringify(map));
@@ -102,9 +114,10 @@ const Analisis: React.FC = () => {
 
       setData(initial);
     } catch (err) {
-      console.error("❌ Error inicial al obtener datos:", err);
+      console.error(ERROR_MESSAGES.QUICK_ANALYSIS_FAILED, err);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -144,7 +157,11 @@ const Analisis: React.FC = () => {
         ]}
         setData={setData}
         statsMap={statsMap}
+        repoUrl={repoUrl}
+        since={since}
+        until={until}
       />
+
 
       <ExportarDatos repoUrl={repoUrl} branch="main" startDate={since} endDate={until} />
     </div>

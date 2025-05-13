@@ -6,6 +6,7 @@ import CommitInfo from "../../components/visualizadorCodigo/CommitInfo";
 import CommitNavigation from "../../components/visualizadorCodigo/CommitNavigation";
 import DiffViewer from "../../components/visualizadorCodigo/DiffViewer";
 import AIAnalysisPanel from "../../components/visualizadorCodigo/AIAnalysisPanel";
+import { ERROR_MESSAGES, CONSOLE_LOG_MESSAGES } from "../../utils/constants/errorConstants";
 
 const Playback = () => {
   const { repoUrl = "", filePath = "" } = useParams<{ repoUrl: string; filePath: string }>();
@@ -44,14 +45,14 @@ const Playback = () => {
       );
 
       if (filtered.length === 0) {
-        setError("No se encontraron commits para este archivo.");
+        setError(ERROR_MESSAGES.NO_COMMITS_FOUND);
         return;
       }
 
       setCommits(filtered);
     } catch (err) {
-      console.error("[Playback] Error al cargar commits:", err);
-      setError("Error al cargar los commits.");
+      console.error(CONSOLE_LOG_MESSAGES.PLAYBACK_ERROR_LOADING_COMMITS, err);
+      setError(ERROR_MESSAGES.ERROR_LOADING_COMMITS);
     }
   };
 
@@ -70,8 +71,8 @@ const Playback = () => {
         setContent(lines);
       }
     } catch (error) {
-      console.error("[fetchFileContent] Error:", error);
-      setContent(["// Error al cargar contenido"]);
+      console.error(CONSOLE_LOG_MESSAGES.FETCH_FILE_CONTENT_ERROR, error);
+      setContent([ERROR_MESSAGES.ERROR_LOADING_CONTENT]);
     }
   };
   
@@ -151,8 +152,8 @@ const Playback = () => {
       });
       setAnalysisResult(response.data);
     } catch (err) {
-      console.error("Análisis rápido falló:", err);
-      setAnalysisResult({ error: "Error al realizar análisis rápido." });
+      console.error(CONSOLE_LOG_MESSAGES.QUICK_ANALYSIS_FAILED, err);
+      setAnalysisResult({ error: ERROR_MESSAGES.ERROR_PERFORMING_QUICK_ANALYSIS });
     } finally {
       setLoadingAnalysis(false);
     }
@@ -168,8 +169,8 @@ const Playback = () => {
       });
       setAnalysisResult(response.data);
     } catch (err) {
-      console.error("Análisis profundo falló:", err);
-      setAnalysisResult({ error: "Error al realizar análisis profundo." });
+      console.error(CONSOLE_LOG_MESSAGES.DEEP_ANALYSIS_FAILED, err);
+      setAnalysisResult({ error: ERROR_MESSAGES.ERROR_PERFORMING_DEEP_ANALYSIS });
     } finally {
       setLoadingAnalysis(false);
     }

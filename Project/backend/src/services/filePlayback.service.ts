@@ -1,6 +1,7 @@
 import { Repository, Commit } from '../models';
 import { generateFileDiff } from '../utils/diffUtils';
 import { ensureCommitFileContentAndDiff } from './fileAnalysisService';
+import { AppError } from '../middleware/errorHandler';
 
 export const getPlaybackHistory = async (
   repoUrl: string,
@@ -15,7 +16,9 @@ export const getPlaybackHistory = async (
   }[]
 > => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error("Repositorio no encontrado.");
+  if (!repo) {
+    throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
+  }
 
   const commitsFromBranch = await Commit.findAll({
     include: [

@@ -1,6 +1,7 @@
 import { Commit, CommitFile, Repository } from "../models";
 import { getFileContent, getFileDiff, prepareRepo } from "../utils/gitRepoUtils";
 import simpleGit from "simple-git";
+import { AppError } from "../middleware/errorHandler";
 
 /**
  * Asegura que un archivo tenga contenido y/o diff cacheado para un commit.
@@ -13,7 +14,9 @@ export const ensureCommitFileContentAndDiff = async (
   prevCommitHash?: string
 ): Promise<CommitFile> => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error("Repositorio no encontrado");
+  if (!repo) {
+    throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
+  }
 
   // Resolver HEAD como hash real si se envía así
   if (commitHash === "HEAD") {
@@ -25,7 +28,9 @@ export const ensureCommitFileContentAndDiff = async (
   const commit = await Commit.findOne({
     where: { hash: commitHash, repositoryId: repo.id },
   });
-  if (!commit) throw new Error("Commit no encontrado");
+  if (!commit) {
+    throw new AppError("COMMIT_NOT_FOUND", `Commit no encontrado: ${commitHash}`, 404);
+  }
 
   const [commitFile] = await CommitFile.findOrCreate({
     where: {

@@ -10,7 +10,7 @@ import { getCurrentFilesFromBranch, getLastLocalCommitHash } from '../utils/gitR
 import { BranchStats } from '../models/BranchStats';
 import { ContributionCache } from '../models/ContributionCache';
 import levenshtein from 'fast-levenshtein';
-
+import { AppError } from '../middleware/errorHandler';
 
 interface ContributionStats {
   [path: string]: {
@@ -26,11 +26,13 @@ export const getContributionsByUser = async (
   endDate?: string
 ): Promise<ContributionStats> => {
   const repo = await Repository.findOne({ where: { url: repoUrl } });
-  if (!repo) throw new Error(`Repositorio no encontrado: ${repoUrl}`);
-
+  if (!repo) {
+    throw new AppError("REPO_NOT_FOUND", `Repositorio no encontrado: ${repoUrl}`, 404);
+  }
   const branchRecord = await Branch.findOne({ where: { name: branch, repositoryId: repo.id } });
-  if (!branchRecord) throw new Error(`Rama no encontrada en DB: ${branch}`);
-
+  if (!branchRecord) {
+    throw new AppError("BRANCH_NOT_FOUND", `Rama no encontrada en DB: ${branch}`, 404);
+  }
   const latestHash = await getLastLocalCommitHash(repoUrl, branch);
 
   const existingStats = await BranchStats.findOne({ where: { branchId: branchRecord.id } });
