@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import CommitGraph from "../../components/CommitGraph";
+import CommitGraph from "../../components/evolucionRepo/CommitGraph";
 import FiltrosContribucionesYHeatMap from "../../components/BarraConFiltros";
 
 type Commit = {
@@ -65,7 +65,7 @@ const VisualizadorRamas = () => {
       />
 
       {commits.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded shadow p-4">
+        <div className="bg-white dark:bg-gray-900 rounded shadow p-4 overflow-x-auto">
           <CommitGraph commits={commits} />
         </div>
       )}

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import CommitGraphSVG from "./CommitGraphSVG";
-import "../styles/ResizableStyles.css";
+import "../../styles/ResizableStyles.css";
 import * as d3 from "d3";
+import TooltipFileList from "../../components/evolucionRepo/TooltipFileList";
 
 type Commit = {
   sha: string;
@@ -14,6 +15,7 @@ type Commit = {
   filesChanged: number;
   insertions: number;
   deletions: number;
+  filePaths?: string[];
 };
 
 interface CommitGraphProps {
@@ -47,8 +49,14 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
   const gridTemplate = `160px ${graphColWidth}px 1fr 150px 180px 100px 160px`;
 
   return (
-    <div className="overflow-auto font-mono text-sm">
-      <div
+        <div
+          className="overflow-x-auto overflow-y-hidden font-mono text-sm"
+          style={{
+            minWidth: '1100px',
+            paddingBottom: '50px', // espacio para el tooltip
+          }}
+        >      
+        <div
         className="grid gap-2 border-b p-2 font-bold bg-gray-100"
         style={{ gridTemplateColumns: gridTemplate }}
       >
@@ -82,6 +90,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
                 style={{
                   height: 40,
                   gridTemplateColumns: gridTemplate,
+                  position: "relative", // necesario para tooltip absoluto
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -114,11 +123,12 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
                 <div className="text-xs text-gray-500">{commit.sha.slice(0, 7)}</div>
 
                 {/* Changes */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 relative group cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <span title="Archivos modificados">🗂️</span>
+                    <span title="">🗂️</span>
                     <span className="text-blue-600 font-medium">{commit.filesChanged}</span>
                   </div>
+
                   <div className="relative w-full h-3 bg-gray-200 rounded overflow-hidden">
                     <div
                       className="absolute left-0 top-0 h-full bg-green-500"
@@ -135,6 +145,11 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
                       title={`-${commit.deletions} deletions`}
                     />
                   </div>
+
+                  {/* Tooltip externo, modular y responsive */}
+                  {commit.filePaths && commit.filePaths.length > 0 && (
+                    <TooltipFileList filePaths={commit.filePaths} />
+                  )}
                 </div>
               </div>
             );

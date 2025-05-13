@@ -12,7 +12,6 @@ export const setupRoutes = (app: Application): void => {
   app.use('/api/mapaContribuciones', mapaContribucionesRoutes);
   app.use('/api/mapaEvolucionRepo', mapaEvolucionRepoRoutes);
   app.use('/api/visualizadorCodigo', visualizadorCodigoRoutes);
-  app.use('/api/mapaEvolucionRepo', mapaEvolucionRepoRoutes);
   app.use('/api/common', commonRoutes); 
 };
 

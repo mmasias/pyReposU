@@ -19,6 +19,7 @@ type CommitNode = {
   filesChanged: number;
   insertions: number;
   deletions: number;
+  filePaths?: string[]; 
 };
 
 export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]> => {
@@ -39,10 +40,8 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
   const shaToId = new Map<string, number>();
   commits.forEach(c => shaToId.set(c.hash, c.id));
 
-  // Limpia relaciones padre-hijo anteriores (si hay)
   await CommitParent.destroy({ where: { childId: commitIds } });
 
-  // Calcula relaciones padre-hijo con git.raw
   for (const commit of commits) {
     const raw = await git.raw(['rev-list', '--parents', '-n', '1', commit.hash]);
     const parts = raw.trim().split(' ');
@@ -82,7 +81,6 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     if (cb.isPrimary === true) {
       commitToPrimaryBranch[cb.commitId] = branchName;
     }
-    
   }
 
   const commitToParents: Record<number, string[]> = {};
@@ -97,6 +95,7 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
     const filesChanged = files.length;
     const insertions = files.reduce((acc, f) => acc + (f.linesAdded || 0), 0);
     const deletions = files.reduce((acc, f) => acc + (f.linesDeleted || 0), 0);
+    const filePaths = files.map(f => f.filePath); 
 
     return {
       sha: commit.hash,
@@ -109,8 +108,10 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
       filesChanged,
       insertions,
       deletions,
+      filePaths, 
     };
   });
+
   console.log('[GRAPH DEBUG] Ejemplo de commit node:');
   console.dir(result.find(c => c.branches.length > 1), { depth: null });
   
