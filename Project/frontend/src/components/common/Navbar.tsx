@@ -11,6 +11,7 @@ const Navbar = () => {
     "/mapa-heatmap": "Mapa de Contribuciones",
     "/mapa-bubblechart": "Evolución del Código",
     "/analisis-multidimensional": "Análisis Multidimensional",
+    "/visualizador-ramas": "Timeline de Commits",
   };
 
   const links = [
@@ -19,6 +20,7 @@ const Navbar = () => {
     { path: "/mapa-heatmap", label: "Contribuciones" },
     { path: "/mapa-bubblechart", label: "Evolución" },
     { path: "/analisis-multidimensional", label: "Análisis" },
+    { path: "/visualizador-ramas", label: "Timeline commits" },
   ];
 
   return (
