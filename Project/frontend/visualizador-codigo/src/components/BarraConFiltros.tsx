@@ -12,6 +12,7 @@ interface FiltrosContribucionesProps {
   setEndDate: (date: string) => void;
   fetchData: () => void;
   mode: "heatmap" | "bubbleChart";
+  hideBranchSelect?: boolean; 
 }
 
 const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
@@ -25,6 +26,7 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
   setEndDate,
   fetchData,
   mode,
+  hideBranchSelect = false, 
 }) => {
   const [branches, setBranches] = useState<string[]>(["main"]);
   const [repoCreatedAt, setRepoCreatedAt] = useState("");
@@ -34,29 +36,31 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       fetchRepoData();
     }
   }, [repoUrl, mode]);
-  useEffect(() => {
-    const fetchBranches = async () => {
-      if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
-    
-      try {
-        console.log(`  Enviando petición a: http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
-    
-        const { data } = await axios.get(`http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
-    
-        console.log("  Ramas recibidas:", data);
-        setBranches(Array.isArray(data) ? data : ["main"]);
-      } catch (error) {
-        console.error("  Error obteniendo ramas:", error);
-        setBranches(["main"]);
-      }
-    };
-  
+
+useEffect(() => {
+  const fetchBranches = async () => {
+    if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
+
+    try {
+      console.log(`  Enviando petición a: http://localhost:3000/api/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+      const { data } = await axios.get(
+        `http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
+      );
+
+      console.log("  Ramas recibidas:", data);
+      setBranches(Array.isArray(data) ? data : ["main"]);
+    } catch (error) {
+      console.error("  Error obteniendo ramas:", error);
+      setBranches(["main"]);
+    }
+  };
+
+
+  if (!hideBranchSelect) {
     fetchBranches();
-  }, [repoUrl]);
-  useEffect(() => {
-    console.log(`  useEffect activado - repoUrl: ${repoUrl}`);
-  }, [repoUrl]);
-  
+  }
+}, [repoUrl, hideBranchSelect]);
+
 
   const fetchRepoData = async () => {
     if (!repoUrl.trim()) return;
@@ -64,33 +68,39 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       console.error(" URL del repo inválida:", repoUrl);
       return;
     }
-  
+
     try {
       console.log("  Cargando información del repo...");
       const url = new URL(repoUrl);
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
-  
+
       const repoName = repoNameRaw.replace(/\.git$/, "");
-  
+
       console.log("  Cargando fecha de creación...");
-      const { data: repoInfo } = await axios.get(`https://api.github.com/repos/${repoOwner}/${repoName}`);
+      const { data: repoInfo } = await axios.get(
+        `https://api.github.com/repos/${repoOwner}/${repoName}`
+      );
       const createdAt = repoInfo.created_at.split("T")[0];
-  
+
       setRepoCreatedAt(createdAt);
       if (!startDate) {
         console.log("  Asignando startDate:", createdAt);
         setStartDate(createdAt);
       }
-  
-      fetchData(); // Llama a la función que obtiene los datos del repo con la rama seleccionada
+      if (!endDate) {
+        const today = new Date();
+        const todayLocal = today.toLocaleDateString("sv-SE"); 
+        console.log("  Asignando endDate:", today);
+        setEndDate(todayLocal);
+      }
+
+      fetchData();
     } catch (error) {
       console.error("  Error obteniendo datos del repo:", error);
     }
   };
-  
-  
-  
+
   useEffect(() => {
     if (repoUrl && startDate) {
       fetchData();
@@ -102,7 +112,9 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Filtros</h3>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Repositorio:</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Repositorio:
+        </label>
         <input
           type="text"
           value={repoUrl}
@@ -112,7 +124,7 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
         />
       </div>
 
-      {Array.isArray(branches) && branches.length > 0 ? (
+      {!hideBranchSelect && Array.isArray(branches) && branches.length > 0 ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Rama:
@@ -132,15 +144,16 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
                 {b}
               </option>
             ))}
-
           </select>
         </div>
-      ) : (
+      ) : hideBranchSelect ? null : (
         <p className="text-gray-500">Cargando ramas...</p>
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Desde:</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Desde:
+        </label>
         <input
           type="date"
           value={startDate}
@@ -151,7 +164,9 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hasta:</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Hasta:
+        </label>
         <input
           type="date"
           value={endDate}

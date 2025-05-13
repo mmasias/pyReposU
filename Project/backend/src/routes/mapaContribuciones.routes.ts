@@ -6,13 +6,13 @@ const router = Router();
 
 router.get(
     "/",
-    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 importante
+    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), 
     getUserContributionsHandler
   );
 
   router.get(
     "/bubble-chart",
-    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), // 👈 igual aquí
+    ensureRepoSynced({ syncCommits: true, syncStats: true, syncDiffs: false }), 
     getBubbleChartHandler
   );
 

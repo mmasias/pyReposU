@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import CommitGraphSVG from "./CommitGraphSVG";
 import "../styles/ResizableStyles.css";
 import * as d3 from "d3";
@@ -17,43 +17,11 @@ type Commit = {
 };
 
 interface CommitGraphProps {
-  repoUrl: string;
+  commits: Commit[];
 }
 
-const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
-  const [commits, setCommits] = useState<Commit[]>([]);
+const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!repoUrl) return;
-    
-      const encodedUrl = encodeURIComponent(repoUrl);
-      const res = await fetch(`http://localhost:3000/api/mapaEvolucionRepo?repoUrl=${encodedUrl}`);
-    
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error(`❌ Error en fetch: ${res.status} ${errText}`);
-        return;
-      }
-    
-      const data = await res.json();
-    
-      if (!Array.isArray(data)) {
-        console.error("❌ La respuesta del backend no es un array:", data);
-        return;
-      }
-    
-      const sorted = data.sort(
-        (a: Commit, b: Commit) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    
-      setCommits(sorted);
-    };
-    
-
-    fetchData();
-  }, [repoUrl]);
 
   const commitIndexMap = Object.fromEntries(commits.map((c, i) => [c.sha, i]));
 
@@ -66,7 +34,6 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
     }
   });
 
-  // Mapa de colores únicos por rama
   const allBranches = Array.from(branchColumnMap.keys());
   const branchColorScale = d3.scaleOrdinal<string>()
     .domain(allBranches)
@@ -76,12 +43,11 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
   );
 
   const colWidth = 20;
-  const graphColWidth = branchColumnMap.size * colWidth + 40; // ← ajuste dinámico
+  const graphColWidth = branchColumnMap.size * colWidth + 40;
   const gridTemplate = `160px ${graphColWidth}px 1fr 150px 180px 100px 160px`;
 
   return (
     <div className="overflow-auto font-mono text-sm">
-      {/* Header */}
       <div
         className="grid gap-2 border-b p-2 font-bold bg-gray-100"
         style={{ gridTemplateColumns: gridTemplate }}
@@ -115,7 +81,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
                 className="grid gap-2 items-center px-2 py-1 border-b hover:bg-gray-50"
                 style={{
                   height: 40,
-                  gridTemplateColumns: gridTemplate
+                  gridTemplateColumns: gridTemplate,
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -130,7 +96,7 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ repoUrl }) => {
                   ) : ""}
                 </div>
 
-                {/* Graph placeholder */}
+                {/* Graph Placeholder */}
                 <div></div>
 
                 {/* Message */}

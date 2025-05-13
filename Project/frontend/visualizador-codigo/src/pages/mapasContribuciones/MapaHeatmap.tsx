@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import FiltrosContribuciones from "../../components/FiltrosContribucionesYHeatMap";
+import FiltrosContribuciones from "../../components/BarraConFiltros";
 import { useContributions } from "../../hooks/useContributions";
 import Heatmap from "./HeatMap";
 
