@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import TablaAnalisis from "./TablaAnalisis";
-import Filtros from "./Filtros";
 import ExportarDatos from "./ExportarDatos";
 import Graficos from "../../components/Graficos";
+import BarraConFiltros from "../../components/BarraConFiltros";
 
 interface UserData {
   user: string;
@@ -23,11 +23,10 @@ const Analisis: React.FC = () => {
   const [data, setData] = useState<UserData[]>([]);
   const [repoUrl, setRepoUrl] = useState("");
   const [since, setSince] = useState("");
-  const [until, setUntil] = useState(new Date().toISOString().split("T")[0]);
+  const [until, setUntil] = useState(new Date().toLocaleDateString("sv-SE")); // ← fecha local
   const [branches, setBranches] = useState<string[]>(["Todas"]);
   const [statsMap, setStatsMap] = useState<StatsMap>({});
 
-  // ⏱️ Calculamos resumen general del repo
   const resumen = data.reduce(
     (acc, user) => {
       acc.commits += user.commits;
@@ -46,7 +45,9 @@ const Analisis: React.FC = () => {
 
     const loadMetadata = async () => {
       try {
-        const { data: branchData } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", { params: { repoUrl } });
+        const { data: branchData } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", {
+          params: { repoUrl }
+        });
         const allBranches = ["Todas", ...branchData];
         setBranches(allBranches);
 
@@ -79,68 +80,47 @@ const Analisis: React.FC = () => {
     loadMetadata();
   }, [repoUrl]);
 
-  const fetchData = async (url: string, loadedBranches: string[], from: string, to: string, localKey: string) => {
+  const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
     try {
-      const allStats: StatsMap = {};
+      const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
+        params: { repoUrl: url, startDate: from, endDate: to }
+      });
 
-      for (const branch of loadedBranches) {
-        const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
-          params: {
-            repoUrl: url,
-            branch: branch === "Todas" ? undefined : branch,
-            startDate: from,
-            endDate: to
-          }
-        });
-
-        for (const user of response.data) {
-          allStats[user.user] ||= {};
-          allStats[user.user][branch] = { ...user, selectedBranch: branch };
-        }
+      const map: StatsMap = {};
+      for (const user of response.data) {
+        map[user.user] ||= {};
+        map[user.user]["Todas"] = { ...user, selectedBranch: "Todas" };
       }
 
-      localStorage.setItem(localKey, JSON.stringify(allStats));
-      setStatsMap(allStats);
+      localStorage.setItem(localKey, JSON.stringify(map));
+      setStatsMap(map);
 
-      const dataForDefault = Object.entries(allStats).map(([user, branches]) => ({
-        ...branches["Todas"] || Object.values(branches)[0],
+      const initial = Object.entries(map).map(([_, branches]) => ({
+        ...branches["Todas"],
         selectedBranch: "Todas"
       }));
 
-      setData(dataForDefault);
-    } catch (error) {
-      console.error("Error al obtener datos:", error);
+      setData(initial);
+    } catch (err) {
+      console.error("❌ Error inicial al obtener datos:", err);
     }
   };
-const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
-  try {
-    const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
-      params: { repoUrl: url, startDate: from, endDate: to }
-    });
-
-    const map: StatsMap = {};
-    for (const user of response.data) {
-      map[user.user] ||= {};
-      map[user.user]["Todas"] = { ...user, selectedBranch: "Todas" };
-    }
-
-    localStorage.setItem(localKey, JSON.stringify(map));
-    setStatsMap(map);
-
-    const initial = Object.entries(map).map(([_, branches]) => ({
-      ...branches["Todas"],
-      selectedBranch: "Todas"
-    }));
-
-    setData(initial);
-  } catch (err) {
-    console.error("❌ Error inicial al obtener datos:", err);
-  }
-};
 
   return (
     <div className="space-y-6">
-      <Filtros {...{ repoUrl, setRepoUrl, since, setSince, until, setUntil, fetchData: async () => {} }} />
+      <BarraConFiltros
+        repoUrl={repoUrl}
+        setRepoUrl={setRepoUrl}
+        branch=""
+        setBranch={() => {}}
+        startDate={since}
+        setStartDate={setSince}
+        endDate={until}
+        setEndDate={setUntil}
+        fetchData={() => {}} 
+        mode="heatmap"
+        hideBranchSelect={true}
+      />
 
       <div className="p-6 mb-6 bg-gray-100 dark:bg-gray-800 border rounded-lg shadow-md">
         <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-3">📊 Resumen del Repositorio</h3>
@@ -155,6 +135,7 @@ const fetchInitialBranch = async (url: string, from: string, to: string, localKe
       </div>
 
       <Graficos userData={data} />
+
       <TablaAnalisis
         data={data}
         branches={branches}
@@ -164,6 +145,7 @@ const fetchInitialBranch = async (url: string, from: string, to: string, localKe
         setData={setData}
         statsMap={statsMap}
       />
+
       <ExportarDatos repoUrl={repoUrl} branch="main" startDate={since} endDate={until} />
     </div>
   );
