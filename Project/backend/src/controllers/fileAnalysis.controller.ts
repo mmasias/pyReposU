@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import axios from "axios";
 import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
-import { ensureCommitFileContentAndDiff } from "../services/commitFileCache.service";
+import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
 
 // Prompt simplificado sin estructura JSON
 const buildSimplifiedPrompt = (
@@ -128,13 +128,17 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
       return;
     }
 
-    // Buscar si ya existe el análisis express para ese par de commits
+    // Normalizar commits y crear clave determinística
+    const normalizedHashes = [commitHashOld as string, commitHashNew as string].sort();
+    const commitPairId = normalizedHashes.join("::");
+
+    // Verificar si ya existe el análisis express para ese par de commits
     const existing = await FileAnalysis.findOne({
       where: {
         repoId: repo.id,
         filePath,
         type: 'express',
-        commitHashes: [commitHashOld, commitHashNew], // <- Sequelize JSON match
+        commitPairId,
       },
     });
 
@@ -147,14 +151,15 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
       return;
     }
 
+    // Obtener contenido de ambos commits
     const [oldSnapshot, newSnapshot] = await Promise.all([
       ensureCommitFileContentAndDiff(repoUrl as string, commitHashOld as string, filePath as string),
       ensureCommitFileContentAndDiff(repoUrl as string, commitHashNew as string, filePath as string),
     ]);
 
     const prompt = buildSimplifiedPrompt([
-      { commit: commitHashOld as string, content: oldSnapshot.content || "" },
-      { commit: commitHashNew as string, content: newSnapshot.content || "" },
+      { commit: normalizedHashes[0], content: oldSnapshot.content || "" },
+      { commit: normalizedHashes[1], content: newSnapshot.content || "" },
     ]);
 
     const response = await axios.post("http://127.0.0.1:11434/api/generate", {
@@ -163,20 +168,20 @@ export const analyzeExpressHandler = async (req: Request, res: Response): Promis
       stream: false,
     });
 
-    const raw = response.data.response.trim();
+    const summary = response.data.response.trim();
 
-    // Guardar en DB para futuras ejecuciones
     await FileAnalysis.create({
       repoId: repo.id,
       filePath,
       type: 'express',
-      summary: raw,
-      commitHashes: [commitHashOld, commitHashNew],
+      summary,
+      commitHashes: normalizedHashes,
+      commitPairId,
     });
 
     res.status(200).json({
-      summary: raw,
-      commits: [commitHashOld, commitHashNew],
+      summary,
+      commits: normalizedHashes,
     });
   } catch (error) {
     console.error(`[analyzeExpressHandler] Error:`, error);

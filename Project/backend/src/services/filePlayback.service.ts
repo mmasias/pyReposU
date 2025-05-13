@@ -1,6 +1,6 @@
 import { Repository, Commit } from '../models';
 import { generateFileDiff } from '../utils/diffUtils';
-import { ensureCommitFileContentAndDiff } from './commitFileCache.service';
+import { ensureCommitFileContentAndDiff } from './fileAnalysisService';
 
 export const getPlaybackHistory = async (
   repoUrl: string,

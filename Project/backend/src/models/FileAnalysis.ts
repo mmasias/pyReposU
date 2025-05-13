@@ -7,6 +7,7 @@ export class FileAnalysis extends Model {
   declare filePath: string;
   declare type: 'deep' | 'express';
   declare commitHashes: string[]; // array serializado
+  declare commitPairId: string | null; 
   declare summary: string;
 }
 
@@ -19,6 +20,10 @@ FileAnalysis.init(
     commitHashes: {
       type: DataTypes.JSONB,
       allowNull: false,
+    },
+    commitPairId: {
+      type: DataTypes.STRING,
+      allowNull: true, // para analisis express
     },
     summary: {
       type: DataTypes.TEXT,

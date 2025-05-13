@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getCommits, getFileContent, getFileDiff, getFirstCommitForFile } from "../utils/gitRepoUtils";
 import { Commit, CommitFile, Repository } from "../models";
 import { getPlaybackHistory } from "../services/filePlayback.service";
-import { ensureCommitFileContentAndDiff } from "../services/commitFileCache.service";
+import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
 //  Obtener contenido de un archivo en un commit
 export const getFileContentHandler = async (req: Request, res: Response): Promise<void> => {
   const { repoUrl, commitHash, filePath } = req.query;
