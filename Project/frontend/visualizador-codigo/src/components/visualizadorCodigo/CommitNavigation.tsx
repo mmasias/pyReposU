@@ -3,7 +3,6 @@ import React from "react";
 interface CommitNavigationProps {
   currentIndex: number;
   totalCommits: number;
-  firstCommitHash?: string;
   lastCommitHash?: string;
   onPrevious: () => void;
   onNext: () => void;
@@ -11,10 +10,10 @@ interface CommitNavigationProps {
   onGoToLast: () => void;
 }
 
+
 const CommitNavigation: React.FC<CommitNavigationProps> = ({
   currentIndex,
   totalCommits,
-  firstCommitHash,
   lastCommitHash,
   onPrevious,
   onNext,
@@ -23,14 +22,14 @@ const CommitNavigation: React.FC<CommitNavigationProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap justify-center gap-4 mb-6">
-      <button
-        onClick={onGoToLast}
-        disabled={!lastCommitHash}
-        className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow disabled:opacity-50"
-      >
-        Último commit
-      </button>
 
+      <button
+        onClick={onGoToFirst}
+        disabled={totalCommits === 0}
+        className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md shadow disabled:opacity-50"
+      >
+        Primer commit
+      </button>
       <button
         onClick={onPrevious}
         disabled={currentIndex + 1 >= totalCommits}
@@ -46,14 +45,14 @@ const CommitNavigation: React.FC<CommitNavigationProps> = ({
       >
         Siguiente
       </button>
-
       <button
-        onClick={onGoToFirst}
-        disabled={!firstCommitHash}
-        className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md shadow disabled:opacity-50"
+        onClick={onGoToLast}
+        disabled={!lastCommitHash}
+        className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow disabled:opacity-50"
       >
-        Primer commit
+        Último commit
       </button>
+
     </div>
   );
 };

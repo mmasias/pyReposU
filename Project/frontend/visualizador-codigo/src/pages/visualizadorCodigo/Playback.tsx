@@ -20,7 +20,6 @@ const Playback = () => {
   const [removedLines, setRemovedLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const [firstCommitHash, setFirstCommitHash] = useState<string | null>(null);
 
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -94,20 +93,9 @@ const Playback = () => {
     }
   };
 
-  const fetchCommitBounds = async () => {
-    try {
-      const res = await axios.get("http://localhost:3000/api/visualizadorCodigo/first-commit", {
-        params: { repoUrl, filePath: normalizedFilePath },
-      });
-      setFirstCommitHash(res.data.commitHash);
-    } catch (err) {
-      console.error("Error obteniendo primer commit:", err);
-    }
-  };
 
   useEffect(() => {
     fetchCommits();
-    fetchCommitBounds();
   }, [repo, filePath]);
 
   useEffect(() => {
@@ -212,13 +200,13 @@ const Playback = () => {
         <CommitNavigation
           currentIndex={currentIndex}
           totalCommits={commits.length}
-          firstCommitHash={firstCommitHash || undefined}
           lastCommitHash={commits[0]?.hash}
           onPrevious={handlePrevious}
           onNext={handleNext}
-          onGoToFirst={() => firstCommitHash && goToCommit(firstCommitHash)}
+          onGoToFirst={() => goToCommit(commits[commits.length - 1]?.hash)}
           onGoToLast={() => goToCommit(commits[0]?.hash)}
         />
+
 
         <DiffViewer
           leftLines={prevContent}
