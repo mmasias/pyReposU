@@ -1,0 +1,10 @@
+@startuml
+actor Usuario
+
+rectangle "Sistema de Métricas de GitHub" {
+    Usuario --> (Ver Playback de Código)
+    Usuario --> (Ver Diagrama de Burbujas)
+    Usuario --> (Ver Tabla de Estadísticas)
+    Usuario --> (Ver Mapa de Calor de Contribuciones)
+}
+@enduml

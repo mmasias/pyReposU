@@ -1,0 +1,10 @@
+/* ResizableStyles.css */
+.react-resizable-panel {
+    min-height: 50px;
+  }
+  
+  .react-resizable-panel::before {
+    content: "";
+    display: block;
+  }
+  

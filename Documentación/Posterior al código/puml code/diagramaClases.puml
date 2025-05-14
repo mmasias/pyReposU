@@ -1,0 +1,49 @@
+@startuml
+class Repository {
+  + url: string
+  + branches: string[]
+}
+
+class Commit {
+  + hash: string
+  + message: string
+  + date: Date
+  + author: User
+  + files: File[]
+}
+
+class File {
+  + path: string
+  + content: string
+}
+
+class User {
+  + name: string
+  + email: string
+}
+
+class Contribution {
+  + user: User
+  + file: File
+  + linesAdded: int
+  + linesDeleted: int
+  + percentage: float
+}
+
+class Stats {
+  + user: User
+  + commits: int
+  + linesAdded: int
+  + linesDeleted: int
+  + pullRequests: int
+  + issues: int
+  + comments: int
+}
+
+Repository "1" -- "*" Commit : tiene
+Commit "1" -- "*" File : modifica
+Commit "1" -- "1" User : realizado_por
+User "1" -- "*" Contribution : hace
+File "1" -- "*" Contribution : afecta
+User "1" -- "1" Stats : tiene
+@enduml

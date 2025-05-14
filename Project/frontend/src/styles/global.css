@@ -1,0 +1,50 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/*  Transiciones suaves entre modos claro/oscuro */
+html {
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/*  Estilos base */
+body {
+  background-color: var(--backgroundLight);
+  color: #1a202c; /* text-gray-900 */
+  font-family: "Inter", sans-serif;
+}
+
+body.dark {
+  background-color: var(--backgroundDark);
+  color: #f7fafc; /* text-gray-100 */
+}
+
+/* Tarjetas  */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* Botón  */
+.button-primary {
+  background-color: #4f46e5;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.button-primary:hover {
+  background-color: #4338ca;
+}
+html.dark, body.dark {
+  background-color: #1a1a1a !important; /* Fondo oscuro global */
+  color: white !important;
+}
