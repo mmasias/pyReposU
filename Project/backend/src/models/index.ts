@@ -13,22 +13,21 @@ import { FileAnalysis } from './FileAnalysis';
 import { CommitSyncState } from './CommitSyncState';
 import { BranchStats } from './BranchStats';
 import { ContributionCache } from './ContributionCache';
-// Commit → User & Repository
+
+// Relaciones
+
 User.hasMany(Commit, { foreignKey: 'authorId' });
 Commit.belongsTo(User, { foreignKey: 'authorId' });
 
 Repository.hasMany(Commit, { foreignKey: 'repositoryId' });
 Commit.belongsTo(Repository, { foreignKey: 'repositoryId' });
 
-// Commit → CommitFiles
 Commit.hasMany(CommitFile, { foreignKey: 'commitId' });
 CommitFile.belongsTo(Commit, { foreignKey: 'commitId' });
 
-// Repo → Branch
 Repository.hasMany(Branch, { foreignKey: 'repositoryId' });
 Branch.belongsTo(Repository, { foreignKey: 'repositoryId' });
 
-// Commit ↔ Branch (M:N)
 Commit.belongsToMany(Branch, {
   through: CommitBranch,
   foreignKey: 'commitId',
@@ -37,11 +36,10 @@ Branch.belongsToMany(Commit, {
   through: CommitBranch,
   foreignKey: 'branchId',
 });
-// Relación directa para poder hacer include
+
 Commit.hasMany(CommitBranch, { foreignKey: 'commitId' });
 CommitBranch.belongsTo(Commit, { foreignKey: 'commitId' });
 
-// PRs, Issues, Comments
 User.hasMany(PullRequest, { foreignKey: 'userId' });
 PullRequest.belongsTo(User, { foreignKey: 'userId' });
 Repository.hasMany(PullRequest, { foreignKey: 'repositoryId' });
@@ -57,17 +55,11 @@ Comment.belongsTo(User, { foreignKey: 'userId' });
 Repository.hasMany(Comment, { foreignKey: 'repositoryId' });
 Comment.belongsTo(Repository, { foreignKey: 'repositoryId' });
 
-
-
-
-//user-commit-stats
 User.hasMany(UserRepoStats, { foreignKey: 'userId' });
 UserRepoStats.belongsTo(User, { foreignKey: 'userId' });
 
 Repository.hasMany(UserRepoStats, { foreignKey: 'repositoryId' });
 UserRepoStats.belongsTo(Repository, { foreignKey: 'repositoryId' });
-
-
 
 Commit.belongsToMany(Commit, {
   through: CommitParent,
@@ -75,7 +67,6 @@ Commit.belongsToMany(Commit, {
   foreignKey: 'parentId',
   otherKey: 'childId',
 });
-
 Commit.belongsToMany(Commit, {
   through: CommitParent,
   as: 'parents',
@@ -86,10 +77,8 @@ Commit.belongsToMany(Commit, {
 CommitBranch.belongsTo(Branch, { foreignKey: 'branchId' });
 CommitBranch.belongsTo(Commit, { foreignKey: 'commitId', as: 'commit' });
 
-
 CommitParent.belongsTo(Commit, { foreignKey: 'parentId', as: 'parent' });
 CommitParent.belongsTo(Commit, { foreignKey: 'childId', as: 'child' });
-
 
 export {
   User,
@@ -107,4 +96,3 @@ export {
   BranchStats,
   ContributionCache,
 };
-

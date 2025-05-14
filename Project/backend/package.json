@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "init-db": "ts-node src/initDB.ts"
   },
   "keywords": [],
   "author": "",

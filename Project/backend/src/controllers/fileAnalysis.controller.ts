@@ -79,8 +79,8 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     );
 
     const prompt = buildSimplifiedPrompt(snapshots);
-
-    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
+//    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
+    const response = await axios.post("http://host.docker.internal:11434/api/generate", {
       model: "codellama:7b",
       prompt,
       stream: false,
@@ -148,8 +148,10 @@ export const analyzeExpressHandler = async (req: Request, res: Response, next: N
       { commit: normalizedHashes[0], content: oldSnapshot.content || "" },
       { commit: normalizedHashes[1], content: newSnapshot.content || "" },
     ]);
+//    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
 
-    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
+    const response = await axios.post("http://host.docker.internal:11434/api/generate"
+, {
       model: "codellama:7b",
       prompt,
       stream: false,

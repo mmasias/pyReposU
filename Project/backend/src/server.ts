@@ -7,17 +7,17 @@ import { setupSwagger } from './swagger';
 import { errorHandler } from "./middleware/errorHandler";
 import { config } from "./config/config";
 import { sequelize } from './config/db';
-import './models'; 
+import './models'; // <-- MUY IMPORTANTE que esté aquí para registrar modelos
 
 dotenv.config();
 
 const app: Application = express();
-const PORT = config.server.port;
+const PORT = Number(config.server.port);
 
 // Configurar CORS
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
@@ -27,23 +27,24 @@ app.use(
 app.use(bodyParser.json());
 app.use(errorHandler);
 
-// Configurar rutas
+// Rutas
 setupRoutes(app);
 
 // Swagger
 setupSwagger(app);
 
-// Conectar a la BBDD y arrancar el servidor
+// 🔥 Arranque
 const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ Conectado a PostgreSQL.");
 
-    // EN DES:
-    // await sequelize.sync({ alter: true }); // activa esto si quieres sincronizar tablas en caliente
+    await sequelize.sync({ alter: true }); // O force: true SOLO para pruebas
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log("📦 Modelos sincronizados correctamente.");
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
     });
   } catch (err) {
     console.error("❌ Error al conectar a PostgreSQL:", err);

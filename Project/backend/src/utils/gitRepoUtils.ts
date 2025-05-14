@@ -23,12 +23,14 @@ const repoLocks: Record<string, Promise<void> | null> = {};
 const repoPendingPromises: Record<string, Promise<string>> = {}; //   Guardar ejecuciones en curso
 
 export const prepareRepo = async (repoUrl: string): Promise<string> => {
-  const repoName = new URL(repoUrl).pathname.split("/").pop()?.replace(".git", "") || "cloned-repo";
+  const isValidUrl = /^https?:\/\//.test(repoUrl);
+  const repoName = isValidUrl
+    ? new URL(repoUrl).pathname.split("/").pop()?.replace(".git", "") || "cloned-repo"
+    : path.basename(repoUrl);
+
   const repoPath = path.join(__dirname, config.paths.tempRepo, repoName);
   const gitFolder = path.join(repoPath, ".git");
   const lockFile = path.join(gitFolder, "index.lock");
-
-  //console.log(`\n [prepareRepo]   Iniciando para ${repoPath}...\n`);
 
   if (repoPendingPromises[repoPath] !== undefined) {
     console.log(` [prepareRepo]   Ya hay un proceso en curso para ${repoPath}, esperando...`);
@@ -36,7 +38,6 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
   }
 
   if (REPO_CACHE[repoPath] && existsSync(gitFolder)) {
-    //console.log(` [prepareRepo]   Repo en caché, evitando duplicación.`);
     return repoPath;
   }
 
@@ -75,12 +76,13 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
       if (!(await git.checkIsRepo())) {
         throw new AppError("GIT_NOT_INITIALIZED", "Git no está bien inicializado", 500);
       }
+
       try {
         const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
         const remoteHash = await getLatestRemoteCommitHash(repoPath, currentBranch);
         const localLog = await git.log([currentBranch]);
         const localHash = localLog.latest?.hash;
-      
+
         if (remoteHash && localHash && remoteHash !== localHash) {
           console.log(`[prepareRepo] HEAD local (${localHash}) desactualizado vs remoto (${remoteHash}) — haciendo git pull en ${currentBranch}`);
           await git.pull("origin", currentBranch);
@@ -103,7 +105,6 @@ export const prepareRepo = async (repoUrl: string): Promise<string> => {
 
       for (const branch of branchList) {
         const tempBranch = `temp-sync-${branch}`;
-
         console.log(` [prepareRepo]   Forzando checkout de ${branch} como ${tempBranch}...`);
 
         try {

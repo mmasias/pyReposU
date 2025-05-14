@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { CONSOLE_LOG_MESSAGES } from "../utils/constants/errorConstants";
 
-const API_URL = "http://localhost:3000/api/mapaContribuciones/";
+const API_URL = `${import.meta.env.VITE_API_URL}/mapaContribuciones/`;
 
 export const useContributions = (
   repoUrl: string,

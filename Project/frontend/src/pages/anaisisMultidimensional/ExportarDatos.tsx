@@ -15,7 +15,7 @@ const ExportarDatos: React.FC<ExportarDatosProps> = ({ repoUrl, branch, startDat
       return;
     }
 
-    window.location.href = `http://localhost:3000/api/analisisMultidimensional/export/csv?repoUrl=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch)}&startDate=${startDate}&endDate=${endDate}`;
+    window.location.href = `${import.meta.env.VITE_API_URL}/analisisMultidimensional/export/csv?repoUrl=${encodeURIComponent(repoUrl)}&branch=${encodeURIComponent(branch)}&startDate=${startDate}&endDate=${endDate}`;
   };
 
   return (

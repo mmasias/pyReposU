@@ -43,9 +43,9 @@ useEffect(() => {
     if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
 
     try {
-      console.log(`  Enviando petición a: http://localhost:3000/api/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+      console.log(`  Enviando petición a: ${import.meta.env.VITE_API_URL}/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
       const { data } = await axios.get(
-        `http://localhost:3000/api/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
+        `${import.meta.env.VITE_API_URL}/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
       );
 
       console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);

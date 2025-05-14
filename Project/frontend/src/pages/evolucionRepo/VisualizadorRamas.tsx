@@ -27,7 +27,7 @@ const VisualizadorRamas = () => {
 
     try {
       const encodedUrl = encodeURIComponent(repoUrl);
-      const res = await fetch(`http://localhost:3000/api/mapaEvolucionRepo?repoUrl=${encodedUrl}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/mapaEvolucionRepo?repoUrl=${encodedUrl}`);
       if (!res.ok) throw new Error(await res.text());
 
       const data: Commit[] = await res.json();

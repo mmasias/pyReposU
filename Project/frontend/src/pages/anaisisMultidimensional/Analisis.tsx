@@ -46,10 +46,11 @@ const Analisis: React.FC = () => {
 
     const loadMetadata = async () => {
       try {
-        const { data: branchData } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", {
-          params: { repoUrl }
+        const { data: branchList } = await axios.get(`${import.meta.env.VITE_API_URL}/analisisMultidimensional/branches`, {
+          params: { repoUrl: repoUrl }
         });
-        const allBranches = ["Todas", ...branchData];
+
+        const allBranches = ["Todas", ...branchList];
         setBranches(allBranches);
 
         const [owner, repoNameRaw] = new URL(repoUrl).pathname.slice(1).split("/");
@@ -83,9 +84,10 @@ const Analisis: React.FC = () => {
 
   const fetchInitialBranch = async (url: string, from: string, to: string, localKey: string) => {
     try {
-      const { data: branchList } = await axios.get("http://localhost:3000/api/analisisMultidimensional/branches", {
+      const { data: branchList } = await axios.get(`${import.meta.env.VITE_API_URL}/analisisMultidimensional/branches`, {
         params: { repoUrl: url }
       });
+
 
       const allBranches = ["Todas", ...branchList];
 
@@ -94,9 +96,10 @@ const Analisis: React.FC = () => {
       for (const branch of allBranches) {
         const branchParam = branch === "Todas" ? "all" : branch;
 
-        const response = await axios.get<UserData[]>("http://localhost:3000/api/analisisMultidimensional", {
+        const response = await axios.get<UserData[]>(`${import.meta.env.VITE_API_URL}/analisisMultidimensional`, {
           params: { repoUrl: url, branch: branchParam, startDate: from, endDate: to }
         });
+
 
         for (const user of response.data) {
           map[user.user] ||= {};

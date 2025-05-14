@@ -34,7 +34,7 @@ const Playback = () => {
 
   const fetchCommits = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo`, {
         params: { repoUrl: repo },
       });
 
@@ -58,7 +58,7 @@ const Playback = () => {
 
   const fetchFileContent = async (commitHash: string, setContent: (content: string[]) => void) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/content", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/content`, {
         params: { repoUrl, filePath: normalizedFilePath, commitHash },
       });
       const content = response.data || "";
@@ -78,7 +78,7 @@ const Playback = () => {
   
   const fetchDiff = async (oldHash: string, newHash: string) => {
     try {
-      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/diff", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/diff`, {
         params: {
           repoUrl,
           filePath: normalizedFilePath,
@@ -147,7 +147,7 @@ const Playback = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/analyze-express", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/analyze-express`, {
         params: { repoUrl, filePath: normalizedFilePath, commitHashOld: oldHash, commitHashNew: newHash },
       });
       setAnalysisResult(response.data);
@@ -164,7 +164,7 @@ const Playback = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await axios.get("http://localhost:3000/api/visualizadorCodigo/analyze-deep", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/analyze-deep`, {
         params: { repoUrl, filePath: normalizedFilePath },
       });
       setAnalysisResult(response.data);
