@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchBubbleChartData } from "../services/bubbleChartService";
-import { CONSOLE_LOG_MESSAGES, ERROR_MESSAGES } from "../utils/constants/errorConstants";
+import { CONSOLE_LOG_MESSAGES } from "../utils/constants/errorConstants";
 
 export const useBubbleChart = (repoUrl: string, branch: string) => {
   const [bubbleData, setBubbleData] = useState<any>(null);

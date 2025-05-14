@@ -20,6 +20,7 @@ import { SyncOptions } from "../types/syncOptions";
 import { wasProcessed } from "./syncState";
 import { markProcessed } from "./syncState";
 import { AppError } from '../middleware/errorHandler';
+import { config } from "../config/config"; // asegurate de tener esto arriba
 
 
 const syncingRepos = new Set<string>();
@@ -143,7 +144,8 @@ export const syncGithubActivity = async (repoUrl: string): Promise<void> => {
 
   const headers = {
     Accept: 'application/vnd.github+json',
-    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    Authorization: `Bearer ${config.github.token}`,
+    "User-Agent": "my-node-app" // <- IMPORTANTE para evitar otros 403
   };
 
   //  Pull Requests
