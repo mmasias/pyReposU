@@ -6,7 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // Tu backend Express
+        //target: 'http://localhost:3000', // Tu backend Express en producción (docker)
+
+        target: 'http://localhost:5000', // Tu backend Express
         changeOrigin: true,
         secure: false,
       },

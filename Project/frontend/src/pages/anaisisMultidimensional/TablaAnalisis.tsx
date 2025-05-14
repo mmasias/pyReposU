@@ -35,25 +35,22 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({
   until
 }) => {
 
-
-
   const updateBranchData = async (user: string, branch: string) => {
     const userBranches = statsMap[user] || {};
 
     if (userBranches[branch]) {
-      // ✔️ Ya está cacheado
       setData(prev =>
         prev.map(u =>
           u.user === user ? { ...userBranches[branch], selectedBranch: branch } : u
         )
       );
     } else {
-      // ⚠️ No está cacheado, lo buscamos dinámicamente
       try {
         const branchParam = branch === "Todas" ? "all" : branch;
         const response = await axios.get<UserData[]>(`${import.meta.env.VITE_API_URL}/analisisMultidimensional`, {
           params: { repoUrl, branch: branchParam, startDate: since, endDate: until }
         });
+
         if (!Array.isArray(response.data)) {
           console.error("❌ Backend no devolvió un array como se esperaba:", response.data);
           return;
@@ -62,7 +59,6 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({
         const foundUser = response.data.find(u => u.user === user);
         if (!foundUser) return;
 
-        // Actualizar statsMap y data
         statsMap[user] ||= {};
         statsMap[user][branch] = { ...foundUser, selectedBranch: branch };
 
@@ -105,7 +101,9 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({
                 </select>
               </td>
               {visibleColumns.map(col => (
-                <td key={col} className="border p-2">{userData[col as keyof UserData]}</td>
+                <td key={col} className="border p-2">
+                  {userData[col as keyof UserData]}
+                </td>
               ))}
             </tr>
           ))}
