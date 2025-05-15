@@ -68,7 +68,11 @@ const Visualizador = () => {
     }
   };
 
-  const fetchTreeData = async (url?: string, branchOverride?: string) => {
+  const fetchTreeData = async (
+    url?: string,
+    branchOverride?: string,
+    filters?: { since?: string; until?: string; author?: string }
+  ) => {
     setLoading(true);
     setError(null);
     setTreeData([]);
@@ -80,9 +84,10 @@ const Visualizador = () => {
       const params: Record<string, string> = { repoUrl: repo };
 
       if (selectedBranch) params.branch = selectedBranch;
-      if (since) params.since = since;
-      if (until) params.until = until;
-      if (author) params.author = author;
+      if (filters?.since) params.since = filters.since;
+      if (filters?.until) params.until = filters.until;
+      if (filters?.author) params.author = filters.author;
+      console.log("[📤 FRONT] Aplicando filtros:", { repo, branch: selectedBranch, since: filters?.since, until: filters?.until, author: filters?.author });
 
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/tree`, { params });
 
@@ -224,7 +229,16 @@ const Visualizador = () => {
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
-        <button onClick={() => fetchTreeData()} className="btn-primary">
+        <button
+          onClick={() =>
+            fetchTreeData(undefined, undefined, {
+              since,
+              until,
+              author
+            })
+          }
+          className="btn-primary"
+        >
           Aplicar Filtros
         </button>
       </div>
