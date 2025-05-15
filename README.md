@@ -74,15 +74,6 @@ Este proyecto analiza la evolución de repositorios de código fuente mediante v
 
 ---
 
-## 🧪 Inicializar la base de datos (opcional)
 
-Solo necesario la primera vez (crea tablas y relaciones):
-
-```bash
-docker exec -it project-backend-1 npx ts-node src/initDB.ts
-```
-Si falla, comprueba el nombre exacto del contenedor con `docker ps`.
-
----
 
 

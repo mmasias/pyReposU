@@ -4,9 +4,28 @@ import { getRepositoryTreeService } from "../services/getRepositoryTreeService";
 import simpleGit from "simple-git";
 import { prepareRepo } from "../utils/gitRepoUtils";
 import { AppError } from "../middleware/errorHandler";
+import { syncCommits } from "../services/sync/syncCommits";
 
-export const getRepositoryTree = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { repoUrl, author, since, until, branch } = req.query;
+/**
+ * Parsea una fecha desde query params con validación segura
+ */
+const parseDateParam = (value: unknown, isUntil = false): Date | undefined => {
+  if (!value || typeof value !== "string") return undefined;
+
+  const dateString = isUntil
+    ? `${value}T23:59:59.999Z`
+    : `${value}T00:00:00.000Z`;
+
+  const parsed = new Date(dateString);
+  return isNaN(parsed.getTime()) ? undefined : parsed;
+};
+
+export const getRepositoryTree = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { repoUrl, since, until, branch } = req.query;
 
   if (!repoUrl) {
     return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
@@ -20,35 +39,42 @@ export const getRepositoryTree = async (req: Request, res: Response, next: NextF
       return next(new AppError("REPO_NOT_FOUND", undefined, 404));
     }
 
-    let branchToUse = branch as string | undefined;
+    const branchToUse = branch as string | undefined;
+    const sinceDate = parseDateParam(since);
+    const untilDate = parseDateParam(until, true);
+
+    console.log("[💥 DEBUG] Tipos crudos de fechas:", typeof since, since, typeof until, until);
+    console.log("[🧪 DEBUG PARSED] since:", sinceDate?.toISOString(), "until:", untilDate?.toISOString());
+
+    const repoPath = await prepareRepo(decodedRepoUrl);
 
     if (branchToUse) {
-      const repoPath = await prepareRepo(decodedRepoUrl);
       const git = simpleGit(repoPath);
-      const branchExists = (await git.branch(["-a"])).all.some((b) =>
+      const branches = await git.branch(["-a"]);
+      const branchExists = branches.all.some((b) =>
         b.replace("remotes/origin/", "").trim() === branchToUse
       );
 
       if (!branchExists) {
-        return next(new AppError("BRANCH_NOT_EXISTS_IN_REPO", `La rama '${branchToUse}' no existe en el repositorio.`, 400));
+        return next(
+          new AppError(
+            "BRANCH_NOT_EXISTS_IN_REPO",
+            `La rama '${branchToUse}' no existe en el repositorio.`,
+            400
+          )
+        );
       }
+
+      await syncCommits(repo, repoPath, branchToUse, { syncStats: true });
     }
 
     const tree = await getRepositoryTreeService(repo.id, {
-      author: author as string,
-      since: since ? new Date(since as string) : undefined,
-      until: until ? new Date(until as string) : undefined,
+      since: sinceDate,
+      until: untilDate,
       repoUrl: decodedRepoUrl,
       branch: branchToUse,
+      repoPath,
     });
-
-    if (author && (!tree.files?.length && !tree.subfolders?.length)) {
-      res.status(200).json({
-        warning: `No hay commits realizados por el autor '${author}'.`,
-        tree: [],
-      });
-      return;
-    }
 
     res.status(200).json({ tree });
   } catch (error) {
@@ -57,7 +83,11 @@ export const getRepositoryTree = async (req: Request, res: Response, next: NextF
   }
 };
 
-export const getCurrentBranch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getCurrentBranch = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   const { repoUrl } = req.query;
 
   if (!repoUrl) {
