@@ -112,6 +112,14 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
       {/* Lado izquierdo */}
       <div className="bg-white border rounded-md shadow">
         <div className="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-t-md">{leftTitle}</div>
+
+        {/* 🔔 Mensaje de "sin cambios" */}
+        {addedLines.length === 0 && removedLines.length === 0 && leftLines.length > 0 && (
+          <div className="text-center text-sm text-gray-500 italic my-3">
+            Este commit no introdujo cambios en el archivo.
+          </div>
+        )}
+
         <div ref={leftRef} className="max-h-[600px] overflow-y-scroll border-t text-sm">
           {alignedLeft.map((line, i) =>
             renderLine(
@@ -128,6 +136,13 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
       {/* Lado derecho */}
       <div className="bg-white border rounded-md shadow">
         <div className="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-t-md">{rightTitle}</div>
+
+        {/* 🔔 Mensaje también aquí, para coherencia visual */}
+        {addedLines.length === 0 && removedLines.length === 0 && leftLines.length > 0 && (
+          <div className="text-center text-sm text-gray-500 italic my-3">
+            Este commit no introdujo cambios en el archivo.
+          </div>
+        )}
         <div ref={rightRef} className="max-h-[600px] overflow-y-scroll border-t text-sm">
           {alignedRight.map((line, i) =>
             renderLine(
@@ -142,6 +157,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({
       </div>
     </div>
   );
+
 };
 
 export default DiffViewer;
