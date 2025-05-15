@@ -13,7 +13,8 @@ interface FiltrosContribucionesProps {
   setEndDate: (date: string) => void;
   fetchData: () => void;
   mode: "heatmap" | "bubbleChart";
-  hideBranchSelect?: boolean; 
+  hideBranchSelect?: boolean;
+  includeAllBranchesOption?: boolean; 
 }
 
 const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
@@ -28,6 +29,8 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
   fetchData,
   mode,
   hideBranchSelect = false, 
+  includeAllBranchesOption = true,
+
 }) => {
   const [branches, setBranches] = useState<string[]>(["main"]);
   const [repoCreatedAt, setRepoCreatedAt] = useState("");
@@ -134,7 +137,7 @@ useEffect(() => {
             onChange={(e) => setBranch(e.target.value)}
             className="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
           >
-            {mode === "bubbleChart" && (
+            {mode === "bubbleChart" && includeAllBranchesOption && (
               <option key="all" value="all">
                 Todos
               </option>

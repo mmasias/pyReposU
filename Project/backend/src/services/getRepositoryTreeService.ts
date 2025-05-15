@@ -24,7 +24,6 @@ const normalizePath = (input: string): string =>
 export const getRepositoryTreeService = async (
   repoId: number,
   filters?: {
-    author?: string;
     since?: Date;
     until?: Date;
     branch?: string;
@@ -82,22 +81,6 @@ export const getRepositoryTreeService = async (
     if (branch) branchId = branch.id;
   }
 
-  const commitWhere: any = {
-    repositoryId: repoId,
-    ...(filters?.since && { date: { [Op.gte]: filters.since } }),
-    ...(filters?.until && { date: { ...(filters?.since ? { [Op.gte]: filters.since } : {}), [Op.lte]: filters.until } }),
-  };
-
-  const include: any[] = [];
-
-  if (filters?.author) {
-    include.push({
-      association: "User",
-      where: { githubLogin: filters.author },
-      required: true,
-    });
-  }
-
   let commits: Commit[] = [];
 
   if (branchId) {
@@ -125,25 +108,30 @@ export const getRepositoryTreeService = async (
           repositoryId: repoId,
           date: dateRange,
         },
-        include,
+        include: [], // 👈 sigue incluyendo relaciones si quieres mantener User en los objetos
       });
 
       console.log("[🧪 FECHA-FIX] Total commits en rango:", commits.length);
     } else {
-      // Si no hay filtros de fecha, usamos todos los commits asociados a la rama
       commits = await Commit.findAll({
         where: {
           id: allCommitIds,
           repositoryId: repoId,
         },
-        include,
+        include: [],
       });
     }
   } else {
-    // Sin branch específico, buscamos por repo + fechas + autor
+    // Sin rama específica
+    const commitWhere: any = {
+      repositoryId: repoId,
+      ...(filters?.since && { date: { [Op.gte]: filters.since } }),
+      ...(filters?.until && { date: { ...(filters?.since ? { [Op.gte]: filters.since } : {}), [Op.lte]: filters.until } }),
+    };
+
     commits = await Commit.findAll({
       where: commitWhere,
-      include,
+      include: [],
     });
   }
 

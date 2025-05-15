@@ -25,7 +25,7 @@ export const getRepositoryTree = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { repoUrl, author, since, until, branch } = req.query;
+  const { repoUrl, since, until, branch } = req.query;
 
   if (!repoUrl) {
     return next(new AppError("REPO_URL_REQUIRED", undefined, 400));
@@ -43,13 +43,8 @@ export const getRepositoryTree = async (
     const sinceDate = parseDateParam(since);
     const untilDate = parseDateParam(until, true);
 
-    // ❗ Sanitizar el autor para evitar pasar string vacío
-    const sanitizedAuthor =
-      typeof author === "string" && author.trim() !== "" ? author.trim() : undefined;
-
     console.log("[💥 DEBUG] Tipos crudos de fechas:", typeof since, since, typeof until, until);
     console.log("[🧪 DEBUG PARSED] since:", sinceDate?.toISOString(), "until:", untilDate?.toISOString());
-    console.log("[🧑‍💻 DEBUG] Author original:", author, "| Sanitizado:", sanitizedAuthor);
 
     const repoPath = await prepareRepo(decodedRepoUrl);
 
@@ -74,21 +69,12 @@ export const getRepositoryTree = async (
     }
 
     const tree = await getRepositoryTreeService(repo.id, {
-      author: sanitizedAuthor,
       since: sinceDate,
       until: untilDate,
       repoUrl: decodedRepoUrl,
       branch: branchToUse,
       repoPath,
     });
-
-    if (sanitizedAuthor && (!tree.files?.length && !tree.subfolders?.length)) {
-      res.status(200).json({
-        warning: `No hay commits realizados por el autor '${sanitizedAuthor}'.`,
-        tree: [],
-      });
-      return;
-    }
 
     res.status(200).json({ tree });
   } catch (error) {
