@@ -1,17 +1,17 @@
 import { Op } from 'sequelize';
-import { Commit } from '../models/Commit';
-import { CommitFile } from '../models/CommitFile';
-import { Repository } from '../models/Repository';
-import { User } from '../models/User';
-import { PullRequest } from '../models/PullRequest';
-import { Issue } from '../models/Issue';
-import { Comment } from '../models/Comment';
+import { Commit } from '../../models/Commit';
+import { CommitFile } from '../../models/CommitFile';
+import { Repository } from '../../models/Repository';
+import { User } from '../../models/User';
+import { PullRequest } from '../../models/PullRequest';
+import { Issue } from '../../models/Issue';
+import { Comment } from '../../models/Comment';
 import { Parser } from 'json2csv';
-import { Branch, CommitBranch } from '../models';
-import { UserRepoStats } from '../models/UserRepoStats';
-import { wasProcessed, markProcessed } from './syncState';
-import { CommitSyncState } from '../models/CommitSyncState';
-import { AppError } from "../middleware/errorHandler";
+import { Branch, CommitBranch } from '../../models';
+import { UserRepoStats } from '../../models/UserRepoStats';
+import { wasProcessed, markProcessed } from '../syncState';
+import { CommitSyncState } from '../../models/CommitSyncState';
+import { AppError } from "../../middleware/errorHandler";
 
 interface UserStats {
   user: string;
@@ -245,17 +245,6 @@ export const getRepoGeneralStats = async (repoUrl: string, startDate?: string, e
   return statsMap;
 };
 
-export const generateUserStatsCSV = async (
-  repoUrl: string,
-  branch?: string,
-  startDate?: string,
-  endDate?: string
-): Promise<string> => {
-  const stats = await getUserStats(repoUrl, branch || 'all', startDate || '', endDate || '');
-  const fields = ['user', 'totalContributions', 'commits', 'linesAdded', 'linesDeleted', 'pullRequests', 'issues', 'comments'];
-  const json2csv = new Parser({ fields });
-  return json2csv.parse(stats);
-};
 
 function createEmptyStats(user: string): UserStats {
   return {

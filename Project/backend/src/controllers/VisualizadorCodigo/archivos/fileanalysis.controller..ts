@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
-import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
-import { AppError } from "../middleware/errorHandler";
+import { FileAnalysis, Commit, CommitFile, Repository } from '../../../models';
+import { ensureCommitFileContentAndDiff } from "../../../services/visualizadorCodigo/archivos/commitFileContentAndDiff";
+import { AppError } from "../../../middleware/errorHandler";
 import { Op } from 'sequelize';
 
 
@@ -107,6 +107,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     next(new AppError("FAILED_TO_PERFORM_DEEP_ANALYSIS"));
   }
 };
+
 
 // --- ANÁLISIS EXPRESS ---
 export const analyzeExpressHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

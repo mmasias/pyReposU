@@ -1,12 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import { getContributionsByUser } from "../services/contributionsService";
-import { Repository } from "../models/Repository"; 
-import { CommitBranch } from "../models/CommitBranch";
-import { Branch } from "../models/Branch"; 
-import { Commit } from "../models/Commit"; 
-import { getBubbleChartData } from "../services/bubbleChartService";
-import { wasProcessed } from "../services/syncState";
-import { AppError } from "../middleware/errorHandler"; 
+import { getContributionsByUser } from "../../services/HeatMap/heatMap";
+import { Repository } from "../../models/Repository"; 
+import { CommitBranch } from "../../models/CommitBranch";
+import { Branch } from "../../models/Branch"; 
+import { Commit } from "../../models/Commit"; 
+import { wasProcessed } from "../../services/syncState";
+import { AppError } from "../../middleware/errorHandler"; 
 
 type CommitBranchWithCommit = CommitBranch & {
   commit?: Commit;
@@ -60,18 +59,3 @@ export const getUserContributionsHandler = async (req: Request, res: Response, n
   }
 };
 
-export const getBubbleChartHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const repoUrl = req.query.repoUrl as string;
-    const branch = (req.query.branch as string) || "main";
-
-    if (!repoUrl) {
-      throw new AppError("REPO_URL_REQUIRED", undefined, 400);
-    }
-
-    const bubbleData = await getBubbleChartData(repoUrl, branch);
-    res.json(bubbleData);
-  } catch (error) {
-    next(error);
-  }
-};

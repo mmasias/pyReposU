@@ -1,8 +1,8 @@
-import { Commit } from "../models/Commit";
-import { CommitFile } from "../models/CommitFile";
-import { CommitBranch } from "../models/CommitBranch";
-import { Branch } from "../models/Branch";
-import { normalizePath as baseNormalizePath } from "../utils/file.utils";
+import { Commit } from "../../../models/Commit";
+import { CommitFile } from "../../../models/CommitFile";
+import { CommitBranch } from "../../../models/CommitBranch";
+import { Branch } from "../../../models/Branch";
+import { normalizePath as baseNormalizePath } from "../../../utils/file.utils";
 import simpleGit from "simple-git";
 import { spawn } from "child_process";
 import { Op } from "sequelize";

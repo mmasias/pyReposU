@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { getCommits as getCommitsFromDb } from "../services/commitsService";
-import { AppError } from "../middleware/errorHandler";
-import { ErrorMessages } from "../utils/constants/error.constants";
+import { getCommits as getCommitsFromDb } from "../../../services/visualizadorCodigo/carpetas/commitsService";
+import { AppError } from "../../../middleware/errorHandler";
+import { ErrorMessages } from "../../../utils/constants/error.constants";
 
 export const getCommitsHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

@@ -51,7 +51,6 @@ export const syncStatsOnly = async (repo: Repository, localPath: string) => {
       await markProcessed(commit.id, "stats");
     } catch (err) {
       console.error(`[STATS] ❌ Error al procesar stats en ${raw.hash}:`, err);
-      // 👇 Usa AppError si quieres propagarlo al caller (por ejemplo, si se ejecuta desde un endpoint)
       throw new AppError("FAILED_TO_GET_FOLDER_STATS", `Error al calcular estadísticas para commit ${raw.hash}`);
     }
   }

@@ -1,8 +1,8 @@
 import { Op } from 'sequelize';
-import { Commit, CommitFile, Repository, User } from '../models';
-import { safeGetFileContent } from '../utils/gitRepoUtils';
-import { generateFileDiff } from '../utils/diffUtils';
-import { AppError } from '../middleware/errorHandler';
+import { Commit, CommitFile, Repository, User } from '../../../models';
+import { safeGetFileContent } from '../../../utils/gitRepoUtils';
+import { generateFileDiff } from '../../../utils/diffUtils';
+import { AppError } from '../../../middleware/errorHandler';
 
 export const getPlaybackHistory = async (
   repoUrl: string,

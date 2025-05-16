@@ -1,8 +1,8 @@
-import { Commit } from "../models/Commit";
-import { Repository } from "../models/Repository";
-import { User } from "../models/User";
-import { CommitFile } from "../models/CommitFile";
-import { AppError } from "../middleware/errorHandler";
+import { Commit } from "../../../models/Commit";
+import { Repository } from "../../../models/Repository";
+import { User } from "../../../models/User";
+import { CommitFile } from "../../../models/CommitFile";
+import { AppError } from "../../../middleware/errorHandler";
 
 /**
  * Devuelve todos los commits de un repo, con autor y archivos modificados.
