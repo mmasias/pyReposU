@@ -21,6 +21,7 @@ RUN npm run build
 COPY src/swagger.yaml ./dist/swagger.yaml
 
 # Script de espera
+RUN apt-get install -y dos2unix && dos2unix /app/wait-for.sh
 RUN chmod +x wait-for.sh
 
 # Exponemos el puerto
