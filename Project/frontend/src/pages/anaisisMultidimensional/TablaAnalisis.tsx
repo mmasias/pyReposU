@@ -41,7 +41,7 @@ const TablaAnalisis: React.FC<TablaAnalisisProps> = ({
     const userBranches = statsMap[user] || {};
 
     if (userBranches[branch]) {
-      // ✔️ Ya está cacheado
+      //  ️ Ya está cacheado
       setData(prev =>
         prev.map(u =>
           u.user === user ? { ...userBranches[branch], selectedBranch: branch } : u
