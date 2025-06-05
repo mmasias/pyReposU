@@ -1,79 +1,69 @@
-# 🚀 pyReposU – Análisis de Repositorios con IA y Docker
+# Sistema de Auditoría de Repositorios de GitHub
 
-Este proyecto analiza la evolución de repositorios de código fuente mediante visualizaciones, análisis de cambios y herramientas de inteligencia artificial (Ollama + CodeLlama).
+Trabajo de Fin de Grado en Ingeniería Informática  
+Autor: Juan José Cobo Cano  
+Tutor: Manuel Masías Vergara  
+Fecha: Mayo de 2025  
+Universidad Europea del Atlántico
 
-## 🧩 Tecnologías
+## Descripción del proyecto
 
-- 🎨 **Frontend:** React + Vite + Tailwind CSS
-- 🔙 **Backend:** Node.js + Express + TypeScript + Sequelize
-- 🐘 **Base de datos:** PostgreSQL
-- 🐳 **Contenedores:** Docker & Docker Compose
+Este sistema ha sido diseñado para mejorar la evaluación individual en proyectos colaborativos en GitHub, especialmente en entornos educativos donde el análisis objetivo de contribuciones es un reto.
 
----
+El proyecto propone un conjunto de herramientas visuales e interactivas que permiten a los docentes auditar de manera más clara, precisa y eficiente el desempeño de los estudiantes.
 
-## ⚙️ Requisitos Previos
+## Objetivo general
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) instalado y funcionando
-- [Git](https://git-scm.com/) (opcional, para clonar)
+Desarrollar una plataforma web que permita a los docentes analizar la evolución del código, visualizar patrones de trabajo y obtener métricas precisas de participación en repositorios GitHub utilizados en asignaturas universitarias.
 
-> ⚠️ **Windows + WSL2:** Asegúrate de tener al menos `5 GB de RAM` configurados para Docker.  
-> Crea (si no existe) el archivo `%USERPROFILE%\.wslconfig` con el siguiente contenido:
->
-> ```ini
-> [wsl2]
-> memory=5GB
-> processors=4
-> swap=2GB
-> ```
-> Reinicia Docker Desktop después de modificarlo.
+## Funcionalidades destacadas
 
----
+- Visualizador de estructura de repositorio: explora las carpetas y archivos de cualquier rama de un repositorio.
+- Playback de commits: reproduce la evolución de un archivo línea a línea a lo largo del tiempo.
+- Mapa de calor de autoría: representa visualmente qué usuarios han trabajado en qué archivos y con qué intensidad.
+- Diagrama de burbujas: muestra gráficamente la actividad por usuario y archivo, facilitando la detección de patrones de colaboración.
+- Análisis multidimensional: genera estadísticas detalladas por usuario, rama y tipo de contribución (commits, PRs, issues, comentarios).
+- Visualizador de ramas y commits: permite comprender el flujo de trabajo mediante un grafo interactivo de ramas, merges y commits.
 
-## 🛠️ Cómo ejecutar la aplicación
+## Validación
 
-1. **Clona el repositorio**
-    ```bash
-    git clone <URL-del-repositorio>
-    cd Project  # o el nombre del directorio raíz
-    ```
+El sistema aún está en desarrollo pero ya es funcional y se ha probado para el análisis de varios repositorios colaborativos comprobando:
 
-2. **Configura las variables de entorno (solo backend)**
-    ```bash
-    cd backend
-    cp .env.ejemplo .env
-    ```
-    Contenido esperado de `.env`:
-    ```ini
-    DB_HOST=db
-    DB_USER=postgres
-    DB_PASS=0000
-    DB_NAME=githubDB
-    ```
+- Facilitación de la evaluación de trabajos colaborativos.
+- Optimización del tiempo empleado para evaluar repositorios colaborativos.
 
-3. **Levanta la aplicación con Docker**
-    Desde la raíz del proyecto:
-    ```bash
-    docker-compose up --build
-    ```
+## Tecnologías utilizadas
 
-    Esto iniciará automáticamente:
+- Backend: Node.js (Express)
+- Frontend: React + TailwindCSS
+- Base de datos: PostgreSQL
+- Visualizaciones: D3.js / Chart.js
+- Contenedores: Docker
+- IA: Modelos de análisis de código tipo CodeLlama
 
-    | Servicio   | URL de acceso           | Descripción                        |
-    |------------|------------------------|------------------------------------|
-    | Frontend   | http://localhost       | UI React para explorar repos       |
-    | Backend    | http://localhost:5000  | API REST y análisis IA             |
-    | PostgreSQL | localhost:5432         | Base de datos relacional           |
+## Organización del repositorio
 
----
-
-## ✅ Primer uso
-
-1. Abre [http://localhost](http://localhost)
-2. Introduce un repositorio de GitHub (ej: `https://github.com/usuario/repositorio.git`)
-3. Interacciona con las distintas herramientas
-
----
+├── Project/backend/ # Servidor Express y lógica de auditoría
+├── Project/frontend/ # Aplicación React con todas las visualizaciones
+├── documentación/ # Documentación técnica (aún no finalizada)
+└── README.md # Este archivo
 
 
+## Metodología
+
+Este TFG ha sido desarrollado siguiendo la metodología ágil SCRUM, organizada en sprints funcionales que abarcaron desde la creación del sistema base hasta la validación en entornos reales.
+
+## Contribuciones futuras
+
+- Integración con GitHub Classroom
+- Añadir métricas de calidad del código
+- Soporte a más plataformas (GitLab, Bitbucket)
+- Implementación de un modo profesor/alumno
+
+## Contacto
+
+Para más información sobre el proyecto o interés en colaborar:
+
+juan.cobo@alumnos.uneatlantico.es
 
 
