@@ -49,7 +49,7 @@ El sistema aún está en desarrollo pero ya es funcional y se ha probado para el
 
 ├── documentación/ # Documentación técnica (aún no finalizada)
 
-└── README.md # Este archivo
+
 
 
 ## Metodología
