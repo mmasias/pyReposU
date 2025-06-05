@@ -43,9 +43,12 @@ El sistema aún está en desarrollo pero ya es funcional y se ha probado para el
 
 ## Organización del repositorio
 
-├── Project/backend/ # Servidor Express y lógica de auditoría
+├──Project/backend/ # Servidor Express y lógica de auditoría
+
 ├── Project/frontend/ # Aplicación React con todas las visualizaciones
+
 ├── documentación/ # Documentación técnica (aún no finalizada)
+
 └── README.md # Este archivo
 
 
