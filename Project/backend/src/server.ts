@@ -7,7 +7,7 @@ import { setupSwagger } from './swagger';
 import { errorHandler } from "./middleware/errorHandler";
 import { config } from "./config/config";
 import { sequelize } from './config/db';
-import './models'; // <-- MUY IMPORTANTE que esté aquí para registrar modelos
+import './models'; 
 
 dotenv.config();
 
