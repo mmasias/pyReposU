@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
@@ -14,14 +12,11 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - myapp-network
-    mem_limit: 4g
-    memswap_limit: 6g
+
   backend:
     build: ./backend
     ports:
       - "5000:5000"
-    expose:
-      - "5000"
     depends_on:
       - db
     environment:
@@ -29,8 +24,6 @@ services:
       DB_USER: postgres
       DB_PASS: 0000
       DB_NAME: githubDB
-    volumes:
-      - ./backend:/app
     networks:
       - myapp-network
 
