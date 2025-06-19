@@ -87,16 +87,15 @@ useEffect(() => {
       const createdAt = repoInfo.created_at.split("T")[0];
 
       setRepoCreatedAt(createdAt);
-      if (!startDate) {
-        console.log("  Asignando startDate:", createdAt);
-        setStartDate(createdAt);
-      }
-      if (!endDate) {
-        const today = new Date();
-        const todayLocal = today.toLocaleDateString("sv-SE"); 
-        console.log("  Asignando endDate:", today);
-        setEndDate(todayLocal);
-      }
+      const today = new Date();
+      const todayLocal = today.toLocaleDateString("sv-SE");
+
+      console.log("📅 Asignando nuevas fechas para nuevo repo:");
+      console.log("   ➜ startDate:", createdAt);
+      console.log("   ➜ endDate:", todayLocal);
+
+      setStartDate(createdAt);
+      setEndDate(todayLocal);
 
       fetchData();
     } catch (error) {

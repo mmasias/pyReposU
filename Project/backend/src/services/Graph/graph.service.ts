@@ -65,7 +65,10 @@ export const getRepoGraphService = async (repoUrl: string): Promise<CommitNode[]
 
     const [commitFiles, commitBranches, commitParents, branches] = await Promise.all([
       CommitFile.findAll({ where: { commitId: commitIds } }),
-      CommitBranch.findAll({ where: { commitId: commitIds }, include: [Branch] }),
+      CommitBranch.findAll({
+        where: { commitId: commitIds },
+        include: [{ model: Branch, as: 'branch' }],
+      }),
       CommitParent.findAll({ where: { childId: commitIds } }),
       Branch.findAll({ where: { repositoryId: repo.id } }),
     ]);
