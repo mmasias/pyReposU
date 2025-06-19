@@ -9,7 +9,7 @@ import { Comment } from '../../models/Comment';
 import { Parser } from 'json2csv';
 import { Branch, CommitBranch } from '../../models';
 import { UserRepoStats } from '../../models/UserRepoStats';
-import { wasProcessed, markProcessed } from '../syncState';
+import { wasProcessed, markProcessed } from '../sync/syncState';
 import { CommitSyncState } from '../../models/CommitSyncState';
 import { AppError } from "../../middleware/errorHandler";
 

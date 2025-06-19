@@ -1,13 +1,13 @@
 import simpleGit from 'simple-git';
-import { Commit } from '../models/Commit';
-import { CommitFile } from '../models/CommitFile';
-import { User } from '../models/User';
-import { Repository } from '../models/Repository';
-import { CommitBranch } from '../models/CommitBranch';
-import { Branch } from '../models/Branch';
-import { CommitParent } from '../models/CommitParent';
-import { prepareRepo } from '../utils/gitRepoUtils';
-import { AppError } from '../middleware/errorHandler';
+import { Commit } from '../../models/Commit';
+import { CommitFile } from '../../models/CommitFile';
+import { User } from '../../models/User';
+import { Repository } from '../../models/Repository';
+import { CommitBranch } from '../../models/CommitBranch';
+import { Branch } from '../../models/Branch';
+import { CommitParent } from '../../models/CommitParent';
+import { prepareRepo } from '../../utils/gitRepoUtils';
+import { AppError } from '../../middleware/errorHandler';
 
 type CommitNode = {
   sha: string;

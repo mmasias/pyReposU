@@ -1,12 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import ThemeSwitcher from "./ThemeSwitcher";
 
 const Navbar = () => {
   const location = useLocation();
 
   // Mapa de títulos según la ruta actual
   const titles: Record<string, string> = {
-    "/": "Framework de análisis",
+    "/": "Sistema de auditoría de repositorios de GitHub",
     "/visualizador": "Visualizador Evolutivo de Código",
     "/mapa-heatmap": "Mapa de Contribuciones",
     "/mapa-bubblechart": "Evolución del Código",
@@ -44,8 +43,6 @@ const Navbar = () => {
             )
         )}
       </div>
-
-      <ThemeSwitcher />
     </nav>
   );
 };

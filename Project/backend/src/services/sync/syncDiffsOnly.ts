@@ -1,7 +1,7 @@
 import { Commit } from "../../models/Commit";
 import { CommitFile } from "../../models/CommitFile";
 import { Repository } from "../../models/Repository";
-import { wasProcessed, markProcessed } from "../../services/syncState";
+import { wasProcessed, markProcessed } from "./syncState";
 import { getFileContent, fileExistsInCommit } from "../../utils/gitRepoUtils";
 import { generateFileDiff } from "../../utils/diffUtils";
 import path from "path";

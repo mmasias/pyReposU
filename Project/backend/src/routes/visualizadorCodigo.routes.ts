@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getCommitsHandler } from '../controllers/VisualizadorCodigo/carpetas/commits.controller';
-import { getFileContentHandler} from '../controllers/VisualizadorCodigo/archivos/getFileContent.controller';
+import { getFileContentHandler} from '../controllers/VisualizadorCodigo/carpetas/getFileContent.controller';
 import {analyzeDeepHandler, analyzeExpressHandler} from '../controllers/VisualizadorCodigo/archivos/fileanalysis.controller.';
 import { getRepositoryTree } from '../controllers/VisualizadorCodigo/carpetas/folderTree.controller';
 import { getCurrentBranch } from '../controllers/VisualizadorCodigo/carpetas/getCurrentBranch.controller';

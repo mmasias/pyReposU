@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { getContributionsByUser } from "../../services/HeatMap/heatMap";
+import { getContributionsByUser } from "../../services/HeatMap/heatMapService";
 import { Repository } from "../../models/Repository"; 
 import { CommitBranch } from "../../models/CommitBranch";
 import { Branch } from "../../models/Branch"; 
 import { Commit } from "../../models/Commit"; 
-import { wasProcessed } from "../../services/syncState";
+import { wasProcessed } from "../../services/sync/syncState";
 import { AppError } from "../../middleware/errorHandler"; 
 
 type CommitBranchWithCommit = CommitBranch & {

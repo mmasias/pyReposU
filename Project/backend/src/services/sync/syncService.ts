@@ -1,26 +1,21 @@
-import { User } from "../models/User";
-import { CommitBranch } from "../models/CommitBranch";
-import { CommitParent } from "../models/CommitParent";
-import { PullRequest } from '../models/PullRequest';
+import { User } from "../../models/User"
+import { PullRequest } from '../../models/PullRequest';
 import axios, { AxiosResponse } from 'axios';
-import { Repository } from '../models/Repository';
-import { Issue } from '../models/Issue';
-import { Comment } from "../models";
-import { Branch as BranchModel } from "../models/Branch";
+import { Repository } from '../../models/Repository';
+import { Issue } from '../../models/Issue';
+import { Comment } from "../../models";
+import { Branch as BranchModel } from "../../models/Branch";
 import simpleGit from "simple-git";
-import { prepareRepo } from "../utils/gitRepoUtils";
-import { Repository as RepositoryModel } from "../models/Repository";
-import { Branch } from "../models/Branch";
-import { BranchStats } from "../models/BranchStats";
-import { ContributionCache } from "../models/ContributionCache";
-import { syncCommits } from "./sync/syncCommits";
-import { syncStatsOnly } from "./sync/syncStatsOnly";
-import { syncDiffsOnly } from "./sync/syncDiffsOnly";
-import { SyncOptions } from "../types/syncOptions";
+import { prepareRepo } from "../../utils/gitRepoUtils";
+import { Repository as RepositoryModel } from "../../models/Repository";
+import { syncCommits } from "./syncCommits";
+import { syncStatsOnly } from "./syncStatsOnly";
+import { syncDiffsOnly } from "./syncDiffsOnly";
+import { SyncOptions } from "../../types/syncOptions";
 import { wasProcessed } from "./syncState";
 import { markProcessed } from "./syncState";
-import { AppError } from '../middleware/errorHandler';
-import { config } from "../config/config"; // asegurate de tener esto arriba
+import { AppError } from '../../middleware/errorHandler';
+import { config } from "../../config/config"; // asegurate de tener esto arriba
 
 
 const syncingRepos = new Set<string>();

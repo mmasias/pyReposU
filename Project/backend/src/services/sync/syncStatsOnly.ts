@@ -3,7 +3,7 @@ import { CommitFile } from "../../models/CommitFile";
 import { Repository } from "../../models/Repository";
 import { getCommits, getCommitDiffStats } from "../../utils/gitRepoUtils";
 import { normalizePath } from "../../utils/file.utils";
-import { wasProcessed, markProcessed } from "../../services/syncState";
+import { wasProcessed, markProcessed } from "./syncState";
 import path from "path";
 import { AppError } from "../../middleware/errorHandler";
 

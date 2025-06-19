@@ -1,5 +1,5 @@
 
-import { CommitSyncState } from "../models/CommitSyncState";
+import { CommitSyncState } from "../../models/CommitSyncState";
 
 export const wasProcessed = async (entityId: number, type: string): Promise<boolean> => {
   const found = await CommitSyncState.findOne({
