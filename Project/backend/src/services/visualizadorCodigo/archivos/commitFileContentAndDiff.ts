@@ -1,7 +1,7 @@
-import { Commit, CommitFile, Repository } from "../models";
-import { getFileContent, getFileDiff, prepareRepo } from "../utils/gitRepoUtils";
+import { Commit, CommitFile, Repository } from "../../../models";
+import { getFileContent, getFileDiff, prepareRepo } from "../../../utils/gitRepoUtils";
 import simpleGit from "simple-git";
-import { AppError } from "../middleware/errorHandler";
+import { AppError } from "../../../middleware/errorHandler";
 
 /**
  * Asegura que un archivo tenga contenido y/o diff cacheado para un commit.

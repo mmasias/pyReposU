@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { syncRepoIfNeeded } from "../services/syncService";
+import { syncRepoIfNeeded } from "../services/sync/syncService";
 import { SyncOptions } from "../types/syncOptions";
 import { Branch } from "../models/Branch";
 import { Repository } from "../models/Repository";

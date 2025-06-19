@@ -2,7 +2,7 @@ import React from "react";
 
 interface CommitInfoProps {
   commit: {
-    hash: string;
+    commitHash: string;
     author: string;
     date: string;
     message: string;
@@ -16,7 +16,7 @@ const CommitInfo: React.FC<CommitInfoProps> = ({ commit }) => {
     <div className="mb-6 bg-white p-4 rounded shadow text-sm text-gray-700 border border-gray-200">
       <p>
         <strong className="text-gray-600">Commit actual:</strong>{" "}
-        <span className="font-mono text-blue-700">{commit.hash}</span>
+        <span className="font-mono text-blue-700">{commit.commitHash}</span>
       </p>
       <p>
         <strong className="text-gray-600">Autor:</strong> {commit.author}

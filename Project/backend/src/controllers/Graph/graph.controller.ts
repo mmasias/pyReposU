@@ -1,6 +1,6 @@
 import { Request, Response, RequestHandler, NextFunction } from 'express';
-import { getRepoGraphService } from '../services/graph.service';
-import { AppError } from '../middleware/errorHandler';
+import { getRepoGraphService } from '../../services/Graph/graph.service';
+import { AppError } from '../../middleware/errorHandler';
 
 export const getRepoGraphController: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   console.log("[GRAPH] Query recibida:", req.query); 

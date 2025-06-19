@@ -1,9 +1,9 @@
-import { Commit } from '../models/Commit';
-import { CommitFile } from '../models/CommitFile';
-import { User } from '../models/User';
-import { Repository } from '../models/Repository';
+import { Commit } from '../../models/Commit';
+import { CommitFile } from '../../models/CommitFile';
+import { User } from '../../models/User';
+import { Repository } from '../../models/Repository';
 import { Op, Sequelize } from 'sequelize';
-import { AppError } from '../middleware/errorHandler';
+import { AppError } from '../../middleware/errorHandler';
 
 interface BubbleChartData {
   [user: string]: {

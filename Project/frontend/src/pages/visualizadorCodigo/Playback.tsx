@@ -7,6 +7,7 @@ import CommitNavigation from "../../components/visualizadorCodigo/CommitNavigati
 import DiffViewer from "../../components/visualizadorCodigo/DiffViewer";
 import AIAnalysisPanel from "../../components/visualizadorCodigo/AIAnalysisPanel";
 import { ERROR_MESSAGES, CONSOLE_LOG_MESSAGES } from "../../utils/constants/errorConstants";
+import { getTreeFromCache } from "../../utils/cacheUtils";
 
 const Playback = () => {
   const { repoUrl = "", filePath = "" } = useParams<{ repoUrl: string; filePath: string }>();
@@ -32,29 +33,30 @@ const Playback = () => {
     return path.includes(".") ? path : `${path}/README.md`;
   }, [filePath]);
 
-  const fetchCommits = async () => {
+  const fetchPlaybackData = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo`, {
-        params: { repoUrl: repo },
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/playback`, {
+        params: {
+          repoUrl: repo,
+          filePath: normalizedFilePath,
+          branch: "main", // ⚠️ puedes cambiar esto por una rama seleccionada si lo necesitas dinámico
+        },
       });
 
-      const filtered = response.data.filter(
-        (commit: any) =>
-          Array.isArray(commit.files) &&
-          commit.files.some((file: string) => file.startsWith(normalizedFilePath))
-      );
-
-      if (filtered.length === 0) {
+      const commitsFromServer = response.data || [];
+      if (!commitsFromServer.length) {
         setError(ERROR_MESSAGES.NO_COMMITS_FOUND);
         return;
       }
 
-      setCommits(filtered);
+    const reversed = [...commitsFromServer].reverse(); 
+    setCommits(commitsFromServer);    setCurrentIndex(0);
     } catch (err) {
       console.error(CONSOLE_LOG_MESSAGES.PLAYBACK_ERROR_LOADING_COMMITS, err);
       setError(ERROR_MESSAGES.ERROR_LOADING_COMMITS);
     }
   };
+
 
   const fetchFileContent = async (commitHash: string, setContent: (content: string[]) => void) => {
     try {
@@ -93,41 +95,55 @@ const Playback = () => {
       setRemovedLines([]);
     }
   };
-
+  
+  useEffect(() => {
+    const savedTree = getTreeFromCache(repo, "main"); // o usa la branch dinámica si se soporta
+    if (savedTree) {
+      console.log(" Árbol cargado desde cache para Playback:", savedTree);
+      // podrías mostrarlo, pasarlo a otro comp, o simplemente saber que existe
+    }
+  }, [repo]);
 
   useEffect(() => {
-    fetchCommits();
+    fetchPlaybackData();
   }, [repo, filePath]);
 
   useEffect(() => {
     if (!commits.length) return;
-  
+
+    const previous = currentIndex > 0 ? commits[currentIndex - 1] : null;
     const current = commits[currentIndex];
-    const previous = commits[currentIndex + 1];
-  
-    // Evitar commits huérfanos sin hash
-    if (!current?.hash) return;
-  
-    fetchFileContent(current.hash, setCurrContent);
-  
-    if (previous?.hash) {
-      fetchFileContent(previous.hash, setPrevContent);
-      fetchDiff(previous.hash, current.hash);
+
+    setCurrContent(current.content?.split("\n") || []);
+
+    const diffLines = (current.diffWithPrev || "").split("\n");
+
+    if (previous) {
+      setPrevContent(previous.content?.split("\n") || []);
+      setAddedLines(diffLines.filter((l: string) => l.startsWith("+ ")).map((l: string) => l.slice(2)));
+      setRemovedLines(diffLines.filter((l: string) => l.startsWith("- ")).map((l: string) => l.slice(2)));
     } else {
       setPrevContent([]);
       setAddedLines([]);
       setRemovedLines([]);
     }
-  
+
     setAnalysisResult(null);
   }, [commits, currentIndex]);
+
+
+
   
   const handlePrevious = () => {
-    if (currentIndex + 1 < commits.length) setCurrentIndex(currentIndex + 1);
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
   };
 
   const handleNext = () => {
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+    if (currentIndex < commits.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
   };
 
   const goToCommit = (hash: string) => {
@@ -136,20 +152,33 @@ const Playback = () => {
   };
 
   const handleExpressAnalysis = async () => {
-    if (commits.length < 2) return;
+    if (commits.length < 2 || currentIndex === 0) {
+      alert("Este es el primer commit. No hay cambios anteriores para analizar.");
+      return;
+    }
 
-    const oldHash = commits[currentIndex + 1]?.hash;
-    const newHash = commits[currentIndex]?.hash;
+    const newHash = commits[currentIndex].commitHash || commits[currentIndex].hash;
+    const oldHash = commits[currentIndex - 1]?.commitHash || commits[currentIndex - 1]?.hash;
+    if (!oldHash || !newHash) {
+      alert("No se pudo encontrar un commit anterior válido para comparar.");
+      return;
+    }
 
-    if (!oldHash || !newHash) return;
+
 
     setLoadingAnalysis(true);
     setAnalysisResult(null);
 
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/visualizadorCodigo/analyze-express`, {
-        params: { repoUrl, filePath: normalizedFilePath, commitHashOld: oldHash, commitHashNew: newHash },
+        params: {
+          repoUrl,
+          filePath: normalizedFilePath,
+          commitHashOld: oldHash,
+          commitHashNew: newHash,
+        },
       });
+
       setAnalysisResult(response.data);
     } catch (err) {
       console.error(CONSOLE_LOG_MESSAGES.QUICK_ANALYSIS_FAILED, err);
@@ -158,6 +187,9 @@ const Playback = () => {
       setLoadingAnalysis(false);
     }
   };
+
+
+
 
   const handleDeepAnalysis = async () => {
     setLoadingAnalysis(true);
@@ -196,18 +228,17 @@ const Playback = () => {
       {error && <p className="text-center text-red-500">{error}</p>}
 
       <div className="container mx-auto px-4">
-        {currentCommit && <CommitInfo commit={currentCommit} />}
+        {currentCommit && <CommitInfo commit={commits[currentIndex]} />}
 
-        <CommitNavigation
-          currentIndex={currentIndex}
-          totalCommits={commits.length}
-          lastCommitHash={commits[0]?.hash}
-          onPrevious={handlePrevious}
-          onNext={handleNext}
-          onGoToFirst={() => goToCommit(commits[commits.length - 1]?.hash)}
-          onGoToLast={() => goToCommit(commits[0]?.hash)}
-        />
-
+<CommitNavigation
+  currentIndex={currentIndex}
+  totalCommits={commits.length}
+  lastCommitHash={commits[commits.length - 1]?.hash} // ✅ el más nuevo
+  onPrevious={handlePrevious}
+  onNext={handleNext}
+  onGoToFirst={() => setCurrentIndex(0)} // ✅ primer commit
+  onGoToLast={() => setCurrentIndex(commits.length - 1)} // ✅ último commit
+/>
 
         <DiffViewer
           leftLines={prevContent}
@@ -226,7 +257,12 @@ const Playback = () => {
         <CommitTimeline
           repoUrl={repo}
           filePath={normalizedFilePath}
-          onCommitClick={(hash) => goToCommit(hash)}
+          onCommitClick={(hash) => {
+            const idx = commits.findIndex(c => c.commitHash === hash || c.hash === hash);
+            if (idx !== -1) {
+              setCurrentIndex(idx);
+            }
+          }}
         />
       </div>
     </div>

@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import axios from "axios";
-import { FileAnalysis, Commit, CommitFile, Repository } from '../models';
-import { ensureCommitFileContentAndDiff } from "../services/fileAnalysisService";
-import { AppError } from "../middleware/errorHandler";
+import { FileAnalysis, Commit, CommitFile, Repository } from '../../../models';
+import { ensureCommitFileContentAndDiff } from "../../../services/visualizadorCodigo/archivos/commitFileContentAndDiff";
+import { AppError } from "../../../middleware/errorHandler";
+import { Op } from 'sequelize';
+
 
 // Prompt simplificado sin estructura JSON
 const buildSimplifiedPrompt = (
@@ -47,7 +49,9 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     }
 
     const commitFiles = await CommitFile.findAll({
-      where: { filePath },
+      where: {
+        filePath: { [Op.iLike]: `%${filePath}` }, 
+      },
       include: [{
         model: Commit,
         where: { repositoryId: repo.id },
@@ -79,7 +83,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     );
 
     const prompt = buildSimplifiedPrompt(snapshots);
-//    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
+    //const response = await axios.post("http://127.0.0.1:11434/api/generate", {
     const response = await axios.post("http://host.docker.internal:11434/api/generate", {
       model: "codellama:7b",
       prompt,
@@ -103,6 +107,7 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     next(new AppError("FAILED_TO_PERFORM_DEEP_ANALYSIS"));
   }
 };
+
 
 // --- ANÁLISIS EXPRESS ---
 export const analyzeExpressHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -148,10 +153,9 @@ export const analyzeExpressHandler = async (req: Request, res: Response, next: N
       { commit: normalizedHashes[0], content: oldSnapshot.content || "" },
       { commit: normalizedHashes[1], content: newSnapshot.content || "" },
     ]);
-//    const response = await axios.post("http://127.0.0.1:11434/api/generate", {
+   //const response = await axios.post("http://127.0.0.1:11434/api/generate", {
 
-    const response = await axios.post("http://host.docker.internal:11434/api/generate"
-, {
+    const response = await axios.post("http://host.docker.internal:11434/api/generate", {
       model: "codellama:7b",
       prompt,
       stream: false,

@@ -1,16 +1,16 @@
-import { Commit } from '../models/Commit';
-import { CommitFile } from '../models/CommitFile';
-import { User } from '../models/User';
-import { Repository } from '../models/Repository';
-import { Branch } from '../models/Branch';
-import { CommitBranch } from '../models/CommitBranch';
+import { Commit } from '../../models/Commit';
+import { CommitFile } from '../../models/CommitFile';
+import { User } from '../../models/User';
+import { Repository } from '../../models/Repository';
+import { Branch } from '../../models/Branch';
+import { CommitBranch } from '../../models/CommitBranch';
 import { Op } from 'sequelize';
-import { normalizePath } from "../utils/file.utils";
-import { getCurrentFilesFromBranch, getLastLocalCommitHash } from '../utils/gitRepoUtils';
-import { BranchStats } from '../models/BranchStats';
-import { ContributionCache } from '../models/ContributionCache';
+import { normalizePath } from "../../utils/file.utils";
+import { getCurrentFilesFromBranch, getLastLocalCommitHash } from '../../utils/gitRepoUtils';
+import { BranchStats } from '../../models/BranchStats';
+import { ContributionCache } from '../../models/ContributionCache';
 import levenshtein from 'fast-levenshtein';
-import { AppError } from '../middleware/errorHandler';
+import { AppError } from '../../middleware/errorHandler';
 
 interface ContributionStats {
   [path: string]: {

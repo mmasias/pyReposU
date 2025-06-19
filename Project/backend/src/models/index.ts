@@ -74,7 +74,7 @@ Commit.belongsToMany(Commit, {
   otherKey: 'parentId',
 });
 
-CommitBranch.belongsTo(Branch, { foreignKey: 'branchId' });
+CommitBranch.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 CommitBranch.belongsTo(Commit, { foreignKey: 'commitId', as: 'commit' });
 
 CommitParent.belongsTo(Commit, { foreignKey: 'parentId', as: 'parent' });
