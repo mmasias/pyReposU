@@ -46,14 +46,14 @@ useEffect(() => {
     if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
 
     try {
-      console.log(`  Enviando petición a: ${import.meta.env.VITE_API_URL}/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+     //console.log(`  Enviando petición a: ${import.meta.env.VITE_API_URL}/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL}/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
       );
 
-      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);
+      //console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);
     } catch (error) {
-      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, error);
+      //console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, error);
       setBranches(["main"]);
     }
   };
@@ -68,12 +68,12 @@ useEffect(() => {
   const fetchRepoData = async () => {
     if (!repoUrl.trim()) return;
     if (!repoUrl.startsWith("http")) {
-    console.log("[INIT] Inicializando datos con repo:", repoUrl);
+    //console.log("[INIT] Inicializando datos con repo:", repoUrl);
       return;
     }
 
     try {
-      console.log(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, repoUrl);
+      //console.log(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, repoUrl);
       const url = new URL(repoUrl);
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
@@ -90,9 +90,9 @@ useEffect(() => {
       const today = new Date();
       const todayLocal = today.toLocaleDateString("sv-SE");
 
-      console.log("📅 Asignando nuevas fechas para nuevo repo:");
-      console.log("   ➜ startDate:", createdAt);
-      console.log("   ➜ endDate:", todayLocal);
+      //console.log("📅 Asignando nuevas fechas para nuevo repo:");
+      //console.log("   ➜ startDate:", createdAt);
+      //console.log("   ➜ endDate:", todayLocal);
 
       setStartDate(createdAt);
       setEndDate(todayLocal);

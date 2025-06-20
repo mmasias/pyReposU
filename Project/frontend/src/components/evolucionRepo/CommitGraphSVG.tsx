@@ -19,7 +19,7 @@ const CommitGraphSVG: React.FC<Props> = ({
   branchColumnMap,
   branchColorMap,
 }) => {
-  console.log("🖼️ SVG render con commits:", commits.length);
+  //console.log("🖼️ SVG render con commits:", commits.length);
 
   const cellHeight = 40;
   const colWidth = 20;
@@ -42,7 +42,6 @@ const CommitGraphSVG: React.FC<Props> = ({
         const color = branchColorMap[branch] || "#999";
         const x = (branchColumnMap.get(branch) ?? 0) * colWidth + 10;
         const y = index * cellHeight + cellHeight / 2;
-        console.log(`🔘 Dibujando nodo para commit ${commit.sha} en branch ${branch}`);
         return (
           <g key={commit.sha}>
             

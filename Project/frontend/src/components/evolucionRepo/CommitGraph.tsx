@@ -23,7 +23,7 @@ interface CommitGraphProps {
 }
 
 const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
-  console.log("📦 CommitGraph recibió commits:", commits.length, commits.map(c => c.sha));
+  //console.log("📦 CommitGraph recibió commits:", commits.length, commits.map(c => c.sha));
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -45,8 +45,8 @@ const CommitGraph: React.FC<CommitGraphProps> = ({ commits }) => {
   const branchColorMap = Object.fromEntries(
     allBranches.map((branch) => [branch, branchColorScale(branch)])
   );
-console.log("🌿 branchColumnMap:", Array.from(branchColumnMap.entries()));
-console.log("🎨 branchColorMap:", branchColorMap);
+//console.log("🌿 branchColumnMap:", Array.from(branchColumnMap.entries()));
+//console.log("🎨 branchColorMap:", branchColorMap);
   const colWidth = 20;
   const graphColWidth = branchColumnMap.size * colWidth + 40;
   const gridTemplate = `160px ${graphColWidth}px 1fr 150px 180px 100px 160px`;
