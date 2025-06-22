@@ -85,9 +85,9 @@ export const analyzeDeepHandler = async (req: Request, res: Response, next: Next
     const prompt = buildSimplifiedPrompt(snapshots);
     //const response = await axios.post("http://127.0.0.1:11434/api/generate", {
     //const response = await axios.post("http://host.docker.internal:11434/api/generate", {
-      const response = await axios.post("http://172.17.0.1:11434/api/generate", {
+const response = await axios.post("https://auditoria.me/ollama/api/generate", {      
 	model: "tinyllama",
-      prompt,
+    prompt,
       stream: false,
     });
 
@@ -156,9 +156,9 @@ export const analyzeExpressHandler = async (req: Request, res: Response, next: N
     ]);
    //const response = await axios.post("http://127.0.0.1:11434/api/generate", {
 
-//    const response = await axios.post("http://host.docker.internal:11434/api/generate", {
-  const response = await axios.post("http://172.17.0.1:11434/api/generate", {
-	    model: "tinyllama",
+    //const response = await axios.post("http://host.docker.internal:11434/api/generate", {
+const response = await axios.post("https://auditoria.me/ollama/api/generate", {      
+model: "tinyllama",
       prompt,
       stream: false,
     });
