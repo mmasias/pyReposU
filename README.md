@@ -1,72 +1,124 @@
-# Sistema de Auditoría de Repositorios de GitHub
+# Sistema de auditoría de repositorios de GitHub
 
-Trabajo de Fin de Grado en Ingeniería Informática  
-Autor: Juan José Cobo Cano  
-Tutor: Manuel Masías Vergara  
-Fecha: Mayo de 2025  
-Universidad Europea del Atlántico
+## Marco teórico: 
 
-## Descripción del proyecto
+### Uso de repositorios en Ingeniería Informática
+- El uso de GitHub se ha convertido en un estándar dentro del desarrollo de software (facilitando el control de versiones, la colaboración en equipo y la trazabilidad del código). 
+- En el ámbito académico, especialmente en Ingeniería Informática, su adopción ha permitido a los estudiantes familiarizarse con flujos de trabajo reales desde etapas tempranas de su formación. 
+- A pesar de ello, la evaluación del desempeño individual dentro de los proyectos grupales sigue siendo un reto, ya que las métricas tradicionales como número de commits o líneas de código pueden ser fácilmente manipuladas y no reflejan con precisión la calidad ni el impacto de las contribuciones.
 
-Este sistema ha sido diseñado para mejorar la evaluación individual en proyectos colaborativos en GitHub, especialmente en entornos educativos donde el análisis objetivo de contribuciones es un reto.
-
-El proyecto propone un conjunto de herramientas visuales e interactivas que permiten a los docentes auditar de manera más clara, precisa y eficiente el desempeño de los estudiantes.
-
-## Objetivo general
-
-Desarrollar una plataforma web que permita a los docentes analizar la evolución del código, visualizar patrones de trabajo y obtener métricas precisas de participación en repositorios GitHub utilizados en asignaturas universitarias.
-
-## Funcionalidades destacadas
-
-- Visualizador de estructura de repositorio: explora las carpetas y archivos de cualquier rama de un repositorio.
-- Playback de commits: reproduce la evolución de un archivo línea a línea a lo largo del tiempo.
-- Mapa de calor de autoría: representa visualmente qué usuarios han trabajado en qué archivos y con qué intensidad.
-- Diagrama de burbujas: muestra gráficamente la actividad por usuario y archivo, facilitando la detección de patrones de colaboración.
-- Análisis multidimensional: genera estadísticas detalladas por usuario, rama y tipo de contribución (commits, PRs, issues, comentarios).
-- Visualizador de ramas y commits: permite comprender el flujo de trabajo mediante un grafo interactivo de ramas, merges y commits.
-
-## Validación
-
-El sistema aún está en desarrollo pero ya es funcional y se ha probado para el análisis de varios repositorios colaborativos comprobando:
-
-- Facilitación de la evaluación de trabajos colaborativos.
-- Optimización del tiempo empleado para evaluar repositorios colaborativos.
-
-## Tecnologías utilizadas
-
-- Backend: Node.js (Express)
-- Frontend: React + TailwindCSS
-- Base de datos: PostgreSQL
-- Visualizaciones: D3.js / Chart.js
-- Contenedores: Docker
-- IA: Modelos de análisis de código tipo CodeLlama
-
-## Organización del repositorio
-
-├──Project/backend/ # Servidor Express y lógica de auditoría
-
-├── Project/frontend/ # Aplicación React con todas las visualizaciones
-
-├── documentación/ # Documentación técnica (aún no finalizada)
+### Uso de repositorios en la Universidad Europea del Atlántico
+- Programación I y II.
+- Introducción a la Gestión de Proyectos Software.
+- Bases de datos I y II.
+- Estructuras de Datos y Algoritmos I y II.
+- Ingeniería de Software I y II.
+- Sistemas Distribuidos y Programación en Paralelo.
+- Dirección de Sistemas de la Información.
+- Programación web I y II.
 
 
+## Modelo del dominio:
+![Modelo MDD](./Documentación/img/MDD/MDD.png)
 
 
-## Metodología
+## Diagrama de estados:
 
-Este TFG ha sido desarrollado siguiendo la metodología ágil SCRUM, organizada en sprints funcionales que abarcaron desde la creación del sistema base hasta la validación en entornos reales.
+![Diagrama de Estados](./Documentación/img/MDD/DiagramaEstados.png)
 
-## Contribuciones futuras
+## Actores y Casos de Uso
 
-- Integración con GitHub Classroom
-- Añadir métricas de calidad del código
-- Soporte a más plataformas (GitLab, Bitbucket)
-- Implementación de un modo profesor/alumno
+### Actor único: 
+El sistema está diseñado para ser utilizado por un único actor: el **cliente**, típicamente un **docente universitario** que desea auditar la participación de sus estudiantes en proyectos colaborativos alojados en GitHub. Este cliente busca:
 
-## Contacto
+### Casos de uso:
 
-Para más información sobre el proyecto o interés en colaborar:
-
-juan.cobo@alumnos.uneatlantico.es
+![Actores y Casos de Uso](./Documentación/img/ActoresYCDU/CDU(1).png)
+![Casos de Uso Detallados 2](./Documentación/img/ActoresYCDU/CDU(2).png)
+![Casos de Uso Detallados 3](./Documentación/img/ActoresYCDU/CDU(3).png)
 
 
+## Diagrama de contexto
+
+### Navegación
+![Diagrama de navegación](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoNavegacion.png)
+
+### Funcionalidad 1 y 2: Visualizador estructura del repositorio
+![Visualizador estructura del repositorio](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoVisualizadorEstructura.png)
+
+### Funcionalidad 3: Mapa de calor
+![Mapa de calor](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoMapaCalor.png)
+
+### Funcionalidad 4: Mapa de burbujas
+![Mapa de burbujas](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoMapBurbujas.png)
+
+### Funcionalidad 5: Análisis multidimensional
+![Análisis multidimensional](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoAnalisisMultidimensional.png)
+
+### Funcionalidad 6: Gráfico de ramas y commits
+![Gráfico de ramas y commits](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoVisualizadorCommitsRamas.png)
+
+## Detalle de casos de uso:
+
+
+### CU06: Seleccionar un archivo para el playback:
+![Caso de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/DetalleCDU06.png)
+
+#### Interfaz de usuario propuesta:
+![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU061.png)
+![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU062.png)
+
+#### Análisis (MVC):
+![MVC ](./Documentación/img/ActoresYCDU/Analisis/MVC.png)
+
+##### Capa de presentación:
+![Presentacion ](./Documentación/img/ActoresYCDU/Analisis/capaPresentacion.png)
+
+##### Capa de negocio:
+![Negocio ](./Documentación/img/ActoresYCDU/Analisis/capaNegocio.png)
+
+##### Capa de datos:
+![Datos ](./Documentación/img/ActoresYCDU/Analisis/capaDatos.png)
+
+#### Diseño:
+
+##### Tecnologías empleadas
+
+| Categoría         | Tecnología         | Descripción breve                                      |
+|-------------------|--------------------|--------------------------------------------------------|
+| Backend           | Node.js            | Entorno de ejecución JavaScript del lado del servidor |
+| Backend           | Express.js         | Framework minimalista para construir APIs REST        |
+| Backend           | Sequelize          | ORM para gestionar modelos y consultas en PostgreSQL  |
+| Base de datos     | PostgreSQL         | Sistema de gestión de bases de datos relacional       |
+| Frontend          | React.js           | Librería para construir interfaces de usuario         |
+| Frontend          | Tailwind CSS       | Framework de CSS utilitario                           |
+| Frontend          | ShadCN/UI          | Librería de componentes UI moderna basada en Tailwind |
+| API externa       | GitHub REST API    | Fuente de datos para auditar repositorios             |
+| Contenedores      | Docker             | Contenedores para backend, frontend y base de datos   |
+| Orquestación      | docker-compose     | Orquestación de servicios Docker                      |
+| Despliegue        | DigitalOcean       | Plataforma de despliegue en la nube                   |
+| Dominio propio    | auditoria.me       | Dominio personalizado configurado con Namecheap       |
+| Servidor web      | Nginx              | Servidor proxy inverso para gestión de HTTPS          |
+
+##### Diagrama de colaboración entre capas:
+![capas ](./Documentación/img/ActoresYCDU/Diseño/ColaboraciónCapas.png)
+
+##### Diagrama de colaboración CU06:
+![colaboracion06 ](./Documentación/img/ActoresYCDU/Diseño/ColaboracionCU06.png)
+
+##### Diagrama de secuencia CU06:
+![secuencia06 ](./Documentación/img/ActoresYCDU/Diseño/SecuenciaCU06.png)
+
+### CU19: Introducir url y rama (para el gráfico de ramas y commits):
+![Caso de uso 19 ](./Documentación/img/ActoresYCDU/DetalleCDU/DetalleCDU19.png)
+
+#### Diseño:
+
+#### Diagrama de colaboración entre capas:
+
+#### Diagrama de secuencia:
+
+## Solución: 
+https://auditoria.me
+
+## Conclusiones:

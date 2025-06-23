@@ -1,7 +1,0 @@
-@startuml
-[*] --> NoClonado
-NoClonado --> Clonando : Se ejecuta `git clone`
-Clonando --> Disponible : Clonación exitosa
-Disponible --> Eliminado : Se ejecuta `cleanRepo()`
-Eliminado --> [*]
-@enduml
