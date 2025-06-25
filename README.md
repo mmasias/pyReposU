@@ -62,7 +62,7 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 
 
 ### CU06: Seleccionar un archivo para el playback:
-![Caso de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/DetalleCDU06.png)
+![Detalle cdu de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/detalleCDU06.png)
 
 #### Interfaz de usuario propuesta:
 ![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU061.png)
