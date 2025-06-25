@@ -110,15 +110,26 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 ![secuencia06 ](./Documentación/img/ActoresYCDU/Diseño/SecuenciaCU06.png)
 
 ### CU19: Introducir url y rama (para el gráfico de ramas y commits):
-![Caso de uso 19 ](./Documentación/img/ActoresYCDU/DetalleCDU/DetalleCDU19.png)
-
-#### Diseño:
-
-#### Diagrama de colaboración entre capas:
-
-#### Diagrama de secuencia:
+## URL
+### X: Introducir url y rama (para el gráfico de ramas y commits):
+## URL
+### X: Introducir url y rama (para el gráfico de ramas y commits):
+## URL
 
 ## Solución: 
-https://auditoria.me
+https://auditoria.
 
-## Conclusiones:
+## Repositorios de prueba:
+- https://github.com/VeronikaEspa/23-24-IdSw1-SDR.git
+- https://github.com/0xJVR/24-25-IdSw2-SDD.git
+- https://github.com/aadrigaar/24-25-IdSw2-SDD.git
+- https://github.com/TheMoys/24-25-IdSw1-SDR.git
+- https://github.com/oscarsantasanchez/24-25-IdSw2-SDD.git
+
+## Conclusiones
+
+- El sistema desarrollado permite auditar de forma efectiva la participación de los estudiantes en proyectos colaborativos.
+- Ofrece métricas más ricas y representativas que las utilizadas tradicionalmente.
+- El diseño modular y extensible del sistema abre la puerta a futuras mejoras, como nuevas visualizaciones o integración con plataformas académicas existentes como Moodle o GitHub Classroom.
+- Ha sido probado con repositorios reales de asignaturas del grado en Ingeniería Informática, validando su utilidad y usabilidad en un contexto docente real.
+
