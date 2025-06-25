@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { getUserStatsHandler, exportStatsToCSV, getBranchesHandler } from "../controllers/userStats.controller";
+import { getUserStatsHandler } from "../controllers/analisisMultidimensional/userStats.controller";
+import { exportStatsToCSV } from "../controllers/analisisMultidimensional/exportStatsToCSV.controller";
+import { getBranchesHandler } from "../controllers/analisisMultidimensional/getBranchesHandler.controller";
 import { ensureRepoSynced } from "../middleware/ensureRepoSynced";
 
 const router = Router();

@@ -19,6 +19,8 @@ const CommitGraphSVG: React.FC<Props> = ({
   branchColumnMap,
   branchColorMap,
 }) => {
+  //console.log("🖼️ SVG render con commits:", commits.length);
+
   const cellHeight = 40;
   const colWidth = 20;
   const radius = 5;
@@ -34,16 +36,24 @@ const CommitGraphSVG: React.FC<Props> = ({
       style={{ pointerEvents: "none" }}
     >
       {commits.map((commit, index) => {
+
+
         const branch = commit.primaryBranch || "main";
         const color = branchColorMap[branch] || "#999";
         const x = (branchColumnMap.get(branch) ?? 0) * colWidth + 10;
         const y = index * cellHeight + cellHeight / 2;
-
         return (
           <g key={commit.sha}>
+            
             {/* Líneas hacia los padres */}
             {commit.parents.map((parentSha, i) => {
               const parentIndex = commitIndexMap[parentSha];
+              if (typeof parentIndex !== "number") {
+  console.warn("Missing parent commit in graph:", parentSha);
+  
+  return null;
+}
+
               const parent = commits[parentIndex];
               if (!parent) return null;
 

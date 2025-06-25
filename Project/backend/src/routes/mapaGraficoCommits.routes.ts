@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getRepoGraphController } from '../controllers/graph.controller';
+import { getRepoGraphController } from '../controllers/Graph/graph.controller';
 import { ensureRepoSynced } from '../middleware/ensureRepoSynced';
 
 const router = Router();

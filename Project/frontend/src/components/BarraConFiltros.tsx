@@ -13,7 +13,8 @@ interface FiltrosContribucionesProps {
   setEndDate: (date: string) => void;
   fetchData: () => void;
   mode: "heatmap" | "bubbleChart";
-  hideBranchSelect?: boolean; 
+  hideBranchSelect?: boolean;
+  includeAllBranchesOption?: boolean; 
 }
 
 const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
@@ -28,6 +29,8 @@ const FiltrosContribucionesYHeatMap: React.FC<FiltrosContribucionesProps> = ({
   fetchData,
   mode,
   hideBranchSelect = false, 
+  includeAllBranchesOption = true,
+
 }) => {
   const [branches, setBranches] = useState<string[]>(["main"]);
   const [repoCreatedAt, setRepoCreatedAt] = useState("");
@@ -43,14 +46,14 @@ useEffect(() => {
     if (!repoUrl.trim() || !repoUrl.startsWith("http")) return;
 
     try {
-      console.log(`  Enviando petición a: ${import.meta.env.VITE_API_URL}/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
+     //console.log(`  Enviando petición a: ${import.meta.env.VITE_API_URL}/analisisMultidimensionalRoutes/branches?repoUrl=${encodeURIComponent(repoUrl)}`);
       const { data } = await axios.get(
         `${import.meta.env.VITE_API_URL}/analisisMultidimensional/branches?repoUrl=${encodeURIComponent(repoUrl)}`
       );
 
-      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);
+      //console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, data);      setBranches(Array.isArray(data) ? data : ["main"]);
     } catch (error) {
-      console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, error);
+      //console.log(CONSOLE_LOG_MESSAGES.DATA_RECEIVED_FROM_BACKEND, error);
       setBranches(["main"]);
     }
   };
@@ -65,12 +68,12 @@ useEffect(() => {
   const fetchRepoData = async () => {
     if (!repoUrl.trim()) return;
     if (!repoUrl.startsWith("http")) {
-    console.log("[INIT] Inicializando datos con repo:", repoUrl);
+    //console.log("[INIT] Inicializando datos con repo:", repoUrl);
       return;
     }
 
     try {
-      console.log(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, repoUrl);
+      //console.log(CONSOLE_LOG_MESSAGES.ERROR_INITIALIZING_DATA, repoUrl);
       const url = new URL(repoUrl);
       const [repoOwner, repoNameRaw] = url.pathname.slice(1).split("/");
       if (!repoOwner || !repoNameRaw) throw new Error(" URL mal formada");
@@ -84,16 +87,15 @@ useEffect(() => {
       const createdAt = repoInfo.created_at.split("T")[0];
 
       setRepoCreatedAt(createdAt);
-      if (!startDate) {
-        console.log("  Asignando startDate:", createdAt);
-        setStartDate(createdAt);
-      }
-      if (!endDate) {
-        const today = new Date();
-        const todayLocal = today.toLocaleDateString("sv-SE"); 
-        console.log("  Asignando endDate:", today);
-        setEndDate(todayLocal);
-      }
+      const today = new Date();
+      const todayLocal = today.toLocaleDateString("sv-SE");
+
+      //console.log("📅 Asignando nuevas fechas para nuevo repo:");
+      //console.log("   ➜ startDate:", createdAt);
+      //console.log("   ➜ endDate:", todayLocal);
+
+      setStartDate(createdAt);
+      setEndDate(todayLocal);
 
       fetchData();
     } catch (error) {
@@ -134,7 +136,7 @@ useEffect(() => {
             onChange={(e) => setBranch(e.target.value)}
             className="mt-1 block w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
           >
-            {mode === "bubbleChart" && (
+            {mode === "bubbleChart" && includeAllBranchesOption && (
               <option key="all" value="all">
                 Todos
               </option>
