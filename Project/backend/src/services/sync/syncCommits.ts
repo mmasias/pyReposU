@@ -13,7 +13,7 @@ import {
 } from "../../utils/gitRepoUtils";
 import simpleGit from "simple-git";
 import { Repository } from "../../models/Repository";
-import { wasProcessed, markProcessed } from "../syncState";
+import { wasProcessed, markProcessed } from "./syncState";
 import { AppError } from "../../middleware/errorHandler";
 
 export const syncCommits = async (

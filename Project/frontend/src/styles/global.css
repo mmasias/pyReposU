@@ -5,6 +5,8 @@
 /*  Transiciones suaves entre modos claro/oscuro */
 html {
   transition: background-color 0.3s, color 0.3s;
+  overflow-y: auto;   /* 👈 Solo muestra scroll vertical cuando es necesario */
+  overflow-x: hidden; /* 👈 Nunca muestres scroll horizontal */
 }
 
 /*  Estilos base */
@@ -12,6 +14,8 @@ body {
   background-color: var(--backgroundLight);
   color: #1a202c; /* text-gray-900 */
   font-family: "Inter", sans-serif;
+  overflow-y: auto;   /* 👈 También aplica en el body por seguridad */
+  overflow-x: hidden;
 }
 
 body.dark {
@@ -44,6 +48,7 @@ body.dark {
 .button-primary:hover {
   background-color: #4338ca;
 }
+
 html.dark, body.dark {
   background-color: #1a1a1a !important; /* Fondo oscuro global */
   color: white !important;

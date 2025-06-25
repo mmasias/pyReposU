@@ -22,6 +22,7 @@ type StatsMap = Record<string, Record<string, UserData>>;
 
 const Analisis: React.FC = () => {
   const [data, setData] = useState<UserData[]>([]);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState("");
   const [since, setSince] = useState("");
   const [until, setUntil] = useState(new Date().toLocaleDateString("sv-SE")); // ← fecha local
@@ -88,38 +89,57 @@ const Analisis: React.FC = () => {
         params: { repoUrl: url }
       });
 
-
       const allBranches = ["Todas", ...branchList];
-
       const map: StatsMap = {};
+      let pending = allBranches.length - 1;
 
       for (const branch of allBranches) {
         const branchParam = branch === "Todas" ? "all" : branch;
 
-        const response = await axios.get<UserData[]>(`${import.meta.env.VITE_API_URL}/analisisMultidimensional`, {
-          params: { repoUrl: url, branch: branchParam, startDate: from, endDate: to }
-        });
+        try {
+          const response = await axios.get<UserData[]>(`${import.meta.env.VITE_API_URL}/analisisMultidimensional`, {
+            params: { repoUrl: url, branch: branchParam, startDate: from, endDate: to }
+          });
 
+          for (const user of response.data) {
+            map[user.user] ||= {};
+            map[user.user][branch] = { ...user, selectedBranch: branch };
+          }
 
-        for (const user of response.data) {
-          map[user.user] ||= {};
-          map[user.user][branch] = { ...user, selectedBranch: branch };
+          setStatsMap(prev => {
+            const updated = { ...prev };
+            for (const [user, branches] of Object.entries(map)) {
+              updated[user] ||= {};
+              updated[user][branch] = branches[branch];
+            }
+            return updated;
+          });
+
+          // 👇 Mostramos inmediatamente los datos de "Todas"
+          if (branch === "Todas") {
+            const initial = Object.entries(map).map(([_, branches]) => ({
+              ...branches["Todas"],
+              selectedBranch: "Todas"
+            }));
+            setData(initial);
+          }
+
+          if (branch !== "Todas") {
+            pending--;
+            setLoadingMessage(`⏳ Calculando rama ${branch}... Faltan ${pending} ramas`);
+          }
+        } catch (err) {
+          console.error(`❌ Error cargando datos para la rama ${branch}:`, err);
         }
       }
 
       localStorage.setItem(localKey, JSON.stringify(map));
-      setStatsMap(map);
-
-      const initial = Object.entries(map).map(([_, branches]) => ({
-        ...branches["Todas"],
-        selectedBranch: "Todas"
-      }));
-
-      setData(initial);
+      setLoadingMessage(null); // ✅ Finaliza la carga
     } catch (err) {
       console.error(ERROR_MESSAGES.QUICK_ANALYSIS_FAILED, err);
     }
   };
+
 
 
   return (
@@ -151,6 +171,11 @@ const Analisis: React.FC = () => {
       </div>
 
       <Graficos userData={data} />
+      {loadingMessage && (
+        <div className="p-4 text-sm text-yellow-800 bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+          {loadingMessage}
+        </div>
+      )}
 
       <TablaAnalisis
         data={data}

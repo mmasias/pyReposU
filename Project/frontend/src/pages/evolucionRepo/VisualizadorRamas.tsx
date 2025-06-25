@@ -31,6 +31,8 @@ const VisualizadorRamas = () => {
       if (!res.ok) throw new Error(await res.text());
 
       const data: Commit[] = await res.json();
+      console.log("🔄 Backend devuelve commits:", data.length, data.map(c => c.sha));
+
 
       const filtered = data
         .filter((commit) => {
@@ -39,9 +41,12 @@ const VisualizadorRamas = () => {
                 (!endDate || commitDate <= endDate);
         })
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); 
+console.log("🧹 Commits tras filtro de fechas:", filtered.length, filtered.map(c => c.sha));
 
+console.log("Filtered commits: ", filtered);
+console.log("🧠 Enviando a setCommits:", filtered.length);
 
-      setCommits(filtered);
+      setCommits([...filtered]);
     } catch (err) {
       console.error(ERROR_MESSAGES.ERROR_LOADING_COMMITS, err);
     }

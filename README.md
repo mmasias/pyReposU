@@ -19,12 +19,20 @@
 
 
 ## Modelo del dominio:
+
+<div align=center>
+
 ![Modelo MDD](./Documentación/img/MDD/MDD.png)
 
+</div>
 
 ## Diagrama de estados:
 
+<div align=center>
+
 ![Diagrama de Estados](./Documentación/img/MDD/DiagramaEstados.png)
+
+</div>
 
 ## Actores y Casos de Uso
 
@@ -33,10 +41,13 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 
 ### Casos de uso:
 
+<div align=center>
+
 ![Actores y Casos de Uso](./Documentación/img/ActoresYCDU/CDU(1).png)
 ![Casos de Uso Detallados 2](./Documentación/img/ActoresYCDU/CDU(2).png)
 ![Casos de Uso Detallados 3](./Documentación/img/ActoresYCDU/CDU(3).png)
 
+</div>
 
 ## Diagrama de contexto
 
@@ -72,13 +83,28 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 ![MVC ](./Documentación/img/ActoresYCDU/Analisis/MVC.png)
 
 ##### Capa de presentación:
+
+<div align=center>
+
 ![Presentacion ](./Documentación/img/ActoresYCDU/Analisis/capaPresentacion.png)
 
+</div>
+
 ##### Capa de negocio:
+
+<div align=center>
+
 ![Negocio ](./Documentación/img/ActoresYCDU/Analisis/capaNegocio.png)
 
+</div>
+
 ##### Capa de datos:
+
+<div align=center>
+
 ![Datos ](./Documentación/img/ActoresYCDU/Analisis/capaDatos.png)
+
+</div>
 
 #### Diseño:
 
@@ -132,4 +158,5 @@ https://auditoria.
 - Ofrece métricas más ricas y representativas que las utilizadas tradicionalmente.
 - El diseño modular y extensible del sistema abre la puerta a futuras mejoras, como nuevas visualizaciones o integración con plataformas académicas existentes como Moodle o GitHub Classroom.
 - Ha sido probado con repositorios reales de asignaturas del grado en Ingeniería Informática, validando su utilidad y usabilidad en un contexto docente real.
+
 
