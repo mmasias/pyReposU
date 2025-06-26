@@ -1,0 +1,31 @@
+@startuml CU04
+skin rose
+title Caso de Uso: Solicitar análisis ligero con IA
+
+[*] --> VISTA_REPRODUCCION_ACTIVA
+note right on link
+  El usuario accede al visualizador de código (Playback)
+end note
+
+state "Funcionalidad F2: Visualizador de código (Playback)" as F2 {
+  state VISTA_REPRODUCCION_ACTIVA
+  state RESULTADO_ANALISIS
+  state ANALISIS_SOLICITADO as " "
+}
+
+VISTA_REPRODUCCION_ACTIVA --> ANALISIS_SOLICITADO
+note right on link
+  El usuario solicita análisis ligero con IA
+end note
+
+
+ANALISIS_SOLICITADO --> RESULTADO_ANALISIS
+note right on link
+  El sistema muestra el resumen generado por la IA:
+  - Variables clave  
+  - Componentes del código  
+  - Observaciones automáticas
+end note
+
+RESULTADO_ANALISIS --> [*]
+@enduml

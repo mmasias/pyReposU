@@ -73,7 +73,7 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 
 
 ### CU06: Seleccionar un archivo para el playback:
-![Detalle cdu de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/detalleCDU06.png)
+![Detalle cdu de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/playback.png)
 
 #### Interfaz de usuario propuesta:
 ![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU061.png)
@@ -126,6 +126,18 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 | Dominio propio    | auditoria.me       | Dominio personalizado configurado con Namecheap       |
 | Servidor web      | Nginx              | Servidor proxy inverso para gestión de HTTPS          |
 
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px;">
+  <div style="text-align: center; width: 48%;">
+    <strong>Diagrama de arquitectura</strong><br>
+    <img src="./Documentación/img/ActoresYCDU/Diseño/diagramaArquitectura.png" alt="Diagrama de arquitectura" style="width: 100%; max-width: 100%;">
+  </div>
+  <div style="text-align: center; width: 48%;">
+    <strong>Diagrama de despliegue</strong><br>
+    <img src="./Documentación/img/ActoresYCDU/Diseño/diagramaDespliegue.png" alt="Diagrama de despliegue" style="width: 80%; max-width: 80%;">
+  </div>
+</div>
+
+
 ##### Diagrama de colaboración entre capas:
 ![capas ](./Documentación/img/ActoresYCDU/Diseño/ColaboraciónCapas.png)
 
@@ -135,17 +147,16 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 ##### Diagrama de secuencia CU06:
 ![secuencia06 ](./Documentación/img/ActoresYCDU/Diseño/SecuenciaCU06.png)
 
-### CU19: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
-### X: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
-### X: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
+### Otros casos de uso detallados:
+- CDU 8
+- CDU 15
+- CDU 19
 
 ## Solución: 
 https://auditoria.
 
 ## Repositorios de prueba:
+- https://github.com/mmasias/pyReposU.git
 - https://github.com/VeronikaEspa/23-24-IdSw1-SDR.git
 - https://github.com/0xJVR/24-25-IdSw2-SDD.git
 - https://github.com/aadrigaar/24-25-IdSw2-SDD.git

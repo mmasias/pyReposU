@@ -1,0 +1,39 @@
+@startuml CU01
+skin rose
+title Caso de Uso: Visualización de archivo con Playback
+
+[*] --> VISUALIZADOR_ESTRUCTURA_ABIERTO
+note right on link
+  El usuario abre el visualizador de estructura
+end note
+
+state "Funcionalidad F1: Visualizador estructura repositorio" as F1 {
+  state VISUALIZADOR_ESTRUCTURA_ABIERTO
+}
+
+VISUALIZADOR_ESTRUCTURA_ABIERTO --> ARCHIVO_SOLICITADO
+note right on link
+  El usuario solicita un archivo para playback
+end note
+
+state ARCHIVO_SOLICITADO as " "
+
+ARCHIVO_SOLICITADO --> VISTA_REPRODUCCION_ACTIVA
+note right on link
+  El sistema muestra:
+  - Archivo en estado del commit  
+  - Autor, fecha y mensaje  
+  - Líneas añadidas/borradas  
+
+  El sistema permite:
+  - Avanzar/retroceder entre commits  
+  - Solicitar análisis con IA  
+  - Regresar al visualizador de estructura
+end note
+
+state "Funcionalidad F2: Visualizador de código (Playback)" as F2 {
+  state VISTA_REPRODUCCION_ACTIVA
+}
+
+VISTA_REPRODUCCION_ACTIVA --> [*]
+@enduml

@@ -1,0 +1,31 @@
+@startuml CU06
+skin rose
+title Caso de Uso: Introducir URL y rama para gráfico de commits
+
+[*] --> GRAFICO_RAMAS_ABIERTO
+note right on link
+  El usuario accede al visualizador de ramas y commits
+end note
+
+state "Funcionalidad F6: Visualizador de ramas y commits" as F6 {
+  state GRAFICO_RAMAS_ABIERTO
+  state GRAFICO_RENDERIZADO
+  state URL_INTRODUCIDA as " "
+
+}
+
+GRAFICO_RAMAS_ABIERTO --> URL_INTRODUCIDA
+note right on link
+  El usuario introduce la URL del repositorio
+end note
+
+
+URL_INTRODUCIDA --> GRAFICO_RENDERIZADO
+note right on link
+  El sistema visualiza:
+  - El grafo de commits y ramas  
+  - Información detallada de cada commit
+end note
+
+GRAFICO_RENDERIZADO --> [*]
+@enduml

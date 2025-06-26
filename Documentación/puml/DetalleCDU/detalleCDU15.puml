@@ -1,0 +1,32 @@
+@startuml CU05
+skin rose
+title Caso de Uso: Introducir URL y rama para análisis multidimensional
+
+[*] --> ANALISIS_MULTIDIMENSIONAL_ABIERTO
+note right on link
+  El usuario accede al análisis multidimensional
+end note
+
+state "Funcionalidad F5: Análisis Multidimensional" as F5 {
+  state ANALISIS_MULTIDIMENSIONAL_ABIERTO
+  state RESULTADOS_MOSTRADOS
+  state URL_INTRODUCIDA as " "
+
+}
+
+ANALISIS_MULTIDIMENSIONAL_ABIERTO --> URL_INTRODUCIDA
+note right on link
+  El usuario introduce la URL del repositorio
+end note
+
+
+URL_INTRODUCIDA --> RESULTADOS_MOSTRADOS
+note right on link
+  El sistema presenta:
+  - Estadísticas generales y por usuario  
+  - Tablas y gráficos  
+  - Filtro por fecha y rama
+end note
+
+RESULTADOS_MOSTRADOS --> [*]
+@enduml
