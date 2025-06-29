@@ -134,7 +134,7 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 
 </div>
 
-##### Diseño caso de uso 06: Playback:
+##### Análisis caso de uso 06: Playback:
 <div align=center>
 
 ![Playback ](./Documentación/img/ActoresYCDU/Analisis/analisisCU06.png)
