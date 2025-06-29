@@ -52,35 +52,63 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 ## Diagrama de contexto
 
 ### Navegación
+<div align=center>
+
 ![Diagrama de navegación](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoNavegacion.png)
 
+</div>
+
 ### Funcionalidad 1 y 2: Visualizador estructura del repositorio
+<div align=center>
+
 ![Visualizador estructura del repositorio](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoVisualizadorEstructura.png)
+</div>
 
 ### Funcionalidad 3: Mapa de calor
+<div align=center>
+
 ![Mapa de calor](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoMapaCalor.png)
+</div>
 
 ### Funcionalidad 4: Mapa de burbujas
+<div align=center>
+
 ![Mapa de burbujas](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoMapBurbujas.png)
+</div>
 
 ### Funcionalidad 5: Análisis multidimensional
+<div align=center>
+
 ![Análisis multidimensional](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoAnalisisMultidimensional.png)
+</div>
 
 ### Funcionalidad 6: Gráfico de ramas y commits
+<div align=center>
+
 ![Gráfico de ramas y commits](./Documentación/img/ActoresYCDU/DiagramasContexto/DiagramaContextoVisualizadorCommitsRamas.png)
+</div>
 
 ## Detalle de casos de uso:
 
 
 ### CU06: Seleccionar un archivo para el playback:
+
+<div align=center>
+
 ![Detalle cdu de uso 06 ](./Documentación/img/ActoresYCDU/DetalleCDU/detalleCDU06.png)
+
+</div>
 
 #### Interfaz de usuario propuesta:
 ![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU061.png)
 ![Caso de uso 06 ](./Documentación/img/ActoresYCDU/InterfazCDU/interfazCU062.png)
 
 #### Análisis (MVC):
+<div align=center>
+
 ![MVC ](./Documentación/img/ActoresYCDU/Analisis/MVC.png)
+
+</div>
 
 ##### Capa de presentación:
 
@@ -106,9 +134,19 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 
 </div>
 
+##### Diseño caso de uso 06: Playback:
+<div align=center>
+
+![Playback ](./Documentación/img/ActoresYCDU/Analisis/analisisCU06.png)
+
+</div>
+
 #### Diseño:
 
 ##### Tecnologías empleadas
+
+<div align=center>
+
 
 | Categoría         | Tecnología         | Descripción breve                                      |
 |-------------------|--------------------|--------------------------------------------------------|
@@ -126,24 +164,37 @@ El sistema está diseñado para ser utilizado por un único actor: el **cliente*
 | Dominio propio    | auditoria.me       | Dominio personalizado configurado con Namecheap       |
 | Servidor web      | Nginx              | Servidor proxy inverso para gestión de HTTPS          |
 
+</div>
+
 ##### Diagrama de colaboración entre capas:
+
+<div align=center>
+
+
 ![capas ](./Documentación/img/ActoresYCDU/Diseño/ColaboraciónCapas.png)
 
+</div>
+
 ##### Diagrama de colaboración CU06:
+
+<div align=center>
+
 ![colaboracion06 ](./Documentación/img/ActoresYCDU/Diseño/ColaboracionCU06.png)
 
+</div>
+
 ##### Diagrama de secuencia CU06:
+
+<div align=center>
+
 ![secuencia06 ](./Documentación/img/ActoresYCDU/Diseño/SecuenciaCU06.png)
 
-### CU19: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
-### X: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
-### X: Introducir url y rama (para el gráfico de ramas y commits):
-## URL
+</div>
+
+### CU08, CU15, CU19: [Ver](./Documentación//Detalle%20de%20casos%20de%20uso//readme.md)
 
 ## Solución: 
-https://auditoria.
+https://auditoria.me
 
 ## Repositorios de prueba:
 - https://github.com/VeronikaEspa/23-24-IdSw1-SDR.git
