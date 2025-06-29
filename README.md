@@ -199,7 +199,7 @@ https://auditoria.me
 ## Repositorios de prueba:
 - https://github.com/VeronikaEspa/23-24-IdSw1-SDR.git
 - https://github.com/0xJVR/24-25-IdSw2-SDD.git
-- https://github.com/aadrigaar/24-25-IdSw2-SDD.git
+- https://github.com/MRSergio21/23-24-IdSw2-SDD.git
 - https://github.com/TheMoys/24-25-IdSw1-SDR.git
 - https://github.com/oscarsantasanchez/24-25-IdSw2-SDD.git
 
